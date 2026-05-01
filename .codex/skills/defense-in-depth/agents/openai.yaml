@@ -1,0 +1,7 @@
+interface:
+  display_name: "Defense In Depth"
+  short_description: "Validation patterns for layered, security-conscious engineering."
+  default_prompt: "Use $defense-in-depth to design layered validation for this bug fix or boundary check."
+
+policy:
+  allow_implicit_invocation: true

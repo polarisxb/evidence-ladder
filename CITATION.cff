@@ -1,0 +1,55 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software or its evaluation protocol in your research,
+  please cite it using the metadata below.
+title: >-
+  Evidence-Ladder: Multi-Source Evidence-Stratified Evaluation
+  for LLM Application Security
+abstract: >-
+  Evidence-Ladder is a black-box security evaluation framework for
+  LLM applications. It introduces a multi-source evidence-stratification
+  protocol (E0 not-evaluable, E1 text-claim, E2 judge-suspected,
+  E3 rule-verified, E4 tool-observed, E5 probe-verified), a Quartet
+  four-way control design (Clean / Attack / Quoted Attack /
+  Benign Distractor), a conflict-driven retesting loop, and an
+  E-level x Kill-chain two-dimensional evaluation matrix. The framework
+  targets trustworthy attack-success measurement that goes beyond
+  LLM-as-a-Judge, and is intended for prompt injection, system prompt
+  extraction, and agent over-privilege evaluation in deployed LLM
+  applications.
+authors:
+  - family-names: "Xu"
+    given-names: "Zihao"
+    name-particle: ""
+    alias: "polarisxb"
+    affiliation: "Independent"
+type: software
+repository-code: "https://github.com/polarisxb/evidence-ladder"
+url: "https://github.com/polarisxb/evidence-ladder"
+license: MIT
+version: "0.1.0"
+date-released: "2026-05-02"
+keywords:
+  - llm-security
+  - llm-evaluation
+  - prompt-injection
+  - llm-application-security
+  - evidence-stratified-asr
+  - black-box-evaluation
+  - llm-as-a-judge
+  - ai-red-team
+  - agent-evaluation
+  - kill-chain
+  - quartet-control
+preferred-citation:
+  type: software
+  title: >-
+    Evidence-Ladder: Multi-Source Evidence-Stratified Evaluation
+    for LLM Application Security
+  authors:
+    - family-names: "Xu"
+      given-names: "Zihao"
+      alias: "polarisxb"
+  year: 2026
+  url: "https://github.com/polarisxb/evidence-ladder"
+  version: "0.1.0"

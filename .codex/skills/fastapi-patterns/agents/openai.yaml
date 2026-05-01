@@ -1,0 +1,7 @@
+interface:
+  display_name: "FastAPI Patterns"
+  short_description: "Backend patterns for this FastAPI and SQLAlchemy codebase."
+  default_prompt: "Use $fastapi-patterns to implement or refactor a backend API, service, or model in this repository."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Attack Template Authoring"
+  short_description: "Rules for editing attack template JSON files in this repository."
+  default_prompt: "Use $attack-template-authoring to create or update attack template JSON files under backend/app/attack_templates."
+
+policy:
+  allow_implicit_invocation: true

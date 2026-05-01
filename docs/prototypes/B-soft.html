@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>天鉴 · 衡 — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:#fafafa;color:#666;font-size:14px;-webkit-font-smoothing:antialiased;display:flex;min-height:100vh}
+
+/* Sidebar - minimal and airy */
+.side{width:200px;background:#fff;position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;padding:24px 14px}
+.logo{display:flex;align-items:center;gap:9px;padding:0 6px 24px}
+.logo .mark{width:26px;height:26px;border-radius:7px;background:#111;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700}
+.logo h1{font-size:14px;font-weight:600;color:#111}
+nav a{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;color:#bbb;font-size:13px;font-weight:500;text-decoration:none;transition:all .15s;margin-bottom:1px}
+nav a:hover{color:#888}
+nav a.active{color:#111;background:#f5f5f5}
+
+/* Main content - generous spacing */
+main{margin-left:200px;flex:1;padding:48px 56px}
+
+h2{font-size:24px;font-weight:700;color:#111;letter-spacing:-.03em}
+.subtitle{color:#bbb;font-size:13px;margin-top:3px;margin-bottom:40px}
+
+/* Stats - airy with dividers */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-bottom:48px;padding-bottom:32px;border-bottom:1px solid #f0f0f0}
+.stat{padding:0 28px}
+.stat:first-child{padding-left:0}
+.stat:not(:first-child){border-left:1px solid #f0f0f0}
+.stat .label{font-size:11px;color:#ccc;font-weight:500;text-transform:uppercase;letter-spacing:.06em}
+.stat .value{font-size:36px;font-weight:700;color:#111;margin:8px 0 6px;font-family:'JetBrains Mono',monospace;letter-spacing:-.04em}
+.stat .change{font-size:11px;font-weight:500}
+.up{color:#16a34a}.down{color:#dc2626}.dim{color:#ddd}
+
+/* Section */
+.section{margin-bottom:48px}
+.sec-head{font-size:11px;font-weight:600;color:#ccc;text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px}
+
+/* Charts - side by side with room to breathe */
+.row{display:grid;grid-template-columns:3fr 2fr;gap:48px}
+.chart-area{height:200px}
+
+/* Severity - light and clean */
+.sv{display:flex;align-items:center;gap:10px;padding:8px 0}
+.sv .dot{width:6px;height:6px;border-radius:50%}
+.sv .name{font-size:12px;color:#aaa;width:55px}
+.sv .bar{flex:1;height:3px;background:#f0f0f0;border-radius:2px;overflow:hidden}
+.sv .fill{height:100%;border-radius:2px}
+.sv .num{font-size:12px;font-weight:500;color:#111;width:24px;text-align:right;font-family:'JetBrains Mono'}
+
+/* Table - clean and spacious */
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:12px 0;font-size:10px;font-weight:600;color:#ccc;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #eee}
+td{padding:18px 0;border-bottom:1px solid #f5f5f5;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.name-main{font-size:14px;color:#111;font-weight:500}
+.name-sub{font-size:11px;color:#ccc;margin-top:3px}
+.pill{display:inline-block;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:600}
+.p-c{background:#fef2f2;color:#ef4444}.p-h{background:#fffbeb;color:#d97706}.p-m{background:#fefce8;color:#ca8a04}.p-l{background:#f0fdf4;color:#16a34a}
+.score{font-family:'JetBrains Mono';font-weight:500;color:#111}
+.time{color:#ddd;font-size:12px}
+</style>
+</head>
+<body>
+
+<aside class="side">
+  <div class="logo"><div class="mark">S</div><h1>天鉴 · 衡</h1></div>
+  <nav>
+    <a class="active">Dashboard</a>
+    <a>New Scan</a>
+    <a>Templates</a>
+    <a>Playground</a>
+    <a>Compare</a>
+    <div style="flex:1"></div>
+    <a>Settings</a>
+    <a>About</a>
+  </nav>
+</aside>
+
+<main>
+  <h2>Dashboard</h2>
+  <p class="subtitle">AI application security assessment</p>
+
+  <div class="stats">
+    <div class="stat"><div class="label">Scans</div><div class="value">24</div><div class="change up">+3 this week</div></div>
+    <div class="stat"><div class="label">Vulnerabilities</div><div class="value" style="color:#ef4444">8</div><div class="change down">+2 new</div></div>
+    <div class="stat"><div class="label">Avg Score</div><div class="value">78.4</div><div class="change up">+3.2</div></div>
+    <div class="stat"><div class="label">ASR</div><div class="value">34<span style="font-size:20px;color:#ddd">%</span></div><div class="change dim">HarmBench</div></div>
+  </div>
+
+  <div class="section">
+    <div class="row">
+      <div>
+        <div class="sec-head">Score Trend</div>
+        <div class="chart-area"><canvas id="c1"></canvas></div>
+      </div>
+      <div>
+        <div class="sec-head">Severity</div>
+        <div style="display:flex;gap:20px;align-items:center;padding-top:8px">
+          <div style="width:100px;height:100px;position:relative">
+            <canvas id="c2"></canvas>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+              <span style="font-size:20px;font-weight:700;color:#111;font-family:'JetBrains Mono'">8</span>
+              <span style="font-size:9px;color:#ccc">total</span>
+            </div>
+          </div>
+          <div style="flex:1">
+            <div class="sv"><div class="dot" style="background:#ef4444"></div><span class="name">Critical</span><div class="bar"><div class="fill" style="width:12%;background:#ef4444"></div></div><span class="num">1</span></div>
+            <div class="sv"><div class="dot" style="background:#d97706"></div><span class="name">High</span><div class="bar"><div class="fill" style="width:30%;background:#d97706"></div></div><span class="num">3</span></div>
+            <div class="sv"><div class="dot" style="background:#ca8a04"></div><span class="name">Medium</span><div class="bar"><div class="fill" style="width:18%;background:#ca8a04"></div></div><span class="num">2</span></div>
+            <div class="sv"><div class="dot" style="background:#16a34a"></div><span class="name">Low</span><div class="bar"><div class="fill" style="width:22%;background:#16a34a"></div></div><span class="num">2</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-head">Recent Scans</div>
+    <table>
+      <thead><tr><th>Name</th><th>Risk</th><th style="text-align:right">Score</th><th style="text-align:right">Time</th></tr></thead>
+      <tbody>
+        <tr><td><div class="name-main">GPT-4o Full Assessment</div><div class="name-sub">Crescendo + TAP · gpt-4o</div></td><td><span class="pill p-h">HIGH</span></td><td class="score" style="text-align:right">72.5</td><td class="time" style="text-align:right">2 min ago</td></tr>
+        <tr><td><div class="name-main">Claude Prompt Injection</div><div class="name-sub">Standard scan · claude-3</div></td><td><span class="pill p-l">LOW</span></td><td class="score" style="text-align:right">94.2</td><td class="time" style="text-align:right">1 hr ago</td></tr>
+        <tr><td><div class="name-main">Gemini System Prompt Extraction</div><div class="name-sub">TAP tree search · gemini-pro</div></td><td><span class="pill p-m">MEDIUM</span></td><td class="score" style="text-align:right">81.0</td><td class="time" style="text-align:right">3 hr ago</td></tr>
+        <tr><td><div class="name-main">DeepSeek Crescendo Jailbreak</div><div class="name-sub">Multi-turn · deepseek</div></td><td><span class="pill p-c">CRITICAL</span></td><td class="score" style="text-align:right">65.3</td><td class="time" style="text-align:right">5 min ago</td></tr>
+        <tr><td><div class="name-main">Qwen Info Disclosure Test</div><div class="name-sub">Mutations · qwen-2</div></td><td><span class="pill p-l">LOW</span></td><td class="score" style="text-align:right">91.7</td><td class="time" style="text-align:right">1 day ago</td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+Chart.defaults.color='#ddd';Chart.defaults.borderColor='#f0f0f0';Chart.defaults.font.family="'Nunito'";
+new Chart(document.getElementById('c1'),{type:'line',data:{labels:['','','','','','','','','',''],datasets:[{data:[62,58,71,68,74,79,81,81,85,78],borderColor:'#111',backgroundColor:'rgba(0,0,0,.015)',fill:true,tension:.4,borderWidth:1.5,pointRadius:0,pointHoverRadius:4,pointHoverBackgroundColor:'#111'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:40,max:100,grid:{color:'#f5f5f5'},ticks:{font:{family:"'JetBrains Mono'",size:10}}},x:{display:false}}}});
+new Chart(document.getElementById('c2'),{type:'doughnut',data:{datasets:[{data:[1,3,2,2],backgroundColor:['#ef4444','#d97706','#ca8a04','#16a34a'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:true,cutout:'72%',plugins:{legend:{display:false}}}});
+</script>
+</body>
+</html>

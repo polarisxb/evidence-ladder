@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>天鉴 · 衡 — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#f8f9fa;--white:#fff;--text:#111;--text-2:#555;--text-3:#999;--text-4:#ccc;--line:#eee;--line2:#f3f3f3;--blue:#2563eb;--red:#dc2626;--orange:#d97706;--yellow:#ca8a04;--green:#16a34a;--r:10px;--rs:6px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text-2);font-size:14px;-webkit-font-smoothing:antialiased;display:flex;min-height:100vh}
+
+/* Sidebar */
+.side{width:220px;background:var(--white);position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;border-right:1px solid var(--line2);z-index:10}
+.side-brand{padding:20px 16px;display:flex;align-items:center;gap:10px}
+.side-brand .icon{width:30px;height:30px;border-radius:8px;background:var(--text);display:flex;align-items:center;justify-content:center;color:var(--white);font-weight:700;font-size:12px}
+.side-brand h1{font-size:15px;font-weight:700;color:var(--text)}
+.side-brand span{font-size:11px;color:var(--text-3)}
+.side-sep{height:1px;background:var(--line2);margin:4px 16px}
+.side nav{padding:8px 10px;flex:1}
+.side .nl{font-size:10px;font-weight:600;color:var(--text-4);text-transform:uppercase;letter-spacing:1.2px;padding:12px 8px 5px}
+.side a{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--rs);color:var(--text-3);font-size:13px;font-weight:500;text-decoration:none;transition:all .12s;margin-bottom:1px}
+.side a:hover{color:var(--text-2);background:#f5f5f5}
+.side a.on{color:var(--text);background:#f0f0f0;font-weight:600}
+.side a .ico{width:16px;height:16px;opacity:.5;flex-shrink:0}
+.side a.on .ico{opacity:.8}
+.side-bottom{padding:12px 16px;border-top:1px solid var(--line2);font-size:10px;color:var(--text-4);line-height:1.5}
+
+/* Main */
+.main{margin-left:220px;flex:1;min-height:100vh}
+.page{padding:32px 40px;max-width:1100px}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px}
+.hdr h2{font-size:24px;font-weight:700;color:var(--text);letter-spacing:-.03em}
+.hdr p{color:var(--text-3);font-size:13px;margin-top:3px}
+.hdr-actions{display:flex;gap:8px}
+.btn{padding:8px 16px;border-radius:var(--rs);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .12s}
+.btn-dark{background:var(--text);color:var(--white)}.btn-dark:hover{background:#333}
+.btn-outline{background:var(--white);color:var(--text-3);border:1px solid var(--line)}.btn-outline:hover{color:var(--text);border-color:#ddd}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-bottom:36px;padding-bottom:28px;border-bottom:1px solid var(--line2)}
+.stat{padding:0 28px}
+.stat:first-child{padding-left:0}
+.stat:not(:first-child){border-left:1px solid var(--line2)}
+.stat .lbl{font-size:11px;color:var(--text-4);font-weight:500;text-transform:uppercase;letter-spacing:.08em}
+.stat .val{font-size:38px;font-weight:700;color:var(--text);margin:6px 0 4px;font-family:'JetBrains Mono',monospace;letter-spacing:-.04em;line-height:1}
+.stat .meta{font-size:11px;font-weight:600;display:flex;align-items:center;gap:4px}
+.up{color:var(--green)}.down{color:var(--red)}.muted{color:var(--text-4)}
+
+/* Section */
+.sec{margin-bottom:32px}
+.sec-title{font-size:11px;font-weight:600;color:var(--text-4);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
+
+/* Grid */
+.g2{display:grid;grid-template-columns:3fr 2fr;gap:36px}
+.chart-box{height:200px}
+
+/* Severity */
+.sev{display:flex;align-items:center;gap:10px;padding:7px 0}
+.sev .d{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sev .n{font-size:12px;color:var(--text-3);width:55px}
+.sev .b{flex:1;height:3px;background:var(--line2);border-radius:2px;overflow:hidden}
+.sev .f{height:100%;border-radius:2px}
+.sev .c{font-size:12px;font-weight:600;color:var(--text);width:24px;text-align:right;font-family:'JetBrains Mono'}
+
+/* Categories */
+.cat{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line2)}
+.cat:last-child{border-bottom:none}
+.cat .cn{font-size:13px;color:var(--text);font-weight:500;width:160px}
+.cat .cb{flex:1;height:5px;background:var(--line2);border-radius:3px;overflow:hidden}
+.cat .cf{height:100%;border-radius:3px}
+.cat .cs{font-family:'JetBrains Mono';font-size:12px;font-weight:600;width:36px;text-align:right}
+.cat .co{font-size:10px;color:var(--text-4);width:44px;text-align:right;font-family:'JetBrains Mono'}
+
+/* Table */
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;padding:10px 0;font-size:10px;font-weight:600;color:var(--text-4);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--line)}
+tbody td{padding:16px 0;border-bottom:1px solid var(--line2);vertical-align:middle}
+tbody tr:hover{background:#fafafa}
+tbody tr:last-child td{border-bottom:none}
+.nc .mn{font-size:13px;color:var(--text);font-weight:600}
+.nc .sub{font-size:11px;color:var(--text-4);margin-top:2px;font-family:'JetBrains Mono'}
+.pill{display:inline-block;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:600;letter-spacing:.02em}
+.pc{background:#fef2f2;color:var(--red)}.ph{background:#fffbeb;color:var(--orange)}.pm{background:#fefce8;color:var(--yellow)}.pl{background:#f0fdf4;color:var(--green)}
+.sc{font-family:'JetBrains Mono';font-weight:600;color:var(--text);font-size:14px}
+.tm{color:var(--text-4);font-size:12px}
+
+/* Dot status */
+.dot-s{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px}
+
+/* Sev mini badges in table */
+.sb{display:flex;gap:2px}
+.sm{width:22px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--white);font-family:'JetBrains Mono'}
+</style>
+</head>
+<body>
+
+<aside class="side">
+  <div class="side-brand">
+    <div class="icon">S</div>
+    <div><h1>天鉴 · 衡</h1><span>v0.1.0</span></div>
+  </div>
+  <div class="side-sep"></div>
+  <nav>
+    <div class="nl">Main</div>
+    <a class="on"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Dashboard</a>
+    <a><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> New Scan</a>
+    <a><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Templates</a>
+    <div class="nl">Tools</div>
+    <a><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Playground</a>
+    <a><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Compare</a>
+    <div class="nl">System</div>
+    <a><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg> Settings</a>
+    <a><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> About</a>
+  </nav>
+  <div class="side-bottom">OWASP LLM Top 10<br>MITRE ATLAS · CVSS v4.0</div>
+</aside>
+
+<main class="main">
+  <div class="page">
+    <div class="hdr">
+      <div><h2>Dashboard</h2><p>AI application security assessment overview</p></div>
+      <div class="hdr-actions"><button class="btn btn-outline">Export</button><button class="btn btn-dark">+ New Scan</button></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="lbl">Scans</div><div class="val">24</div><div class="meta up">↑ 3 this week</div></div>
+      <div class="stat"><div class="lbl">Vulnerabilities</div><div class="val" style="color:var(--red)">8</div><div class="meta down">↑ 2 new findings</div></div>
+      <div class="stat"><div class="lbl">Avg Score</div><div class="val">78.4</div><div class="meta up">↑ 3.2 pts</div></div>
+      <div class="stat"><div class="lbl">ASR</div><div class="val">34<span style="font-size:20px;color:var(--text-4)">%</span></div><div class="meta muted">HarmBench</div></div>
+    </div>
+
+    <div class="sec">
+      <div class="g2">
+        <div>
+          <div class="sec-title">Security Score Trend</div>
+          <div class="chart-box"><canvas id="trend"></canvas></div>
+        </div>
+        <div>
+          <div class="sec-title">Severity Distribution</div>
+          <div style="display:flex;gap:20px;align-items:center;margin-top:8px">
+            <div style="width:110px;height:110px;position:relative">
+              <canvas id="sev"></canvas>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                <span style="font-size:22px;font-weight:700;color:var(--text);font-family:'JetBrains Mono'">8</span>
+                <span style="font-size:9px;color:var(--text-4);text-transform:uppercase;letter-spacing:1px">Total</span>
+              </div>
+            </div>
+            <div style="flex:1">
+              <div class="sev"><div class="d" style="background:var(--red)"></div><span class="n">Critical</span><div class="b"><div class="f" style="width:12%;background:var(--red)"></div></div><span class="c">1</span></div>
+              <div class="sev"><div class="d" style="background:var(--orange)"></div><span class="n">High</span><div class="b"><div class="f" style="width:30%;background:var(--orange)"></div></div><span class="c">3</span></div>
+              <div class="sev"><div class="d" style="background:var(--yellow)"></div><span class="n">Medium</span><div class="b"><div class="f" style="width:18%;background:var(--yellow)"></div></div><span class="c">2</span></div>
+              <div class="sev"><div class="d" style="background:var(--green)"></div><span class="n">Low</span><div class="b"><div class="f" style="width:22%;background:var(--green)"></div></div><span class="c">2</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">Category Scores · OWASP LLM Top 10</div>
+      <div>
+        <div class="cat"><span class="cn">Prompt Injection</span><div class="cb"><div class="cf" style="width:65%;background:var(--orange)"></div></div><span class="cs" style="color:var(--orange)">65</span><span class="co">LLM01</span></div>
+        <div class="cat"><span class="cn">System Prompt Leakage</span><div class="cb"><div class="cf" style="width:42%;background:var(--red)"></div></div><span class="cs" style="color:var(--red)">42</span><span class="co">LLM07</span></div>
+        <div class="cat"><span class="cn">Jailbreak</span><div class="cb"><div class="cf" style="width:88%;background:var(--green)"></div></div><span class="cs" style="color:var(--green)">88</span><span class="co">LLM01</span></div>
+        <div class="cat"><span class="cn">Info Disclosure</span><div class="cb"><div class="cf" style="width:73%;background:var(--yellow)"></div></div><span class="cs" style="color:var(--yellow)">73</span><span class="co">LLM02</span></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Recent Scans</span>
+        <span style="text-transform:none;letter-spacing:0;color:var(--blue);cursor:pointer;font-size:12px;font-weight:500">View all →</span>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Name</th>
+          <th>Model</th>
+          <th>Risk</th>
+          <th style="text-align:center">C</th><th style="text-align:center">H</th><th style="text-align:center">M</th><th style="text-align:center">L</th>
+          <th style="text-align:right">Score</th>
+          <th style="text-align:right">Time</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td class="nc"><div class="mn">GPT-4o Full Assessment</div><div class="sub">Crescendo + TAP · 4 categories</div></td>
+            <td style="font-size:12px;color:var(--text-3)">gpt-4o</td>
+            <td><span class="pill ph">HIGH</span></td>
+            <td style="text-align:center"><span class="sm" style="background:var(--red)">1</span></td>
+            <td style="text-align:center"><span class="sm" style="background:var(--orange)">3</span></td>
+            <td style="text-align:center"><span class="sm" style="background:var(--yellow)">2</span></td>
+            <td style="text-align:center"><span class="sm" style="background:var(--green)">2</span></td>
+            <td class="sc" style="text-align:right">72.5</td>
+            <td class="tm" style="text-align:right">2 min ago</td>
+          </tr>
+          <tr>
+            <td class="nc"><div class="mn">Claude Prompt Injection Sweep</div><div class="sub">Standard scan · PI only</div></td>
+            <td style="font-size:12px;color:var(--text-3)">claude-3</td>
+            <td><span class="pill pl">LOW</span></td>
+            <td style="text-align:center"><span class="sm" style="background:#ddd">0</span></td>
+            <td style="text-align:center"><span class="sm" style="background:#ddd">0</span></td>
+            <td style="text-align:center"><span class="sm" style="background:var(--yellow)">1</span></td>
+            <td style="text-align:center"><span class="sm" style="background:var(--green)">3</span></td>
+            <td class="sc" style="text-align:right">94.2</td>
+            <td class="tm" style="text-align:right">1 hr ago</td>
+          </tr>
+          <tr>
+            <td class="nc"><div class="mn">Gemini System Prompt Extraction</div><div class="sub">TAP tree search · SP only</div></td>
+            <td style="font-size:12px;color:var(--text-3)">gemini-pro</td>
+            <td><span class="pill pm">MEDIUM</span></td>
+            <td style="text-align:center"><span class="sm" style="background:#ddd">0</span></td>
+            <td style="text-align:center"><span class="sm" style="background:var(--orange)">2</span></td>
+            <td style="text-align:center"><span class="sm" style="background:var(--yellow)">1</span></td>
+            <td style="text-align:center"><span class="sm" style="background:#ddd">0</span></td>
+            <td class="sc" style="text-align:right">81.0</td>
+            <td class="tm" style="text-align:right">3 hr ago</td>
+          </tr>
+          <tr>
+            <td class="nc"><div class="mn">DeepSeek Crescendo Jailbreak</div><div class="sub">Multi-turn · All categories</div></td>
+            <td style="font-size:12px;color:var(--text-3)">deepseek</td>
+            <td><span class="pill pc">CRITICAL</span></td>
+            <td style="text-align:center"><span class="sm" style="background:var(--red)">2</span></td>
+            <td style="text-align:center"><span class="sm" style="background:var(--orange)">3</span></td>
+            <td style="text-align:center"><span class="sm" style="background:#ddd">0</span></td>
+            <td style="text-align:center"><span class="sm" style="background:var(--green)">1</span></td>
+            <td class="sc" style="text-align:right">65.3</td>
+            <td class="tm" style="text-align:right">5 min ago</td>
+          </tr>
+          <tr>
+            <td class="nc"><div class="mn">Qwen Info Disclosure Test</div><div class="sub">Mutations enabled · ID only</div></td>
+            <td style="font-size:12px;color:var(--text-3)">qwen-2</td>
+            <td><span class="pill pl">LOW</span></td>
+            <td style="text-align:center"><span class="sm" style="background:#ddd">0</span></td>
+            <td style="text-align:center"><span class="sm" style="background:#ddd">0</span></td>
+            <td style="text-align:center"><span class="sm" style="background:var(--yellow)">1</span></td>
+            <td style="text-align:center"><span class="sm" style="background:var(--green)">2</span></td>
+            <td class="sc" style="text-align:right">91.7</td>
+            <td class="tm" style="text-align:right">1 day ago</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+Chart.defaults.color='#ccc';Chart.defaults.borderColor='#f0f0f0';Chart.defaults.font.family="'DM Sans'";
+new Chart(document.getElementById('trend'),{type:'line',data:{labels:['S-15','S-16','S-17','S-18','S-19','S-20','S-21','S-22','S-23','S-24'],datasets:[{data:[62,58,71,68,74,79,81,81,85,78],borderColor:'#111',backgroundColor:'rgba(0,0,0,.02)',fill:true,tension:.35,borderWidth:1.5,pointRadius:3,pointBackgroundColor:'#111',pointBorderColor:'#fff',pointBorderWidth:2,pointHoverRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},interaction:{intersect:false,mode:'index'},scales:{y:{min:40,max:100,grid:{color:'#f5f5f5'},ticks:{font:{family:"'JetBrains Mono'",size:10},color:'#ccc'}},x:{grid:{display:false},ticks:{font:{family:"'JetBrains Mono'",size:10},color:'#ccc'}}}}});
+new Chart(document.getElementById('sev'),{type:'doughnut',data:{labels:['Critical','High','Medium','Low'],datasets:[{data:[1,3,2,2],backgroundColor:['#dc2626','#d97706','#ca8a04','#16a34a'],borderWidth:0,hoverOffset:3}]},options:{responsive:true,maintainAspectRatio:true,cutout:'72%',plugins:{legend:{display:false},tooltip:{bodyFont:{family:"'JetBrains Mono'"}}}}});
+</script>
+</body>
+</html>

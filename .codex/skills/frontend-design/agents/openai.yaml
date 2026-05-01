@@ -1,0 +1,7 @@
+interface:
+  display_name: "Frontend Design"
+  short_description: "Distinctive, production-grade visual design guidance for frontend work."
+  default_prompt: "Use $frontend-design to create a more intentional, high-quality UI for this frontend task."
+
+policy:
+  allow_implicit_invocation: true

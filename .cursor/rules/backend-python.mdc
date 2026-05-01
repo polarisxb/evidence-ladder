@@ -1,0 +1,64 @@
+---
+description: Python后端开发规范
+globs: backend/**/*.py
+alwaysApply: false
+---
+
+# Python 后端开发规范
+
+## 异步优先
+
+所有IO操作（数据库、HTTP请求、文件操作）必须使用 async/await:
+
+```python
+# ✅
+async def get_scan(db: AsyncSession, scan_id: str) -> ScanTask:
+    result = await db.execute(select(ScanTask).where(ScanTask.id == scan_id))
+    return result.scalar_one_or_none()
+
+# ❌
+def get_scan(db: Session, scan_id: str) -> ScanTask:
+    return db.query(ScanTask).filter(ScanTask.id == scan_id).first()
+```
+
+## Pydantic v2 模型
+
+请求/响应模型使用 Pydantic v2 语法:
+
+```python
+from pydantic import BaseModel, Field
+from typing import Literal
+
+class ScanConfig(BaseModel):
+    target_url: str = Field(..., description="Target AI API endpoint")
+    attack_categories: list[str] = Field(default=["all"])
+    
+    model_config = {"from_attributes": True}
+```
+
+## 错误处理
+
+服务层抛出 AppException，路由层统一处理:
+
+```python
+# ✅ 服务层
+raise AppException(404, "Scan task not found")
+
+# ❌ 服务层直接用 HTTPException
+raise HTTPException(status_code=404, detail="...")
+```
+
+## OpenAI API 调用
+
+- 分析类任务用 gpt-4o, temperature=0.1
+- 生成类任务用 gpt-4o-mini, temperature=0.8
+- 必须使用 JSON mode (`response_format={"type": "json_object"}`)
+- 必须有重试和限流机制
+- 必须处理 RateLimitError
+
+## 数据库模型
+
+- 所有模型继承 Base
+- 主键使用 UUID (string)
+- 必须有 created_at 和 updated_at 字段
+- 使用 SQLAlchemy 2.0 风格

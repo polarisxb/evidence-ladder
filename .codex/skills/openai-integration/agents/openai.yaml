@@ -1,0 +1,7 @@
+interface:
+  display_name: "OpenAI Integration"
+  short_description: "Patterns for OpenAI API usage, structured outputs, and analysis flows."
+  default_prompt: "Use $openai-integration to implement or review an OpenAI-powered analysis or generation flow."
+
+policy:
+  allow_implicit_invocation: true

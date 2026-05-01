@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security Report - {{ scan_name }}</title>
+<style>
+  :root { --bg: #0a0a0f; --card: #1a1a2e; --border: #2a2a3e; --text: #e2e8f0; --muted: #94a3b8; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 40px; max-width: 960px; margin: 0 auto; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+  h1 { font-size: 28px; margin-bottom: 8px; }
+  h2 { font-size: 20px; margin-bottom: 16px; color: #a5b4fc; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+  .score-badge { font-size: 48px; font-weight: bold; text-align: center; padding: 24px 32px; border-radius: 12px; border: 2px solid {{ risk_color }}; background: {{ risk_color }}10; }
+  .score-label { font-size: 14px; text-transform: uppercase; color: {{ risk_color }}; margin-top: 4px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center; }
+  .stat-value { font-size: 24px; font-weight: bold; }
+  .stat-label { font-size: 12px; color: var(--muted); }
+  .finding-split { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); text-align: center; }
+  .finding-split strong { color: var(--text); font-weight: 600; margin-right: 2px; }
+  .finding-split span { white-space: nowrap; margin: 0 6px; }
+  .bar-container { background: var(--border); border-radius: 999px; height: 8px; overflow: hidden; flex: 1; }
+  .bar-fill { height: 100%; border-radius: 999px; }
+  .category-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+  .category-name { width: 200px; font-size: 14px; }
+  .category-score { width: 48px; text-align: right; font-size: 13px; font-family: monospace; }
+  .category-detail { width: 100px; font-size: 12px; color: var(--muted); text-align: right; }
+  .finding { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  .finding-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+  .finding-level { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+  .finding-name { flex: 1; font-size: 14px; }
+  .finding-owasp { font-size: 12px; color: var(--muted); font-family: monospace; }
+  .finding-body { padding: 0 16px 16px; font-size: 13px; }
+  .finding-body dt { color: var(--muted); font-size: 11px; text-transform: uppercase; margin-top: 12px; margin-bottom: 4px; }
+  .finding-body dd { margin-left: 0; }
+  pre { background: var(--bg); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+  .rec-list { list-style: none; }
+  .rec-list li { padding: 8px 0; font-size: 14px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: flex-start; }
+  .rec-list li::before { content: "→"; color: #a5b4fc; font-weight: bold; }
+  .footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); }
+  @media print { body { background: white; color: #1a1a2e; padding: 20px; } .card { border-color: #ddd; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>AI Security Report</h1>
+    <p style="color: var(--muted); font-size: 14px;">{{ scan_name }} &middot; {{ target_url }}</p>
+  </div>
+  <div class="score-badge">
+    {{ overall_score }}
+    <div class="score-label">{{ risk_level | upper }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="stats">
+    <div><div class="stat-value">{{ total_attacks }}</div><div class="stat-label">Total Tests</div></div>
+    <div><div class="stat-value" style="color: #f97316;">{{ confirmed_findings }}</div><div class="stat-label">Confirmed Findings</div></div>
+    <div><div class="stat-value">{{ category_scores | length }}</div><div class="stat-label">Categories Tested</div></div>
+  </div>
+  {#
+    Verdict-based finding distribution, aligned with the backend
+    ``finding_classifier`` single source of truth and the frontend
+    "Core Finding Breakdown" card. The headline number above is
+    ``confirmed_findings`` (= finding_counts.confirmed + .suspected);
+    the row below shows the full six-bucket breakdown so the totals
+    are always self-consistent with ``total_attacks``.
+  #}
+  <div class="finding-split">
+    <span><strong>{{ confirmed_findings }}</strong>confirmed</span>·
+    <span><strong>{{ needs_review_count }}</strong>needs review</span>·
+    <span><strong>{{ false_positive_count }}</strong>false positive</span>·
+    <span><strong>{{ finding_counts.passed | default(0) }}</strong>passed</span>·
+    <span><strong>{{ finding_counts.not_evaluable | default(0) }}</strong>not evaluable</span>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Category Scores</h2>
+  {% for cs in category_scores %}
+  <div class="category-row">
+    <span class="category-name">{{ cs.category_name }}</span>
+    <div class="bar-container">
+      <div class="bar-fill" style="width: {{ cs.score }}%; background: {% if cs.score >= 70 %}#22c55e{% elif cs.score >= 50 %}#eab308{% else %}#ef4444{% endif %};"></div>
+    </div>
+    <span class="category-score" style="color: {{ risk_color_map.get(cs.risk_level, '#94a3b8') }};">{{ cs.score }}</span>
+    <span class="category-detail">{{ cs.successful_attacks }}/{{ cs.total_tests }} failed</span>
+  </div>
+  {% endfor %}
+</div>
+
+{% if recommendations %}
+<div class="card">
+  <h2>Recommendations</h2>
+  <ul class="rec-list">
+    {% for rec in recommendations %}
+    <li>{{ rec }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if all_findings %}
+<div class="card">
+  <h2>Findings ({{ all_findings | length }})</h2>
+  {% for f in all_findings %}
+  <div class="finding">
+    <div class="finding-header">
+      <span class="finding-level" style="color: {{ f.color }}; background: {{ f.color }}15; border: 1px solid {{ f.color }}30;">{{ f.level }}</span>
+      <span class="finding-name">{{ f.attack_name }}</span>
+      <span class="finding-owasp">{{ f.owasp_id }}</span>
+    </div>
+    <div class="finding-body">
+      <dl>
+        <dt>Attack Payload</dt>
+        <dd><pre>{{ f.payload_text }}</pre></dd>
+        {% if f.evidence %}
+        <dt>Evidence</dt>
+        <dd>{{ f.evidence }}</dd>
+        {% endif %}
+        {% if f.explanation %}
+        <dt>Analysis</dt>
+        <dd>{{ f.explanation }}</dd>
+        {% endif %}
+      </dl>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="footer">
+  Generated by AI Security Testing Platform &middot; OWASP LLM Top 10 Framework
+</div>
+
+</body>
+</html>

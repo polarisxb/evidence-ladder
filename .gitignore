@@ -1,0 +1,65 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment
+.env
+backend/.env
+mock_targets/*/.env
+
+# Database
+backend/data/*.db
+
+# Build
+frontend/dist/
+backend/*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+output/
+.runtime-logs/
+.pytest_cache/
+
+# Tools
+.playwright-cli/
+.omx/
+
+# Cursor
+.cursor/projects/
+
+# Competition / submission archives — DO NOT publish
+# These folders contain personal contest IDs, submitted reports, demo videos, etc.
+# Excluded from the public repository to avoid accidental disclosure.
+参赛总文件夹/
+2026045244-参赛总文件夹/
+*-参赛总文件夹/
+
+# Personal / private working notes
+docs/private/
+*.private.md
+*.draft.md
+notepad.md
+
+# Local agent transcripts and cached tool outputs
+agent-tools/
+.terminals/
+
+# Personal Cursor MCP config (contains local user paths)
+.cursor/mcp.json
+
+# Academic paper PDFs — keep locally only; cite via BibTeX/links instead
+# (PDFs from USENIX/NeurIPS/ICML/etc. typically retain copyright;
+#  the .txt extracts under docs/papers/ are kept for in-repo citation.)
+docs/papers/**/*.pdf
+*.pdf

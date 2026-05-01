@@ -1,0 +1,7 @@
+interface:
+  display_name: "Superpowers Workflow"
+  short_description: "Structured workflow adapted for this project."
+  default_prompt: "Use $superpowers-workflow to plan and execute this project change with tests, review, and verification."
+
+policy:
+  allow_implicit_invocation: true
