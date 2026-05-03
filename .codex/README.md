@@ -179,3 +179,33 @@
 - 如果变更涉及旧 `.cursor/rules` 的迁移关系，同步更新 [RULES_MIGRATION.md](./RULES_MIGRATION.md)
 - 如果一个任务跨前后端或跨实现层，默认先回到 [project-conventions](./skills/project-conventions/SKILL.md) 校准仓库级约定
 - 在本仓库内，准备交付前默认再看一次 [verification-before-completion](./skills/verification-before-completion/SKILL.md)
+
+## 与 `.cursor/skills/` 的双目录同步约定
+
+为了让同一套 skill 在 Codex CLI 和 Cursor IDE 两个环境里都可用，本仓库在
+`.codex/skills/` 之外，也维护一份 `.cursor/skills/`（Cursor 通过 `description`
+frontmatter 自动激活 skill）。
+
+**两份 skill 文件必须保持功能性一致：**
+
+- 修改 `.codex/skills/<name>/SKILL.md` 时，必须在同一 commit 里同步修改
+  `.cursor/skills/<name>/SKILL.md`，反之亦然
+- 新增 skill 时，必须在两个目录同时创建对应子目录与 `SKILL.md`
+- `.cursor/skills/<name>/SKILL.md` 的 frontmatter 不需要 `Source:` 字段
+  （Cursor 不需要），其余 markdown 内容与 Codex 版本保持一致
+- `.cursor/skills/` 的索引位于 [`../.cursor/skills/README.md`](../.cursor/skills/README.md)，
+  与本文件互为镜像（结构对齐，措辞可按目标受众微调）
+
+简单 sanity check（PowerShell）：
+
+```powershell
+$cursor = Get-ChildItem .cursor/skills -Directory | Select-Object -ExpandProperty Name
+$codex  = Get-ChildItem .codex/skills  -Directory | Select-Object -ExpandProperty Name
+Compare-Object $cursor $codex -PassThru
+```
+
+输出为空即为同步状态正确；任何只在一侧出现的 skill 都需要补齐。
+
+> 历史背景：早期只维护 `.codex/skills/`，导致 Cursor IDE 实际无法激活
+> `superpowers-workflow` / `project-conventions` / `attack-template-authoring`
+> 等核心 skill。2026-05-03 之后，强制要求双目录同步。
