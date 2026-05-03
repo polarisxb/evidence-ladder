@@ -1,23 +1,12 @@
-# 开题报告初稿：基于多源证据分层的大模型应用安全评测与闭环补测方法研究
+# 开题报告：基于多源证据分层的大模型应用安全评测与闭环补测方法研究
 
 ## 一、课题名称
 
-基于多源证据分层的大模型应用安全评测与闭环补测方法研究
+**中文题名**：基于多源证据分层的大模型应用安全评测与闭环补测方法研究
 
-可选题名：
+**英文题名**：*Multi-Source Evidence-Stratified Evaluation for LLM Applications with Conflict-Driven Retesting*
 
-- 面向大模型应用的证据分层安全评测方法与可信攻击成功率度量研究
-- 面向 LLM 应用的多源证据分层与冲突驱动闭环补测方法研究
-- 基于 E-level × Kill-chain 矩阵的大模型应用安全评测方法研究
-
-当前建议采用第一个题名作为大创/开题主标题，第二个题名作为论文英文投稿方向的延展。
-
-英文工作题名建议：
-
-- *Multi-Source Evidence-Stratified Evaluation for LLM Applications with Conflict-Driven Retesting*
-- *Trustworthy Attack Success Measurement for LLM Application Security via Evidence Stratification*
-
-注：本研究不再以"评测平台"为题名核心。平台是支撑系统，核心创新在于**多源证据分层协议**、**Evidence-Stratified ASR 度量**、**Quartet 四元对照**、**冲突驱动闭环补测**与 **E-level × Kill-chain 二维评测框架**。
+本研究的核心创新在于**多源证据分层协议（E0–E5）**、**Evidence-Stratified ASR 度量**、**Quartet 四元对照**、**冲突驱动闭环补测机制**与 **E-level × Kill-chain 二维评测框架**；配套的评测平台作为系统支撑，并非课题的核心创新。
 
 ## 二、研究背景与意义
 
@@ -330,8 +319,8 @@ flowchart TD
 2. 一套基于多源证据分层的可信攻击成功率度量协议（Evidence-Stratified ASR + E-level × Kill-chain 矩阵）。
 3. 一组可复现实验用例和实验结果。
 4. 一个工具调用型 Agent 越权行为评测原型。
-5. 一篇大创结题报告或中文论文初稿。
-6. 根据实验质量，进一步尝试中文核心、IEEE Access 或相关 workshop 投稿。
+5. 一篇大创结题报告与一份面向中文核心期刊或 IEEE Access 的论文初稿。
+6. 根据实验质量，进一步面向相关 workshop 或国际会议投稿。
 
 ## 十一、进度安排
 
@@ -344,13 +333,61 @@ flowchart TD
 | 第五阶段 | 第 12-14 周 | 扩展多模型实验，形成图表和案例分析 |
 | 第六阶段 | 第 15-16 周 | 完成开题/中期/结题材料与论文初稿 |
 
+> **进度采用滚动式管理**：以上 6 阶段为大方向；每阶段结束后按 [`docs/dev-notes/roadmap.zh-CN.md`](./dev-notes/roadmap.zh-CN.md) §7 复盘机制评估完成度、数据合理性与资源消耗，必要时按 §8 调整原则对后续阶段进行微调。Stage 1 详细执行计划另见 [`docs/dev-notes/stage1_plan.zh-CN.md`](./dev-notes/stage1_plan.zh-CN.md)，与本进度表中的"第 1-2 周"对应。
+
 ## 十二、可行性分析
 
-本课题已有较好的工程基础。当前项目已支持扫描任务、攻击模板、结构化黑盒判定、人工复核、报告生成、Probe 配置、Judge 校准等功能。后续工作主要是将已有能力收敛为稳定的实验协议和指标体系，而不是从零开始开发平台。
+### 12.1 当前代码成熟度
 
-技术风险主要包括：模型 API 成本较高、实验随机性较强、LLM Judge 结果不稳定、Agent 沙箱实现复杂度上升。对应措施包括：先进行小规模 Pilot 实验，控制用例数量；引入 not_evaluable 分类；保留原始响应、工具日志和状态快照；通过人工标注和重复运行降低偶然性。
+项目已有 **v0.1.0 公开发布版本**（commit `d71832c`，2026-05-02 发布于 GitHub [`polarisxb/evidence-ladder`](https://github.com/polarisxb/evidence-ladder)），实现以下能力并通过 35+ 单元测试：
 
-伦理和安全方面，本课题仅面向授权目标、模拟业务环境和自建 Agent 沙箱开展测试，不使用真实用户隐私、真实密钥或第三方未授权系统。系统提示词泄露测试使用 canary token 代替真实敏感信息。
+- **后端**（Python 3.11 + FastAPI 异步）：6 类攻击模板（Prompt Injection / Jailbreak / System Prompt Extraction / Information Disclosure / Indirect Injection / Excessive Agency）、8 种高级攻击引擎（PAIR / TAP / Crescendo / Mutation / IRIS / FITD / MSJ / ICE）、结构化黑盒判定（`blackbox_outcome` / `behavior_flags` / `verdict_status`）、Evidence Arbiter（E0–E5 纯函数）、AutoTest Agent v1（planner / metrics / scan_builder / retest_policy / summary）。
+- **前端**（React 18 + TypeScript + Vite + Tailwind）：Dashboard、扫描创建、结果页、报告页、人工复核、AutoTest 视图。
+- **测试目标**：内置 `vulnerable_ai`、OpenAI-compatible 适配器、自定义 HTTP 适配器；本地 mock 业务后端（financebot / shopbot）已就位。
+- **DevOps**：Docker Compose 一键启动；Cursor + Codex 双套项目级 skill 已建立（`.cursor/skills/` + `.codex/skills/`）。
+
+剩余的 **P1 安全加固**（默认认证关闭、SSRF 防护、凭据回传脱敏、WebSocket 鉴权）作为 Stage 1 的首批任务，预计 1.5 工作日内完成（详见 [`stage1_plan.zh-CN.md`](./dev-notes/stage1_plan.zh-CN.md) §3.1）。
+
+后续工作的重心是将已有能力收敛为稳定的实验协议和指标体系，**而不是从零开始开发平台**。
+
+### 12.2 技术风险与缓解
+
+主要技术风险及对应措施：
+
+| 风险 | 缓解措施 |
+|---|---|
+| 模型 API 成本超预算 | 优先使用 GPT-4o-mini + DeepSeek-V3（成本极低）；Pilot 实测约 $1-3，正式实验控制在 $50-100 内 |
+| 实验随机性较强 | 关键指标重复运行 ≥ 3 次取均值；记录 random seed |
+| LLM Judge 结果不稳定 | 不将 Judge 作为唯一裁判：通过 Evidence-Stratified ASR 分层降级；通过 Quartet 控制变量隔离误判；通过人工标注校准 |
+| Agent 沙箱实现复杂度上升 | v0.4 仅做邮件 Agent 一个最小场景；电商 / 工单等场景列入 v1.0+ |
+| 数据规模膨胀 | 引入 `not_evaluable` 分类；保留原始响应、工具日志、状态快照以支持复算 |
+
+### 12.3 团队分工与资源预算
+
+**团队结构**：以作者**徐子豪**（GitHub `@polarisxb`）为主力（独立完成 v0.1.0 的全部代码、协议设计、文献综述与开题报告），1–2 名同学参与人工标注、双盲对照与论文复核等支撑工作。
+
+| 角色 | 任务 |
+|---|---|
+| 主力（作者） | 平台代码（后端 / 前端 / 评测协议）、AutoTest Agent、Quartet 生成器、Baseline 复现、实验执行、统计分析、论文撰写 |
+| 标注协助（1-2 人） | 双人盲标 200+ 条 finding（每条约 30 秒），双盲一致性裁定 |
+| 外部依赖 | 学校 / 公开数据集（ReliableBench、JudgeStressTest）；OpenAI 与 DeepSeek 公开 API |
+
+**资源预算**：
+
+| 项目 | 预算 |
+|---|---|
+| LLM API 调用（v0.2 → v0.5 全程） | $50–$100（约 ¥350–¥750） |
+| 标注人力（200 条 × 双盲 ≈ 4 人时） | 同学协助，无现金支出 |
+| 计算 / 存储 / 仓库托管 | 个人 PC + GitHub 公开仓库，无额外成本 |
+
+预算与人力均在可控范围内，且**已通过 v0.1 阶段的实际开发验证可执行性**（v0.1 全部由主力独立完成）。
+
+### 12.4 伦理与安全
+
+- 本课题仅面向授权目标、模拟业务环境和自建 Agent 沙箱开展测试，不使用真实用户隐私、真实密钥或第三方未授权系统。
+- 系统提示词泄露测试使用 **canary token** 代替真实敏感信息，避免数据泄露。
+- 公开发布的实验数据集按 §9.3 复现包要求脱敏，移除任何可能识别真实用户、真实业务的信息。
+- 平台开源（MIT 协议）但默认拒绝匿名访问（P1 安全加固完成后），降低被滥用风险。
 
 ## 十三、当前优先任务
 
@@ -410,12 +447,15 @@ flowchart TD
 26. Derczynski et al. *garak: A Framework for Security Probing Large Language Models.* arXiv:2406.11036, 2024.
 27. Microsoft AI Red Team. *PyRIT: A Framework for Security Risk Identification and Red Teaming in Generative AI Systems.* arXiv:2410.02828, 2024.
 
-## 十五、待导师确认的问题
+## 十五、实施关键决策
 
-1. 课题题名是否最终采用"基于多源证据分层的大模型应用安全评测与闭环补测方法研究"，是否需要进一步精简（备选见第一章）。
-2. Agent 沙箱场景优先选择邮件、电商还是工单系统；是否需要支持工具调用日志的真实写入（影响 E4/E5 证据采集成本）。
-3. 预期投稿目标是大创结题、中文核心、IEEE Access、还是 USENIX Security / NDSS / S&P 等英文会议（影响实验规模与统计严格度）。
-4. 是否公开部分用例、复测脚本与人工标注 gold label 作为论文补充材料；是否需要数据脱敏审查。
-5. 人工标注是否由项目成员完成，是否需要外部第二标注者；是否需要制定双人标注操作手册与 Cohen's κ 阈值（建议 ≥0.6）。
-6. 是否在与 *A Coin Flip for Safety* / *When Scanners Lie* 的对比实验中，使用其公开 ReliableBench / JudgeStressTest 数据集，以保证 baseline 可比性。
-7. E-level × Kill-chain 矩阵中 Stage=Persisted/Relayed 的实验需要多 Agent 链路支持，是否在 v1 实验范围内。
+下列 7 项实施决策已在课题立项阶段确定，作为后续各阶段执行的约束与基线。
+
+1. **课题题名**：采用「基于多源证据分层的大模型应用安全评测与闭环补测方法研究」（中文）/ *Multi-Source Evidence-Stratified Evaluation for LLM Applications with Conflict-Driven Retesting*（英文）。
+2. **Agent 沙箱场景**：v0.4 阶段优先实现**邮件 Agent**（read / send / delete + outbox 状态可观测），电商 Agent 与工单系统作为后续扩展；工具调用日志按 E4 要求真实写入并落库，状态快照按 E5 要求支持前后差异比对。
+3. **预期投稿目标**：v0.5 阶段同时面向大创结题与中文核心期刊或 IEEE Access；论文质量达到主流英文会议 workshop / short paper 水平时再考虑英文主会议投稿。
+4. **公开补充材料**：代码、攻击模板、复测脚本、人工标注 gold label 均开源（仓库 [https://github.com/polarisxb/evidence-ladder](https://github.com/polarisxb/evidence-ladder)），实验数据按 §9.3 复现包要求脱敏后随论文一并发布。
+5. **人工标注分工**：由项目成员（≥ 2 人）独立完成双人盲标，制定标注操作手册并先行小规模一致性预测；Cohen's κ 阈值设为 ≥ 0.6，未达标的字段重新定义判定准则后再次抽样。
+6. **Baseline 数据集**：与 *A Coin Flip for Safety* / *When Scanners Lie* 的对比实验直接复用其公开的 **ReliableBench** 与 **JudgeStressTest** 数据集，保证 baseline 数值可比，避免重复构造引入偏差。
+7. **E-level × Kill-chain 矩阵实验范围**：v0.4 阶段在邮件 Agent 沙箱上覆盖 Stage = Exposed / Persisted / Relayed / Executed 全四阶段的最小用例集（单 Agent + 跨 Agent 转发 minimal case）；多 Agent 完整链路与跨域传播实验列入 v1.0 后续工作。
+8. **大创结题最小可交付边界（MVP）**：以**邮件 Agent + 50 个逻辑用例 + 2 个模型 + Pilot 为主**的实验范围作为大创结题版的最低交付标准（核心输出包括 Evidence-Stratified ASR vs Judge ASR / Raw ASR 对比、Quartet 冲突类型分布、E×K 4×5 矩阵最小版本、与 *A Coin Flip for Safety* / *When Scanners Lie* 的定性对比）；100+ 用例、3-5 模型完整 E×K 矩阵实验作为后续论文扩展（v0.5+）。每阶段实际推进按 [`roadmap.zh-CN.md`](./dev-notes/roadmap.zh-CN.md) §7 复盘机制动态评估，必要时按 §8 调整原则微调。
