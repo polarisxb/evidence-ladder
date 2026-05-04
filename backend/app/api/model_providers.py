@@ -15,6 +15,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppException
+from app.services.url_guard import validate_target_url
 from app.database import get_db
 from app.models.model_provider import (
     ModelProvider,

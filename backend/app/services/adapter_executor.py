@@ -295,7 +295,10 @@ async def execute_adapter_request(
         "base_url": payload.get("base_url"),
     }
 
-    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_S, follow_redirects=True) as client:
+    # Stage 1.1b — disable redirect-following so a 30x to a private/loopback
+    # IP cannot bypass the URL guard. A 30x is now surfaced as the response
+    # status; legitimate external endpoints rarely require redirect-chasing.
+    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_S, follow_redirects=False) as client:
         try:
             if session_config.get("create"):
                 create_context = build_adapter_context(

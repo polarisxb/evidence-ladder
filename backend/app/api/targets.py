@@ -4,6 +4,7 @@ from typing import Literal
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from app.services.url_guard import validate_target_url
 from app.services.vulnerable_ai import VULNERABLE_LEVELS, chat_with_vulnerable_ai
 
 logger = logging.getLogger(__name__)
@@ -52,8 +53,13 @@ async def test_connection(target_url: str, api_key: str | None = None):
     """Test connectivity to a target AI API endpoint."""
     import httpx
 
+    # Stage 1.1b — refuse SSRF before any outbound request is made.
+    validate_target_url(target_url)
+
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(
+            timeout=10.0, follow_redirects=False
+        ) as client:
             headers = {}
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"

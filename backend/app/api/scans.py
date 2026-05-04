@@ -16,11 +16,11 @@ from app.services.llm_client import (
     ProviderClientInfo,
     call_chat,
     fetch_openai_compatible_model_ids,
-    get_provider_by_id,
 )
 from app.services.autotest_retest_runs import record_retest_run_for_scan
 from app.services.scan_recovery import finalize_stuck_scan_from_db
 from app.services.scan_runner import run_scan
+from app.services.url_guard import validate_target_url
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -93,6 +93,15 @@ async def create_scan(
         if not adapter.enabled:
             raise AppException(400, "Adapter is disabled")
         resolved_target_url = adapter.base_url
+
+    # Stage 1.1b — SSRF guard. Skip the synthetic 'builtin' URL which is
+    # not an actual fetchable endpoint (handled inside vulnerable_ai.py).
+    if (
+        resolved_target_url
+        and body.target_type != "builtin_vulnerable"
+        and resolved_target_url.lower().startswith(("http://", "https://"))
+    ):
+        validate_target_url(resolved_target_url)
 
     resolved_target_config = body.target_config.model_dump() if body.target_config else None
     resolved_judge_model = body.judge_model
