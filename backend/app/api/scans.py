@@ -16,6 +16,7 @@ from app.services.llm_client import (
     ProviderClientInfo,
     call_chat,
     fetch_openai_compatible_model_ids,
+    get_provider_by_id,
 )
 from app.services.autotest_retest_runs import record_retest_run_for_scan
 from app.services.scan_recovery import finalize_stuck_scan_from_db
