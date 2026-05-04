@@ -1,10 +1,24 @@
 """
-Simple API key authentication middleware.
+API key authentication middleware (Stage 1.1a — default-deny).
 
-When APP_SECRET is set in .env, all API requests must include
-the header: X-API-Key: <secret>
+Behaviour:
 
-When APP_SECRET is empty (default), authentication is disabled.
+* ``settings.auth_required = True`` (default): every API request must
+  carry ``X-API-Key: <settings.app_secret>``. Public paths (``/health``,
+  ``/docs*``, ``/redoc*``, ``/openapi.json``) and CORS preflight
+  (``OPTIONS``) bypass the check.
+
+* ``settings.auth_required = False``: middleware is a no-op (intended
+  for local development; ``app_secret`` is ignored).
+
+The companion startup guard ``app.main._validate_auth_config`` ensures
+``auth_required=True`` is never paired with an empty ``app_secret``,
+preventing a silent open-by-misconfiguration scenario.
+
+WebSocket connections bypass this middleware entirely (Starlette's
+``BaseHTTPMiddleware`` only intercepts ``scope["type"] == "http"``).
+WS authentication is handled separately by ``app.core.ws_auth``
+(Stage 1.1d).
 """
 
 from fastapi import Request
@@ -18,7 +32,7 @@ PUBLIC_PATHS = {"/health", "/docs", "/openapi.json", "/redoc"}
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if not settings.app_secret:
+        if not settings.auth_required:
             return await call_next(request)
 
         path = request.url.path
@@ -29,7 +43,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         api_key = request.headers.get("X-API-Key", "")
-        if api_key != settings.app_secret:
+        if not settings.app_secret or api_key != settings.app_secret:
             return JSONResponse(
                 status_code=401,
                 content={"error": "Invalid or missing API key"},

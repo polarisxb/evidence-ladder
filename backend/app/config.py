@@ -44,6 +44,13 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5173"]
     allow_localhost_targets: bool = True
 
+    # Stage 1.1a — Default-deny API authentication.
+    # When True (default), every API request must carry X-API-Key matching
+    # ``app_secret``; otherwise the request is rejected with 401. Public
+    # paths (/health, /docs, /redoc, /openapi.json, OPTIONS preflight)
+    # remain open. Set ``AUTH_REQUIRED=false`` for local development to
+    # opt out, in which case ``app_secret`` is ignored.
+    auth_required: bool = True
     app_secret: str = ""
 
     analyzer_concurrency: int = 12
