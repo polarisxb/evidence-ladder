@@ -22,6 +22,7 @@ from app.services.autotest_retest_runs import record_retest_run_for_scan
 from app.services.scan_recovery import finalize_stuck_scan_from_db
 from app.services.scan_runner import run_scan
 from app.services.url_guard import validate_target_url
+from app.core.ws_auth import require_ws_token
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -337,7 +338,11 @@ async def get_scan(task_id: str, db: AsyncSession = Depends(get_db)):
 
 @router.websocket("/ws/{task_id}")
 async def scan_ws(websocket: WebSocket, task_id: str):
-    await websocket.accept()
+    # Stage 1.1d — require_ws_token handles both accept() on success
+    # and close(1008) on failure. We never call accept() again here.
+    if not await require_ws_token(websocket):
+        return
+
     _ws_clients.setdefault(task_id, []).append(websocket)
     try:
         while True:
