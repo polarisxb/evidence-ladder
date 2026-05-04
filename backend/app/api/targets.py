@@ -22,6 +22,13 @@ class ChatRequest(BaseModel):
     history: list[ChatMessage] = Field(default_factory=list)
 
 
+class TestConnectionRequest(BaseModel):
+    """Stage 1.1c — credentials must ride in the JSON body, never as
+    query parameters (which end up in server/proxy access logs)."""
+    target_url: str
+    api_key: str | None = None
+
+
 @router.get("/builtin", response_model=dict)
 async def list_builtin_targets():
     """List all built-in vulnerable AI targets with their protection levels."""
@@ -49,27 +56,35 @@ async def chat_with_target(body: ChatRequest):
 
 
 @router.post("/test-connection", response_model=dict)
-async def test_connection(target_url: str, api_key: str | None = None):
-    """Test connectivity to a target AI API endpoint."""
+async def test_connection(body: TestConnectionRequest):
+    """Test connectivity to a target AI API endpoint.
+
+    Stage 1.1c: credentials are accepted in the JSON body only. Any
+    error surface is passed through ``sanitize_error`` so ``sk-*``,
+    ``key-*`` and ``Bearer *`` tokens cannot bleed back to the caller.
+    The request's own ``api_key`` is never included in the response.
+    """
     import httpx
 
+    from app.services.error_utils import sanitize_error
+
     # Stage 1.1b — refuse SSRF before any outbound request is made.
-    validate_target_url(target_url)
+    validate_target_url(body.target_url)
 
     try:
         async with httpx.AsyncClient(
             timeout=10.0, follow_redirects=False
         ) as client:
             headers = {}
-            if api_key:
-                headers["Authorization"] = f"Bearer {api_key}"
-            resp = await client.get(target_url, headers=headers)
+            if body.api_key:
+                headers["Authorization"] = f"Bearer {body.api_key}"
+            resp = await client.get(body.target_url, headers=headers)
             return {
                 "data": {"reachable": True, "status_code": resp.status_code},
                 "message": "ok",
             }
     except Exception as e:
         return {
-            "data": {"reachable": False, "error": str(e)},
+            "data": {"reachable": False, "error": sanitize_error(e)},
             "message": "Connection failed",
         }
