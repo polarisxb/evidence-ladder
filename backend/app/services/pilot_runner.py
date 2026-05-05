@@ -367,7 +367,7 @@ async def _create_pending_scan_task(
     task = ScanTask(
         name=f"Pilot {suite_version} {run_id}",
         status="pending",
-        target_url="builtin" if target_type == "builtin_vulnerable" else "pilot-prepared",
+        target_url=_target_url_for_prepare(target_type),
         target_type=target_type,
         target_config=target_config,
         attack_categories=selected_categories,
@@ -387,6 +387,14 @@ async def _create_pending_scan_task(
         await db.commit()
         await db.refresh(task)
         return task.id
+
+
+def _target_url_for_prepare(target_type: str) -> str:
+    if target_type == "builtin_vulnerable":
+        return "builtin"
+    if target_type == "openai_compatible":
+        return "default"
+    return "default"
 
 
 def _target_config_for_prepare(target_type: str, model: str) -> dict[str, Any] | None:

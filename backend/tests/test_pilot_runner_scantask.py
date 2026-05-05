@@ -55,6 +55,34 @@ async def test_prepare_mode_creates_pending_scan_task(tmp_path: Path) -> None:
     assert task.advanced_config["pilot_model"] == "gpt-4o-mini"
 
 
+async def test_prepare_openai_compatible_task_uses_platform_default_target(
+    tmp_path: Path,
+) -> None:
+    await init_db()
+
+    result = await prepare_pilot_run(
+        output_dir=tmp_path / "prepared_openai",
+        case_count=6,
+        model="gpt-4o-mini",
+        target_type="openai_compatible",
+        seed=20260504,
+        suite_version="v0.1",
+        dry_run=False,
+    )
+
+    assert result.scan_task_id is not None
+
+    async with async_session() as db:
+        task = (
+            await db.execute(select(ScanTask).where(ScanTask.id == result.scan_task_id))
+        ).scalar_one()
+
+    assert task.target_type == "openai_compatible"
+    assert task.target_url == "default"
+    assert task.target_config == {"model": "gpt-4o-mini"}
+    assert task.advanced_config["pilot_model"] == "gpt-4o-mini"
+
+
 async def test_prepare_mode_updates_artifacts_with_scan_task_id(tmp_path: Path) -> None:
     await init_db()
 
