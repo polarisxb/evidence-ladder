@@ -12,6 +12,7 @@ import uuid
 from collections import deque
 from collections.abc import Awaitable, Callable, Coroutine
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import WebSocket
 from sqlalchemy import select, update
@@ -47,6 +48,7 @@ from app.services.target_client import (
 )
 from app.services.case_executor import (
     prepare_case_attempt as _prepare_case_attempt,
+    prepare_explicit_case_attempt as _prepare_explicit_case_attempt,
     matched_probe_session_id as _matched_probe_session_id,
     build_attack_objective as _build_attack_objective,
     envelope_to_variant_transport_meta as _envelope_to_variant_transport_meta,
@@ -56,6 +58,7 @@ from app.services.case_persistence import (
     persist_case_with_legacy_result as _persist_case_with_legacy_result,
 )
 from app.services.finding_classifier import is_confirmed_finding
+from app.services.quartet_generator import load_suite
 
 logger = logging.getLogger(__name__)
 ACTIVE_SCAN_STATUSES = {"pending", "running"}
@@ -926,6 +929,63 @@ async def _run_multiturn_base_case(
             })
 
 
+_REQUIRED_PILOT_VARIANTS: tuple[str, ...] = (
+    "attack",
+    "clean",
+    "quoted_attack",
+    "benign_distractor",
+)
+
+
+def _pilot_suite_path_from_config(advanced_config: dict) -> str | None:
+    value = advanced_config.get("pilot_suite_path")
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    return normalized or None
+
+
+def _load_validated_pilot_suite(advanced_config: dict):
+    suite_path = _pilot_suite_path_from_config(advanced_config)
+    if suite_path is None:
+        raise ValueError("pilot_suite_path is required for pilot suite execution")
+
+    suite = load_suite(Path(suite_path))
+    expected_hash = str(advanced_config.get("pilot_suite_hash") or "").strip()
+    if expected_hash and expected_hash != suite.manifest.content_hash:
+        raise ValueError("pilot suite hash does not match ScanTask advanced_config")
+
+    expected_case_count = advanced_config.get("pilot_case_count")
+    if expected_case_count is not None and int(expected_case_count) != suite.manifest.case_count:
+        raise ValueError("pilot case count does not match suite manifest")
+
+    expected_variant_count = advanced_config.get("pilot_variant_count")
+    if expected_variant_count is not None and int(expected_variant_count) != suite.manifest.case_count * 4:
+        raise ValueError("pilot variant count does not match suite manifest")
+
+    for suite_case in suite.cases:
+        for variant_type in _REQUIRED_PILOT_VARIANTS:
+            prompt = str(getattr(suite_case.variants, variant_type) or "")
+            if not prompt.strip():
+                raise ValueError(
+                    f"pilot suite case {suite_case.case_id} is missing {variant_type} prompt"
+                )
+    return suite
+
+
+def _template_from_pilot_case(suite_case) -> dict:
+    template_id = str(suite_case.template_id or suite_case.case_id)
+    template_name = str(suite_case.template_name or f"Pilot case {suite_case.case_id}")
+    return {
+        "id": template_id,
+        "name": template_name,
+        "category": suite_case.category,
+        "category_name": suite_case.category,
+        "owasp_id": suite_case.owasp_id or "",
+        "technique": "pilot_suite",
+    }
+
+
 async def _run_base_templates(
     task_id: str,
     task,
@@ -963,6 +1023,66 @@ async def _run_base_templates(
         await asyncio.gather(*[_guarded(c) for c in coros], return_exceptions=True)
 
 
+async def _run_pilot_suite_cases(
+    task_id: str,
+    task,
+    suite,
+    ws_clients: dict,
+    *,
+    scan_deadline: float,
+) -> None:
+    for suite_case in suite.cases:
+        if await _check_should_stop_isolated(task_id, scan_deadline):
+            return
+
+        tpl = _template_from_pilot_case(suite_case)
+        persisted = False
+        await _broadcast(ws_clients, task_id, {
+            "type": "attack_started",
+            "template_id": tpl["id"],
+            "attack_name": tpl["name"],
+            "category": tpl.get("category", ""),
+        })
+        try:
+            case_attempt = await _prepare_explicit_case_attempt(
+                task,
+                tpl,
+                suite_case,
+                ws_clients=ws_clients,
+            )
+            analysis = case_attempt["analysis"]
+            completed, vulns, total = await _persist_and_count(
+                task_id,
+                task,
+                tpl,
+                case_attempt,
+                analysis,
+            )
+            persisted = True
+            await _observe_case_response_health(task_id, case_attempt, ws_clients)
+            await _broadcast(ws_clients, task_id, {
+                "type": "attack_completed",
+                "template_id": tpl["id"],
+                "attack_name": tpl["name"],
+                "successful": analysis.attack_successful,
+                "risk_level": analysis.risk_level,
+                "completed": completed,
+                "total": total,
+                "vulnerabilities_found": vulns,
+            })
+        except Exception as exc:
+            logger.warning("Pilot suite case failed %s: %s", tpl["id"], exc)
+        finally:
+            if not persisted and not await _check_should_stop_isolated(task_id, scan_deadline):
+                await _increment_completed(task_id)
+                await _broadcast(ws_clients, task_id, {
+                    "type": "attack_completed",
+                    "template_id": tpl["id"],
+                    "attack_name": tpl["name"],
+                    "skipped": True,
+                })
+
+
 async def run_scan(task_id: str, ws_clients: dict[str, list[WebSocket]]):
     async with async_session() as db:
         result = await db.execute(select(ScanTask).where(ScanTask.id == task_id))
@@ -978,11 +1098,16 @@ async def run_scan(task_id: str, ws_clients: dict[str, list[WebSocket]]):
         # Activate per-scan provider overrides for the entire scan lifetime.
         _apply_scan_providers(task)
 
-        engine = AttackEngine()
-        templates = engine.get_all_templates(task.attack_categories)
-
         adv = task.advanced_config or {}
-        enable_mutations = adv.get("enable_mutations", False)
+        pilot_suite_path = _pilot_suite_path_from_config(adv)
+        pilot_suite = None
+        if pilot_suite_path:
+            templates = []
+            enable_mutations = False
+        else:
+            engine = AttackEngine()
+            templates = engine.get_all_templates(task.attack_categories)
+            enable_mutations = adv.get("enable_mutations", False)
         # quartet_mode supersedes enable_control_variants; support both for backward compat
         # Default is "adaptive": skips control variants when AI judge is already high-confidence.
         quartet_mode = adv.get("quartet_mode") or (
@@ -997,6 +1122,15 @@ async def run_scan(task_id: str, ws_clients: dict[str, list[WebSocket]]):
         enable_self_explanation = adv.get("enable_self_explanation", False)
         parallel_attacks = max(1, adv.get("parallel_attacks", 3))
 
+        if pilot_suite_path:
+            enable_crescendo = False
+            enable_fitd = False
+            enable_msj = False
+            enable_ice = False
+            enable_tap = False
+            enable_pair = False
+            enable_self_explanation = False
+
         if enable_mutations:
             mutation_strategies = adv.get("mutation_strategies", []) or None
             for tpl in templates:
@@ -1010,28 +1144,31 @@ async def run_scan(task_id: str, ws_clients: dict[str, list[WebSocket]]):
                             "variant": f"mutation_{v['strategy']}",
                         })
 
-        base_attack_total = sum(_count_base_template_cases(t) for t in templates)
-        # #16: 仅统计有 base_payload 的模板数量
-        templates_with_payload = sum(
-            1 for t in templates
-            if t.get("payloads") and t["payloads"][0].get("text")
-        )
-        advanced_attack_total = 0
-        if enable_pair:
-            advanced_attack_total += min(5, templates_with_payload)
-        if enable_self_explanation:
-            advanced_attack_total += min(5, templates_with_payload)
-        if enable_crescendo:
-            advanced_attack_total += min(5, templates_with_payload)
-        if enable_fitd:
-            advanced_attack_total += min(5, templates_with_payload)
-        if enable_msj:
-            advanced_attack_total += min(5, templates_with_payload)
-        if enable_ice:
-            advanced_attack_total += min(5, templates_with_payload)
-        if enable_tap:
-            advanced_attack_total += min(5, templates_with_payload)
-        task.total_attacks = base_attack_total + advanced_attack_total
+        if pilot_suite_path:
+            task.total_attacks = int(adv.get("pilot_case_count") or 0)
+        else:
+            base_attack_total = sum(_count_base_template_cases(t) for t in templates)
+            # #16: 仅统计有 base_payload 的模板数量
+            templates_with_payload = sum(
+                1 for t in templates
+                if t.get("payloads") and t["payloads"][0].get("text")
+            )
+            advanced_attack_total = 0
+            if enable_pair:
+                advanced_attack_total += min(5, templates_with_payload)
+            if enable_self_explanation:
+                advanced_attack_total += min(5, templates_with_payload)
+            if enable_crescendo:
+                advanced_attack_total += min(5, templates_with_payload)
+            if enable_fitd:
+                advanced_attack_total += min(5, templates_with_payload)
+            if enable_msj:
+                advanced_attack_total += min(5, templates_with_payload)
+            if enable_ice:
+                advanced_attack_total += min(5, templates_with_payload)
+            if enable_tap:
+                advanced_attack_total += min(5, templates_with_payload)
+            task.total_attacks = base_attack_total + advanced_attack_total
         await db.commit()
 
         await _broadcast(ws_clients, task_id, {
@@ -1047,6 +1184,11 @@ async def run_scan(task_id: str, ws_clients: dict[str, list[WebSocket]]):
         _scan_health_trackers[task_id] = _new_scan_health_tracker(adv)
 
         try:
+            if pilot_suite_path:
+                pilot_suite = _load_validated_pilot_suite(adv)
+                task.total_attacks = pilot_suite.manifest.case_count
+                await db.commit()
+
             if task.target_type == "adapter" and not getattr(task, "_resolved_adapter_payload", None):
                 setattr(
                     task,
@@ -1093,73 +1235,83 @@ async def run_scan(task_id: str, ws_clients: dict[str, list[WebSocket]]):
             async def parallel_should_stop() -> bool:
                 return await _check_should_stop_isolated(task_id, scan_deadline)
 
-            # Build all coroutines: base templates + advanced engines run together.
-            all_coros: list[Coroutine] = [
-                _run_base_templates(
-                    task_id, task, templates, ws_clients,
-                    quartet_mode=quartet_mode,
+            if pilot_suite is not None:
+                await _run_pilot_suite_cases(
+                    task_id,
+                    task,
+                    pilot_suite,
+                    ws_clients,
                     scan_deadline=scan_deadline,
-                    base_sem=base_sem,
                 )
-            ]
-            if enable_pair:
-                all_coros.append(_run_advanced_pair(
-                    task_id, task, templates, ws_clients,
-                    adv.get("pair_max_rounds", 20),
-                    quartet_mode=quartet_mode,
-                    should_stop=parallel_should_stop,
-                    chain_sem=chain_sem,
-                ))
-            if enable_self_explanation:
-                all_coros.append(_run_advanced_self_explanation(
-                    task_id, task, templates, ws_clients,
-                    adv.get("self_explanation_rounds", 5),
-                    quartet_mode=quartet_mode,
-                    should_stop=parallel_should_stop,
-                    chain_sem=chain_sem,
-                ))
-            if enable_crescendo:
-                all_coros.append(_run_advanced_crescendo(
-                    task_id, task, templates, ws_clients,
-                    adv.get("crescendo_max_turns", 10),
-                    quartet_mode=quartet_mode,
-                    should_stop=parallel_should_stop,
-                    chain_sem=chain_sem,
-                ))
-            if enable_fitd:
-                all_coros.append(_run_advanced_fitd(
-                    task_id, task, templates, ws_clients,
-                    adv.get("fitd_num_levels", 6),
-                    quartet_mode=quartet_mode,
-                    should_stop=parallel_should_stop,
-                    chain_sem=chain_sem,
-                ))
-            if enable_msj:
-                all_coros.append(_run_advanced_msj(
-                    task_id, task, templates, ws_clients,
-                    adv.get("msj_shot_count", 32),
-                    quartet_mode=quartet_mode,
-                    should_stop=parallel_should_stop,
-                    chain_sem=chain_sem,
-                ))
-            if enable_ice:
-                all_coros.append(_run_advanced_ice(
-                    task_id, task, templates, ws_clients,
-                    quartet_mode=quartet_mode,
-                    should_stop=parallel_should_stop,
-                    chain_sem=chain_sem,
-                ))
-            if enable_tap:
-                all_coros.append(_run_advanced_tap(
-                    task_id, task, templates, ws_clients,
-                    adv.get("tap_branching_factor", 4),
-                    adv.get("tap_max_depth", 10),
-                    quartet_mode=quartet_mode,
-                    should_stop=parallel_should_stop,
-                    chain_sem=chain_sem,
-                ))
+                gather_results = []
+            else:
+                # Build all coroutines: base templates + advanced engines run together.
+                all_coros: list[Coroutine] = [
+                    _run_base_templates(
+                        task_id, task, templates, ws_clients,
+                        quartet_mode=quartet_mode,
+                        scan_deadline=scan_deadline,
+                        base_sem=base_sem,
+                    )
+                ]
+                if enable_pair:
+                    all_coros.append(_run_advanced_pair(
+                        task_id, task, templates, ws_clients,
+                        adv.get("pair_max_rounds", 20),
+                        quartet_mode=quartet_mode,
+                        should_stop=parallel_should_stop,
+                        chain_sem=chain_sem,
+                    ))
+                if enable_self_explanation:
+                    all_coros.append(_run_advanced_self_explanation(
+                        task_id, task, templates, ws_clients,
+                        adv.get("self_explanation_rounds", 5),
+                        quartet_mode=quartet_mode,
+                        should_stop=parallel_should_stop,
+                        chain_sem=chain_sem,
+                    ))
+                if enable_crescendo:
+                    all_coros.append(_run_advanced_crescendo(
+                        task_id, task, templates, ws_clients,
+                        adv.get("crescendo_max_turns", 10),
+                        quartet_mode=quartet_mode,
+                        should_stop=parallel_should_stop,
+                        chain_sem=chain_sem,
+                    ))
+                if enable_fitd:
+                    all_coros.append(_run_advanced_fitd(
+                        task_id, task, templates, ws_clients,
+                        adv.get("fitd_num_levels", 6),
+                        quartet_mode=quartet_mode,
+                        should_stop=parallel_should_stop,
+                        chain_sem=chain_sem,
+                    ))
+                if enable_msj:
+                    all_coros.append(_run_advanced_msj(
+                        task_id, task, templates, ws_clients,
+                        adv.get("msj_shot_count", 32),
+                        quartet_mode=quartet_mode,
+                        should_stop=parallel_should_stop,
+                        chain_sem=chain_sem,
+                    ))
+                if enable_ice:
+                    all_coros.append(_run_advanced_ice(
+                        task_id, task, templates, ws_clients,
+                        quartet_mode=quartet_mode,
+                        should_stop=parallel_should_stop,
+                        chain_sem=chain_sem,
+                    ))
+                if enable_tap:
+                    all_coros.append(_run_advanced_tap(
+                        task_id, task, templates, ws_clients,
+                        adv.get("tap_branching_factor", 4),
+                        adv.get("tap_max_depth", 10),
+                        quartet_mode=quartet_mode,
+                        should_stop=parallel_should_stop,
+                        chain_sem=chain_sem,
+                    ))
 
-            gather_results = await asyncio.gather(*all_coros, return_exceptions=True)
+                gather_results = await asyncio.gather(*all_coros, return_exceptions=True)
             for idx, res in enumerate(gather_results):
                 if isinstance(res, Exception):
                     logger.warning("Engine %d failed: %s", idx, res)
