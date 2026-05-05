@@ -53,6 +53,12 @@ from app.services.target_client import (
 )
 
 logger = logging.getLogger(__name__)
+EXPLICIT_QUARTET_VARIANT_ORDER: tuple[str, ...] = (
+    "attack",
+    "clean",
+    "quoted_attack",
+    "benign_distractor",
+)
 
 # ── Attack objective (owned here; scan_runner imports from case_executor) ──────
 
@@ -374,6 +380,27 @@ def build_case_variants(
                 "latency_ms": None,
                 "analysis_raw": None,
                 "is_primary": False,
+            }
+        )
+    return case_variants
+
+
+def build_explicit_case_variants(suite_case) -> list[dict]:
+    variants = suite_case.variants
+    case_variants: list[dict] = []
+    for position, variant_type in enumerate(EXPLICIT_QUARTET_VARIANT_ORDER):
+        request_text = str(getattr(variants, variant_type) or "")
+        case_variants.append(
+            {
+                "variant_type": variant_type,
+                "position": position,
+                "request_text": request_text,
+                "response_text": None,
+                "response_error": None,
+                "response_status": "pending",
+                "latency_ms": None,
+                "analysis_raw": None,
+                "is_primary": variant_type == "attack",
             }
         )
     return case_variants
@@ -1260,4 +1287,34 @@ async def prepare_case_attempt(
     )
     analyzed["case_id"] = resolved_case_id
     analyzed["probe_session_id"] = probe_session_id
+    return await apply_business_verification(task, analyzed, ws_clients=ws_clients)
+
+
+async def prepare_explicit_case_attempt(
+    task,
+    template: dict,
+    suite_case,
+    *,
+    ws_clients: dict[str, list[WebSocket]] | None = None,
+) -> dict:
+    case_id = str(suite_case.case_id)
+    completed_variants: list[dict] = []
+    for case_variant in build_explicit_case_variants(suite_case):
+        completed_variants.append(
+            await execute_case_variant(task, case_variant, case_id=case_id)
+        )
+
+    skip_confirmation = bool(
+        (getattr(task, "advanced_config", None) or {}).get("skip_confirmation", False)
+    )
+    analyzed = await analyze_case_variants(
+        task,
+        template,
+        completed_variants,
+        attack_type=template.get("category_name", template.get("category", "")),
+        extra_context="Pilot suite explicit quartet execution.",
+        skip_confirmation=skip_confirmation,
+    )
+    analyzed["case_id"] = case_id
+    analyzed["probe_session_id"] = None
     return await apply_business_verification(task, analyzed, ws_clients=ws_clients)
