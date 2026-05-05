@@ -9,6 +9,8 @@ from typing import Any, Mapping, Sequence
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.database import async_session as default_session_factory
+from app.models import ScanTask
 from app.services.quartet_generator import dump_suite, generate_quartet, load_suite
 
 
@@ -210,6 +212,20 @@ async def prepare_pilot_run(
     planned_variant_count = len(quartet_cases) * 4
     selected_categories = list(dict.fromkeys(case.category for case in selected_cases))
     scan_task_id: str | None = None
+    if not dry_run:
+        scan_task_id = await _create_pending_scan_task(
+            run_id=run_id,
+            suite_version=suite_version,
+            target_type=target_type,
+            model=model,
+            selected_categories=selected_categories,
+            suite_path=suite_path,
+            suite_hash=manifest.content_hash,
+            selected_case_count=len(selected_cases),
+            planned_variant_count=planned_variant_count,
+            seed=seed,
+            session_factory=session_factory,
+        )
 
     config = _build_config_payload(
         run_id=run_id,
@@ -330,3 +346,50 @@ def _build_summary_payload(
 
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+async def _create_pending_scan_task(
+    *,
+    run_id: str,
+    suite_version: str,
+    target_type: str,
+    model: str,
+    selected_categories: list[str],
+    suite_path: Path,
+    suite_hash: str,
+    selected_case_count: int,
+    planned_variant_count: int,
+    seed: int,
+    session_factory: SessionFactory | None,
+) -> str:
+    factory = session_factory or default_session_factory
+    target_config = _target_config_for_prepare(target_type, model)
+    task = ScanTask(
+        name=f"Pilot {suite_version} {run_id}",
+        status="pending",
+        target_url="builtin" if target_type == "builtin_vulnerable" else "pilot-prepared",
+        target_type=target_type,
+        target_config=target_config,
+        attack_categories=selected_categories,
+        advanced_config={
+            "quartet_mode": "full",
+            "pilot_run_id": run_id,
+            "pilot_suite_path": str(suite_path),
+            "pilot_suite_hash": suite_hash,
+            "pilot_case_count": selected_case_count,
+            "pilot_variant_count": planned_variant_count,
+            "pilot_seed": seed,
+            "pilot_model": model,
+        },
+    )
+    async with factory() as db:
+        db.add(task)
+        await db.commit()
+        await db.refresh(task)
+        return task.id
+
+
+def _target_config_for_prepare(target_type: str, model: str) -> dict[str, Any] | None:
+    if target_type == "builtin_vulnerable":
+        return {"vulnerable_level": 2}
+    return {"model": model}
