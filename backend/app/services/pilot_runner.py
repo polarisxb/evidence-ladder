@@ -1,9 +1,15 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.services.quartet_generator import dump_suite, generate_quartet, load_suite
 
 
 PREFERRED_PILOT_CATEGORIES: tuple[str, ...] = (
@@ -21,6 +27,12 @@ DEFAULT_MODEL = "gpt-4o-mini"
 DEFAULT_SUITE_VERSION = "v0.1"
 
 ATTACK_TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "attack_templates"
+SessionFactory = Callable[[], AsyncSession]
+SUPPORTED_PREPARE_TARGET_TYPES: tuple[str, ...] = (
+    "openai_compatible",
+    "claude",
+    "builtin_vulnerable",
+)
 
 
 @dataclass(frozen=True)
@@ -34,6 +46,20 @@ class PilotCase:
     payload_text: str
     payload_language: str | None
     payload_variant: str | None
+
+
+@dataclass(frozen=True)
+class PilotRunResult:
+    run_id: str
+    output_dir: Path
+    config_path: Path
+    suite_path: Path
+    summary_path: Path
+    suite_hash: str
+    selected_case_count: int
+    planned_variant_count: int
+    dry_run: bool
+    scan_task_id: str | None
 
 
 def load_attack_template_bundles(templates_dir: Path | None = None) -> list[dict[str, Any]]:
@@ -129,3 +155,178 @@ def _cases_from_bundle(bundle: Mapping[str, Any]) -> list[PilotCase]:
                 )
             )
     return cases
+
+
+async def prepare_pilot_run(
+    *,
+    output_dir: Path,
+    case_count: int = DEFAULT_CASE_COUNT,
+    model: str = DEFAULT_MODEL,
+    target_type: str = "openai_compatible",
+    seed: int = DEFAULT_PILOT_SEED,
+    suite_version: str = DEFAULT_SUITE_VERSION,
+    run_id: str | None = None,
+    dry_run: bool = True,
+    templates_dir: Path | None = None,
+    session_factory: SessionFactory | None = None,
+) -> PilotRunResult:
+    target_type = _validate_target_type(target_type)
+    output_dir = Path(output_dir)
+    run_id = (run_id or output_dir.name).strip()
+    if not run_id:
+        raise ValueError("run_id must be non-empty")
+
+    bundles = load_attack_template_bundles(templates_dir)
+    selected_cases = select_pilot_cases(bundles, case_count=case_count, seed=seed)
+    quartet_cases = [
+        generate_quartet(
+            case_id=case.case_id,
+            category=case.category,
+            attack_payload=case.payload_text,
+            owasp_id=case.owasp_id,
+            template_id=case.template_id,
+            template_name=case.template_name,
+            payload_language=case.payload_language,
+            payload_variant=case.payload_variant,
+        )
+        for case in selected_cases
+    ]
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    suite_path = output_dir / "suite.json"
+    config_path = output_dir / "config.json"
+    summary_path = output_dir / "summary.json"
+
+    manifest = dump_suite(
+        quartet_cases,
+        out_path=suite_path,
+        suite_version=suite_version,
+        description=f"Pilot run {run_id}",
+    )
+    verified_suite = load_suite(suite_path)
+    if verified_suite.manifest.content_hash != manifest.content_hash:
+        raise ValueError("suite hash verification failed after dump")
+
+    planned_variant_count = len(quartet_cases) * 4
+    selected_categories = list(dict.fromkeys(case.category for case in selected_cases))
+    scan_task_id: str | None = None
+
+    config = _build_config_payload(
+        run_id=run_id,
+        suite_version=suite_version,
+        seed=seed,
+        requested_case_count=case_count,
+        selected_case_count=len(selected_cases),
+        planned_variant_count=planned_variant_count,
+        model=model,
+        target_type=target_type,
+        selected_categories=selected_categories,
+        suite_path=suite_path,
+        suite_hash=manifest.content_hash,
+        dry_run=dry_run,
+        scan_task_id=scan_task_id,
+    )
+    summary = _build_summary_payload(
+        run_id=run_id,
+        selected_case_count=len(selected_cases),
+        planned_variant_count=planned_variant_count,
+        suite_hash=manifest.content_hash,
+        output_dir=output_dir,
+        config_path=config_path,
+        suite_path=suite_path,
+        summary_path=summary_path,
+        dry_run=dry_run,
+        scan_task_id=scan_task_id,
+    )
+
+    _write_json(config_path, config)
+    _write_json(summary_path, summary)
+
+    return PilotRunResult(
+        run_id=run_id,
+        output_dir=output_dir,
+        config_path=config_path,
+        suite_path=suite_path,
+        summary_path=summary_path,
+        suite_hash=manifest.content_hash,
+        selected_case_count=len(selected_cases),
+        planned_variant_count=planned_variant_count,
+        dry_run=dry_run,
+        scan_task_id=scan_task_id,
+    )
+
+
+def _validate_target_type(target_type: str) -> str:
+    normalized = str(target_type or "").strip()
+    if normalized not in SUPPORTED_PREPARE_TARGET_TYPES:
+        raise ValueError(
+            f"target_type {normalized!r} is not supported by Stage 1.3 Pilot preparation"
+        )
+    return normalized
+
+
+def _build_config_payload(
+    *,
+    run_id: str,
+    suite_version: str,
+    seed: int,
+    requested_case_count: int,
+    selected_case_count: int,
+    planned_variant_count: int,
+    model: str,
+    target_type: str,
+    selected_categories: list[str],
+    suite_path: Path,
+    suite_hash: str,
+    dry_run: bool,
+    scan_task_id: str | None,
+) -> dict[str, Any]:
+    return {
+        "run_id": run_id,
+        "suite_version": suite_version,
+        "seed": seed,
+        "requested_case_count": requested_case_count,
+        "selected_case_count": selected_case_count,
+        "planned_variant_count": planned_variant_count,
+        "model": model,
+        "target_type": target_type,
+        "category_quotas": {category: 5 for category in PREFERRED_PILOT_CATEGORIES},
+        "selected_categories": selected_categories,
+        "suite_path": str(suite_path),
+        "suite_hash": suite_hash,
+        "dry_run": dry_run,
+        "scan_task_id": scan_task_id,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def _build_summary_payload(
+    *,
+    run_id: str,
+    selected_case_count: int,
+    planned_variant_count: int,
+    suite_hash: str,
+    output_dir: Path,
+    config_path: Path,
+    suite_path: Path,
+    summary_path: Path,
+    dry_run: bool,
+    scan_task_id: str | None,
+) -> dict[str, Any]:
+    return {
+        "run_id": run_id,
+        "selected_case_count": selected_case_count,
+        "planned_variant_count": planned_variant_count,
+        "suite_hash": suite_hash,
+        "output_dir": str(output_dir),
+        "config_path": str(config_path),
+        "suite_path": str(suite_path),
+        "summary_path": str(summary_path),
+        "dry_run": dry_run,
+        "scan_task_id": scan_task_id,
+        "next_step": "Stage 1.4: execute the prepared scan with real provider configuration.",
+    }
+
+
+def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
