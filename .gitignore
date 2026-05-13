@@ -39,6 +39,10 @@ output/
 # Cursor
 .cursor/projects/
 
+# Windsurf — local-only Superpowers skills (cloned from obra/superpowers)
+# Skills are downloaded per machine; not committed to repo.
+.windsurf/skills/
+
 # Competition / submission archives — DO NOT publish
 # These folders contain personal contest IDs, submitted reports, demo videos, etc.
 # Excluded from the public repository to avoid accidental disclosure.
@@ -57,7 +61,21 @@ agent-tools/
 .terminals/
 
 # Personal Cursor MCP config (contains local user paths)
+# Includes backup files like mcp.json.bak-rename-<timestamp>.
 .cursor/mcp.json
+.cursor/mcp.json.*
+# Personal Cursor agent rules (local-only behavior tuning).
+.cursor/rules/bajie-mcp.mdc
+
+# Personal grant / 大创 application drafts — contain student ID / advisor info.
+# Keep locally only; do not publish.
+docs/dachuang_report*.md
+
+# LaTeX build artifacts (paper preview compiles in docs/ppt-materials).
+*.aux
+*.out
+*.toc
+*.synctex.gz
 
 # Academic paper PDFs — keep locally only; cite via BibTeX/links instead
 # (PDFs from USENIX/NeurIPS/ICML/etc. typically retain copyright;
