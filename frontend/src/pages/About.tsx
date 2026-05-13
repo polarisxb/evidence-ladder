@@ -1,5 +1,6 @@
-import { Shield, Zap, Target, BarChart3, BookOpen, ExternalLink } from "lucide-react";
+import { Shield, Zap, Target, BarChart3, BookOpen, ExternalLink, Box } from "lucide-react";
 import { useLocale } from "../i18n";
+import { ArchitectureDiagram } from "../components/ArchitectureDiagram";
 
 const FRAMEWORKS = [
   { name: "OWASP LLM Top 10", version: "2025", items: 10 },
@@ -93,14 +94,22 @@ export function About() {
       </div>
 
       <div className="card p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Box className="w-5 h-5 text-indigo-500" />
+          {t("about.architecture")}
+        </h2>
+        <ArchitectureDiagram />
+      </div>
+
+      <div className="card p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">{t("about.techStack")}</h2>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <p className="text-gray-500 mb-2">{t("about.backend")}</p>
             <div className="flex flex-wrap gap-2">
-              {["Python 3.11+", "FastAPI", "SQLAlchemy", "OpenAI API", "CVSS Library"].map((t) => (
-                <span key={t} className="px-2 py-1 bg-gray-50 border border-gray-100 rounded text-xs text-gray-700">
-                  {t}
+              {["Python 3.11+", "FastAPI 0.115", "SQLAlchemy 2.0", "OpenAI SDK", "Anthropic SDK", "CVSS v4.0"].map((tech) => (
+                <span key={tech} className="px-2 py-1 bg-gray-50 border border-gray-100 rounded text-xs text-gray-700">
+                  {tech}
                 </span>
               ))}
             </div>
@@ -108,9 +117,29 @@ export function About() {
           <div>
             <p className="text-gray-500 mb-2">{t("about.frontend")}</p>
             <div className="flex flex-wrap gap-2">
-              {["React 18", "TypeScript", "TailwindCSS", "Recharts", "Vite"].map((t) => (
-                <span key={t} className="px-2 py-1 bg-gray-50 border border-gray-100 rounded text-xs text-gray-700">
-                  {t}
+              {["React 19", "TypeScript 5.9", "TailwindCSS 4", "Recharts 3", "Vite 8"].map((tech) => (
+                <span key={tech} className="px-2 py-1 bg-gray-50 border border-gray-100 rounded text-xs text-gray-700">
+                  {tech}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-gray-500 mb-2">{t("about.deployment")}</p>
+            <div className="flex flex-wrap gap-2">
+              {["Docker Compose", "Nginx", "SQLite", "WebSocket"].map((tech) => (
+                <span key={tech} className="px-2 py-1 bg-gray-50 border border-gray-100 rounded text-xs text-gray-700">
+                  {tech}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-gray-500 mb-2">{t("about.security")}</p>
+            <div className="flex flex-wrap gap-2">
+              {[t("about.defaultDenyAuth"), t("about.ssrfProtection"), t("about.wsAuth"), t("about.credSanitization")].map((tech) => (
+                <span key={tech} className="px-2 py-1 bg-gray-50 border border-gray-100 rounded text-xs text-gray-700">
+                  {tech}
                 </span>
               ))}
             </div>
