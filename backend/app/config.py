@@ -43,6 +43,11 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:5173"]
     allow_localhost_targets: bool = True
+    # Allow RFC1918 private IPs (Docker Compose internal networking).
+    # Set ``ALLOW_PRIVATE_TARGETS=true`` when mock targets run in the
+    # same compose project and are reached via service names that
+    # resolve to 172.x.x.x addresses.
+    allow_private_targets: bool = False
 
     # Stage 1.1a — Default-deny API authentication.
     # When True (default), every API request must carry X-API-Key matching

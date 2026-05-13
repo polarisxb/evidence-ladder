@@ -1,0 +1,16 @@
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.venv
+venv
+data/*.db
+tests/
+*.egg-info
+.git
+.gitignore
+Dockerfile
+.dockerignore
+_cleanup_zombie.py
+_diagnose_not_evaluable.py
+_live.py

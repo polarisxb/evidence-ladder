@@ -5,6 +5,10 @@ services:
       - "8000:8000"
     env_file:
       - ./.env
+    environment:
+      # Docker Compose: allow backend to reach mock targets via service names
+      ALLOW_PRIVATE_TARGETS: "true"
+      ALLOW_LOCALHOST_TARGETS: "false"
     volumes:
       - ./backend/data:/app/data
     healthcheck:
@@ -12,6 +16,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    depends_on:
+      financebot:
+        condition: service_healthy
+      shopbot:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
@@ -20,3 +29,31 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+
+  # ── Mock Targets (demo / defense presentation) ──────────────
+
+  financebot:
+    build: ./mock_targets/financebot
+    ports:
+      - "8001:8001"
+    env_file:
+      - ./.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  shopbot:
+    build: ./mock_targets/shopbot
+    ports:
+      - "8002:8002"
+    env_file:
+      - ./.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

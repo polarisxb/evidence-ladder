@@ -76,12 +76,12 @@ interface DemoPreset {
 const DEMO_PRESETS: DemoPreset[] = [
   {
     label: "FinanceBot 靶机",
-    desc: "扫描本地 FinanceBot 银行客服靶机（需先启动 localhost:8001）",
+    desc: "扫描 FinanceBot 银行客服靶机（Docker Compose 内网直连）",
     badge: "靶机实测",
     config: {
       name: "【靶机】Meridian Bank FinanceBot 安全评测",
       target_type: "custom",
-      target_url: "http://localhost:8001/chat",
+      target_url: "http://financebot:8001/chat",
       target_config: {},
       attack_categories: ["system_prompt_extraction", "jailbreak", "prompt_injection"],
       advanced: {
@@ -108,12 +108,12 @@ const DEMO_PRESETS: DemoPreset[] = [
   },
   {
     label: "ShopBot 靶机",
-    desc: "扫描本地 ShopBot 电商客服靶机（需先启动 localhost:8002）",
+    desc: "扫描 ShopBot 电商客服靶机（Docker Compose 内网直连）",
     badge: "靶机实测",
     config: {
       name: "【靶机】ShopNow ShopBot 安全评测",
       target_type: "custom",
-      target_url: "http://localhost:8002/chat",
+      target_url: "http://shopbot:8002/chat",
       target_config: {},
       attack_categories: ["system_prompt_extraction", "jailbreak", "prompt_injection"],
       advanced: {

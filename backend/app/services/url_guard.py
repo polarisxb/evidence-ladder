@@ -117,6 +117,7 @@ def _is_blocked_ip(
     ip: ipaddress.IPv4Address | ipaddress.IPv6Address,
     *,
     allow_loopback: bool,
+    allow_private: bool = False,
 ) -> tuple[bool, str]:
     """Return ``(is_blocked, reason)`` for a single resolved IP."""
     if ip.is_unspecified:
@@ -127,11 +128,13 @@ def _is_blocked_ip(
         return True, "loopback address"
     if ip.is_link_local:
         # Covers AWS/GCP metadata 169.254.169.254 and IPv6 fe80::/10.
-        # Intentionally NOT relaxed by allow_loopback.
+        # Intentionally NOT relaxed by allow_loopback or allow_private.
         return True, "link-local address"
     if ip.is_multicast:
         return True, "multicast address"
     if ip.is_private:
+        if allow_private:
+            return False, ""
         # RFC1918, ULA fc00::/7, 100.64/10 (CGNAT) etc.
         return True, "private/reserved address"
     if ip.is_reserved:
@@ -143,6 +146,7 @@ def validate_target_url(
     url: str,
     *,
     allow_localhost: bool | None = None,
+    allow_private: bool | None = None,
 ) -> str:
     """Validate ``url`` against the SSRF policy. Returns the URL on success.
 
@@ -156,6 +160,10 @@ def validate_target_url(
         ``localhost``). Defaults to ``settings.allow_localhost_targets``
         when ``None``. RFC1918, link-local, CGNAT etc. are *always*
         blocked regardless of this flag.
+    allow_private:
+        Whether to permit RFC1918 private addresses (Docker Compose
+        internal networking). Defaults to
+        ``settings.allow_private_targets`` when ``None``.
 
     Raises
     ------
@@ -165,6 +173,8 @@ def validate_target_url(
     """
     if allow_localhost is None:
         allow_localhost = bool(settings.allow_localhost_targets)
+    if allow_private is None:
+        allow_private = bool(settings.allow_private_targets)
 
     if not url or not isinstance(url, str):
         raise UnsafeTargetURL("empty or non-string url", url or "")
@@ -203,7 +213,7 @@ def validate_target_url(
             )
 
     for ip in addresses:
-        blocked, reason = _is_blocked_ip(ip, allow_loopback=allow_localhost)
+        blocked, reason = _is_blocked_ip(ip, allow_loopback=allow_localhost, allow_private=allow_private)
         if blocked:
             raise UnsafeTargetURL(f"{reason} ({ip})", url)
 
