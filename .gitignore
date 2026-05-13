@@ -71,6 +71,11 @@ agent-tools/
 # Keep locally only; do not publish.
 docs/dachuang_report*.md
 
+# Personal presentation / poster / 大创 promotion materials.
+# Kept locally; do not publish to GitHub.
+docs/ppt-materials/
+docs/assets/tech-route-figure-prompt.md
+
 # LaTeX build artifacts (paper preview compiles in docs/ppt-materials).
 *.aux
 *.out
