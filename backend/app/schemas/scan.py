@@ -195,6 +195,8 @@ class AttackResultResponse(BaseModel):
     business_verification_status: BusinessVerificationStatus | str | None = None
     probe_summary: dict | None = None
     probe_evidence_preview: list[dict] = Field(default_factory=list)
+    concealment_class: str = "not_applicable"
+    is_concealed: bool = False
     response_evaluation: ResponseEvaluationResponse | None = None
     analysis_raw: dict | None = None
     created_at: datetime

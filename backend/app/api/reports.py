@@ -13,6 +13,7 @@ from app.database import get_db
 from app.models import ScanTask, AttackCase, AttackResult
 from app.schemas.scan import AttackResultResponse, AttackResultReviewRequest
 from app.schemas.report import AnalysisResult, CvssMetrics
+from app.services.concealment_detector import detect_concealment
 from app.services.report_generator import generate_report, render_html_report
 from app.services.risk_scorer import compute_posture_metrics, compute_risk_score
 from app.services.case_serializer import derive_judge_fields
@@ -195,11 +196,23 @@ def _resolved_probe_evidence_preview(result: AttackResult, raw: dict) -> list[di
     return preview
 
 
+def _resolved_concealment(raw: dict, verdict_status: str, business_verification_status: str):
+    return detect_concealment({
+        "verdict_status": verdict_status,
+        "blackbox_outcome": raw.get("blackbox_outcome"),
+        "business_verification_status": business_verification_status,
+        "behavior_flags": raw.get("behavior_flags", {}),
+        "rule_hits": raw.get("rule_hits", []),
+        "tool_calls": raw.get("tool_calls"),
+    })
+
+
 def _serialize_attack_result(result) -> AttackResultResponse:
     raw = result.analysis_raw or {}
     verdict_status = _resolved_verdict_status(result, raw)
     target_response = _resolved_target_response(result, raw)
     business_verification_status = _resolved_business_verification_status(result, raw)
+    concealment = _resolved_concealment(raw, verdict_status, business_verification_status)
     response_evaluation = extract_response_evaluation(raw) or infer_not_evaluable_response_evaluation(
         response_text=target_response,
         target_type="unknown",
@@ -238,6 +251,8 @@ def _serialize_attack_result(result) -> AttackResultResponse:
         business_verification_status=business_verification_status,
         probe_summary=_resolved_probe_summary(result, raw, business_verification_status),
         probe_evidence_preview=_resolved_probe_evidence_preview(result, raw),
+        concealment_class=concealment.concealment_class,
+        is_concealed=concealment.is_concealed,
         response_evaluation=response_evaluation,
         analysis_raw=raw,
         created_at=result.created_at,
