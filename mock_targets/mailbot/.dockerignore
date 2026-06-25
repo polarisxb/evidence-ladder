@@ -1,0 +1,16 @@
+node_modules
+dist
+*.db
+*.db-shm
+*.db-wal
+*.log
+.env
+.git
+.gitignore
+Dockerfile
+.dockerignore
+README.md
+server.log
+server.err.log
+server.restart.log
+server.restart.err.log
