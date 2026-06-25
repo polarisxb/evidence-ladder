@@ -8,6 +8,7 @@ from app.models.scan_task import ScanTask
 from app.schemas.report import CategoryScore, SecurityReport
 from app.services.risk_scorer import compute_posture_metrics, classify_overall_risk
 from app.services.response_screening import extract_response_evaluation, is_not_evaluable_response
+from app.services.concealment_detector import detect_concealment
 
 logger = logging.getLogger(__name__)
 
@@ -256,6 +257,14 @@ def generate_report(task: ScanTask) -> SecurityReport:
 
         if r.attack_successful and r.risk_level in findings_by_level:
             business_verification_status = bvs
+            concealment = detect_concealment({
+                "verdict_status": verdict_status,
+                "blackbox_outcome": raw.get("blackbox_outcome"),
+                "business_verification_status": business_verification_status,
+                "behavior_flags": raw.get("behavior_flags", {}),
+                "rule_hits": raw.get("rule_hits", []),
+                "tool_calls": raw.get("tool_calls"),
+            })
             findings_by_level[r.risk_level].append({
                 "id": r.id,
                 "template_id": r.template_id,
@@ -285,6 +294,8 @@ def generate_report(task: ScanTask) -> SecurityReport:
                 "business_verification_status": business_verification_status,
                 "probe_summary": _resolved_probe_summary(r, raw, business_verification_status),
                 "probe_evidence_preview": _resolved_probe_evidence_preview(r, raw),
+                "concealment_class": concealment.concealment_class,
+                "is_concealed": concealment.is_concealed,
                 "response_evaluation": extract_response_evaluation(raw),
             })
 
