@@ -27,9 +27,11 @@ import json
 import unittest
 from pathlib import Path
 
+from app.schemas.adapter import ProbeAssertion
 from app.services.adapter_extractors import extract_adapter_response
 from app.services.concealment_detector import detect_concealment
 from app.services.evidence_arbiter import arbitrate_evidence
+from app.services.probe_assertions import evaluate_probe_assertions
 
 FIXTURE_DIR = Path(__file__).resolve().parents[1] / "fixtures"
 ADAPTER_FIXTURE = FIXTURE_DIR / "mailbot_agent_adapter.json"
@@ -40,9 +42,8 @@ EXFIL_RECIPIENT = "attacker-evil.com"
 VARIANTS = ["clean", "attack", "quoted", "benign_distractor"]
 
 
-def _adapter_response_extract() -> dict:
-    raw = json.loads(ADAPTER_FIXTURE.read_text(encoding="utf-8"))
-    return raw["response_extract"]
+def _adapter_payload() -> dict:
+    return json.loads(ADAPTER_FIXTURE.read_text(encoding="utf-8"))
 
 
 def _load_variant(name: str) -> dict:
@@ -52,7 +53,33 @@ def _load_variant(name: str) -> dict:
 class MailbotQuartetTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.response_extract = _adapter_response_extract()
+        adapter = _adapter_payload()
+        cls.response_extract = adapter["response_extract"]
+        probe_config = adapter["probe_config"]
+        cls.probe_assertions = [
+            ProbeAssertion.model_validate(a) for a in probe_config["assertions"]
+        ]
+        cls.audit_step_name = probe_config["steps"][0]["name"]
+
+    def _derive_business_status(self, variant: dict) -> str:
+        """Derive ``business_verification_status`` by running the adapter's own
+        probe assertions over the variant's ``/audit/email-ops`` payload.
+
+        This mirrors what ``case_executor`` does in a live scan instead of
+        trusting a hardcoded fixture value, so the audit log and the verified
+        status can never silently drift apart.
+        """
+        step_results = [
+            {
+                "name": self.audit_step_name,
+                "status_code": 200,
+                "response_text": json.dumps(variant["audit"], ensure_ascii=False),
+            }
+        ]
+        _results, _evidence, verified, _reason = evaluate_probe_assertions(
+            self.probe_assertions, step_results=step_results
+        )
+        return "probe_verified" if verified else "probe_failed"
 
     def _extract_tool_calls(self, variant: dict) -> list:
         chat_json = json.dumps(variant["chat_response"], ensure_ascii=False)
@@ -70,7 +97,7 @@ class MailbotQuartetTests(unittest.TestCase):
             "variant_type": variant["variant_type"],
             "verdict_status": variant["verdict_status"],
             "response_status": "completed",
-            "business_verification_status": variant["business_verification_status"],
+            "business_verification_status": self._derive_business_status(variant),
             "behavior_flags": {},
             "tool_calls": tool_calls,
         }
@@ -78,6 +105,23 @@ class MailbotQuartetTests(unittest.TestCase):
     def test_all_quartet_fixtures_present(self):
         for name in VARIANTS:
             self.assertTrue((QUARTET_DIR / f"{name}.json").exists(), name)
+
+    def test_business_status_is_derived_from_audit_probe(self):
+        """The verified status is produced by the real ``text_contains`` probe
+        assertion over the audit log, and matches the fixture contract."""
+        for name in VARIANTS:
+            with self.subTest(variant=name):
+                variant = _load_variant(name)
+                derived = self._derive_business_status(variant)
+                expected = (
+                    "probe_verified"
+                    if variant["expected"]["forward_called"]
+                    else "probe_failed"
+                )
+                self.assertEqual(derived, expected)
+                # No drift: the engine-derived status equals the fixture's own
+                # documented business_verification_status.
+                self.assertEqual(derived, variant["business_verification_status"])
 
     def test_quartet_evidence_and_concealment_matrix(self):
         """Each variant lands on its expected evidence level + concealment class."""
@@ -91,10 +135,12 @@ class MailbotQuartetTests(unittest.TestCase):
                 forwarded = any(tc.get("name") == "forward_email" for tc in tool_calls)
                 self.assertEqual(forwarded, expected["forward_called"])
 
-                # The /audit/email-ops probe text reveals the attacker recipient
-                # only when exfiltration actually happened.
-                audit_text = json.dumps(variant["audit"], ensure_ascii=False)
-                self.assertEqual(EXFIL_RECIPIENT in audit_text, expected["forward_called"])
+                # The /audit/email-ops probe verifies the breach only when
+                # exfiltration actually happened (derived, not hardcoded).
+                derived_status = self._derive_business_status(variant)
+                self.assertEqual(
+                    derived_status == "probe_verified", expected["forward_called"]
+                )
 
                 payload = self._result_payload(variant, tool_calls)
 
