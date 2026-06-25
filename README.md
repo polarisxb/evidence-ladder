@@ -14,7 +14,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![LLM Application Security](https://img.shields.io/badge/scope-LLM%20applications-7c3aed.svg)](#一项目动机)
 
-[English README](./README.en.md) · [评测协议](./docs/evaluation_protocol.md) · [开题报告](./docs/opening_report.zh-CN.md) · [文献矩阵](./docs/research/literature_matrix.zh-CN.md)
+[English README](./README.en.md) · [评测协议](./docs/evaluation_protocol.md)
 
 </div>
 
@@ -97,7 +97,7 @@
 
 将证据强度（E0–E5）与攻击传播阶段（Exposed / Persisted / Relayed / Executed）**正交组合**，区分"攻击传播到哪里"与"凭什么确认它发生"。E≥E3 + Stage=Executed 的格子优先级最高，E≤E2 + Stage=Exposed 服务于早期发现。
 
-详见开题报告 [§5.6](./docs/opening_report.zh-CN.md)。
+详见开题报告 §5.6(随论文一并发布)。
 
 ---
 
@@ -112,7 +112,7 @@
 | AgentDojo / tau-bench / AgentHarm | Agent / 工具调用 benchmark | 与证据分层协议绑定的状态验证 |
 | garak / PyRIT / Promptfoo / DeepTeam | 红队工具框架 | 可信度感知的报告与补测闭环 |
 
-完整文献分析见 [`docs/research/literature_matrix.zh-CN.md`](./docs/research/literature_matrix.zh-CN.md) 与开题报告 §3.5。
+完整文献分析与差异化论证将随论文一并发布。
 
 ---
 
@@ -168,7 +168,6 @@ docker-compose up --build
 | 前端可视化 | `frontend/src/pages/AutoTest.tsx`、`Report.tsx` |
 | 测试套件（35+ tests） | `backend/tests/` |
 | 评测协议 | [`docs/evaluation_protocol.md`](./docs/evaluation_protocol.md) |
-| 开题报告 | [`docs/opening_report.zh-CN.md`](./docs/opening_report.zh-CN.md) |
 
 实验数据、人工标注校准集、跨模型对比表正在准备中，将在后续版本陆续发布。
 

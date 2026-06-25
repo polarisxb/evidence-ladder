@@ -56,6 +56,15 @@ docs/private/
 *.draft.md
 notepad.md
 
+# Competition / strategy working docs (internal) — keep local, NEVER publish
+docs/内部参考/
+docs/innovation_positioning.zh-CN.md
+docs/future_innovations.zh-CN.md
+docs/opening_report.zh-CN.md
+docs/research/
+docs/dev-notes/
+docs/superpowers/
+
 # Local agent transcripts and cached tool outputs
 agent-tools/
 .terminals/

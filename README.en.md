@@ -12,7 +12,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Made for LLM Apps](https://img.shields.io/badge/scope-LLM%20applications-7c3aed.svg)](#scope)
 
-[中文 README](./README.md) · [Evaluation Protocol](./docs/evaluation_protocol.md) · [Opening Report (zh-CN)](./docs/opening_report.zh-CN.md)
+[中文 README](./README.md) · [Evaluation Protocol](./docs/evaluation_protocol.md)
 
 </div>
 
@@ -110,7 +110,7 @@ This matrix differentiates *"where the attack propagated"* from *"on what eviden
 | AgentDojo / tau-bench / AgentHarm | Agent / tool-use benchmark | Evidence-stratified evaluation grounded in deployed-application surfaces |
 | garak / PyRIT / Promptfoo / DeepTeam | Open-source LLM red-team toolkit | Reliability-aware reporting (E-ASR, Quartet, conflict-driven retest) |
 
-For full literature analysis see [`docs/research/literature_matrix.zh-CN.md`](./docs/research/literature_matrix.zh-CN.md) and the differentiation section in the opening report.
+Full literature analysis will be released with the paper.
 
 ## 4. Quick start
 
