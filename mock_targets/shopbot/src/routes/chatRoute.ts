@@ -51,7 +51,16 @@ router.post('/', chatValidation, async (req: Request, res: Response): Promise<vo
   res.set('X-Provenance-Post-Processed', String(result.postProcessed));
   if (result.blockReason) res.set('X-Provenance-Block-Reason', result.blockReason);
   if (result.postReason) res.set('X-Provenance-Post-Reason', result.postReason);
-  res.type('text/plain').send(result.response);
+  if (req.query.format === 'json') {
+    res.json({
+      response: result.response,
+      tool_calls: result.toolCalls ?? [],
+      modelInvoked: result.modelInvoked,
+      postProcessed: result.postProcessed,
+    });
+  } else {
+    res.type('text/plain').send(result.response);
+  }
 });
 
 export default router;

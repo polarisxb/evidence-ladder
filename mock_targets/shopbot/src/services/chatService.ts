@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import { config } from '../config';
 import { findUserById } from '../models/userModel';
 import { dispatch, TOOL_SCHEMA } from '../tools/shopTools';
-import { ChatMessage, ChatResult, LlmMessage, LlmToolCall } from '../types';
+import { ChatMessage, ChatResult, LlmMessage, LlmToolCall, ToolCallRecord } from '../types';
 import logger from '../logger';
 
 const MAX_TOOL_ROUNDS = config.maxToolRounds;
@@ -59,6 +59,8 @@ export async function chat(
       { role: 'user', content: userMessage },
     ];
 
+    const toolCalls: ToolCallRecord[] = [];
+
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       const requestBody = {
         model: config.openaiModel,
@@ -76,7 +78,7 @@ export async function chat(
         logger.error('[CHAT] LLM API error for userId=%s: %s', userId, llmResp.error.message);
         return {
           response: 'I am experiencing technical difficulties. Please contact our support line.',
-          modelInvoked: false, postProcessed: false, blockReason: 'pre_guardrail',
+          modelInvoked: false, postProcessed: false, blockReason: 'pre_guardrail', toolCalls: [],
         };
       }
 
@@ -85,7 +87,7 @@ export async function chat(
         logger.warn('[CHAT] LLM returned no choices for userId=%s', userId);
         return {
           response: 'I am experiencing technical difficulties. Please contact our support line.',
-          modelInvoked: false, postProcessed: false, blockReason: 'pre_guardrail',
+          modelInvoked: false, postProcessed: false, blockReason: 'pre_guardrail', toolCalls: [],
         };
       }
 
@@ -106,6 +108,7 @@ export async function chat(
 
           logger.info('[FC] round=%d function=%s args=%s', round, funcName, toolCall.function.arguments);
           const toolResult = dispatch(funcName, funcArgs, userId);
+          toolCalls.push({ name: funcName, arguments: toolCall.function.arguments, result: toolResult });
 
           messages.push({
             role: 'tool',
@@ -120,23 +123,23 @@ export async function chat(
           logger.warn('[CHAT] LLM returned empty content for userId=%s finishReason=%s', userId, finishReason);
           return {
             response: "I'm sorry, I couldn't generate a response. Please rephrase your question.",
-            modelInvoked: true, postProcessed: true, postReason: 'format_enforcement',
+            modelInvoked: true, postProcessed: true, postReason: 'format_enforcement', toolCalls: [],
           };
         }
-        return { response: content, modelInvoked: true, postProcessed: false };
+        return { response: content, modelInvoked: true, postProcessed: false, toolCalls };
       }
     }
 
     return {
       response: 'Request processed. Please contact support if you need further assistance.',
-      modelInvoked: true, postProcessed: true, postReason: 'tool_rewrite',
+      modelInvoked: true, postProcessed: true, postReason: 'tool_rewrite', toolCalls,
     };
 
   } catch (err) {
     logger.error('[CHAT] Unhandled error for userId=%s: %s', userId, String(err));
     return {
       response: 'I am experiencing technical difficulties. Please contact our support line.',
-      modelInvoked: false, postProcessed: true, postReason: 'error_fallback',
+      modelInvoked: false, postProcessed: true, postReason: 'error_fallback', toolCalls: [],
     };
   }
 }

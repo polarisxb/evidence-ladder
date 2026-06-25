@@ -91,12 +91,19 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface ToolCallRecord {
+  name: string;
+  arguments: string;
+  result: string;
+}
+
 export interface ChatResult {
   response: string;
   modelInvoked: boolean;
   postProcessed: boolean;
   blockReason?: string | null;
   postReason?: string | null;
+  toolCalls?: ToolCallRecord[];
 }
 
 export interface ChatRequest {
