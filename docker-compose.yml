@@ -21,6 +21,8 @@ services:
         condition: service_healthy
       shopbot:
         condition: service_healthy
+      mailbot:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
@@ -53,6 +55,19 @@ services:
       - ./.env
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  mailbot:
+    build: ./mock_targets/mailbot
+    ports:
+      - "8003:8003"
+    env_file:
+      - ./.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
       interval: 10s
       timeout: 5s
       retries: 3
