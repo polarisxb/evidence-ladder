@@ -21,6 +21,7 @@ from app.schemas.autotest import (
 )
 from app.services.autotest_metrics import compute_autotest_metrics
 from app.services.autotest_retest_runs import get_retest_run_for_scan
+from app.services.concealment_detector import detect_concealment
 from app.services.evidence_arbiter import arbitrate_evidence
 from app.services.retest_policy import RetestConfig, plan_retests
 
@@ -64,6 +65,7 @@ async def build_autotest_summary(scan_id: str, db: AsyncSession) -> AutoTestSumm
 
     for payload in result_payloads:
         assessment = arbitrate_evidence(payload)
+        concealment = detect_concealment(payload)
         actions = plan_retests(payload, retest_config)
         items.append(AutoTestSummaryItem(
             result_id=str(payload["id"]),
@@ -79,6 +81,8 @@ async def build_autotest_summary(scan_id: str, db: AsyncSession) -> AutoTestSumm
             conflict_types=list(assessment.conflict_types),
             not_evaluable_reason=assessment.not_evaluable_reason,
             evidence_sources=list(assessment.evidence_sources),
+            concealment_class=concealment.concealment_class,
+            is_concealed=concealment.is_concealed,
         ))
         if actions:
             action_groups.append(AutoTestRetestActionGroup(

@@ -77,6 +77,8 @@ class AutoTestSummaryItem(BaseModel):
     conflict_types: list[str]
     not_evaluable_reason: str | None = None
     evidence_sources: list[str]
+    concealment_class: str = "not_applicable"
+    is_concealed: bool = False
 
 
 class AutoTestRetestActionGroup(BaseModel):
