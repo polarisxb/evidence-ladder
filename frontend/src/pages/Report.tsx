@@ -5,6 +5,7 @@ import { createAutoTestRetestDraft, getAutoTestSummary } from "../api/autotest";
 import { getCaseDetail } from "../api/cases";
 import { ResponseEvaluationPanel } from "../components/ResponseEvaluationPanel";
 import { ResultSemanticsCard } from "../components/ResultSemanticsCard";
+import { CanaryJourney } from "../components/CanaryJourney";
 import { downloadReport, getReport } from "../api/reports";
 import { createScan } from "../api/scans";
 import { useToast } from "../components/Toast";
@@ -1234,6 +1235,9 @@ export function Report() {
                           ))}
                         </div>
                       </div>
+                    )}
+                    {!!f.canary_provenance?.observations?.length && (
+                      <CanaryJourney provenance={f.canary_provenance} t={t} />
                     )}
                     {f.explanation && (
                       <div>

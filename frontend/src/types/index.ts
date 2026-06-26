@@ -446,6 +446,26 @@ export interface AdapterScanConfig extends ScanConfig {
   runtime_vars: Record<string, unknown>;
 }
 
+export type CanaryChannel = "response_text" | "tool_call" | "business_state";
+
+export interface CanaryObservation {
+  token: string;
+  channel: CanaryChannel;
+  context: string;
+  evidence_level: string;
+  kill_chain_stage: string;
+  strength: string;
+  excerpt: string;
+}
+
+export interface CanaryProvenance {
+  observations: CanaryObservation[];
+  evidence_level: string | null;
+  kill_chain_stage: string | null;
+  is_quoted_only: boolean;
+  strongest_channel: CanaryChannel | null;
+}
+
 export interface AttackResult {
   id: string;
   template_id: string;
@@ -474,6 +494,7 @@ export interface AttackResult {
     | null;
   verdict_reason?: string | null;
   rule_hits?: Array<{ rule: string; evidence: string }>;
+  canary_provenance?: CanaryProvenance | null;
   execution_mode?: "DISCUSSING_ATTACK" | "EXECUTING_ATTACK" | "UNCERTAIN" | null;
   blackbox_outcome?:
     | "NO_INJECTION_SUCCESS"
