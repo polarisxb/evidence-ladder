@@ -13,6 +13,7 @@ from app.database import get_db
 from app.models import ScanTask, AttackCase, AttackResult
 from app.schemas.scan import AttackResultResponse, AttackResultReviewRequest
 from app.schemas.report import AnalysisResult, CvssMetrics
+from app.services.canary_tracer import canary_provenance_payload
 from app.services.concealment_detector import detect_concealment
 from app.services.report_generator import generate_report, render_html_report
 from app.services.risk_scorer import compute_posture_metrics, compute_risk_score
@@ -237,6 +238,12 @@ def _serialize_attack_result(result) -> AttackResultResponse:
         verdict_status=verdict_status,
         verdict_reason=raw.get("verdict_reason"),
         rule_hits=raw.get("rule_hits", []) or [],
+        canary_provenance=canary_provenance_payload({
+            **raw,
+            "verdict_status": verdict_status,
+            "business_verification_status": business_verification_status,
+            "category": result.category,
+        }),
         execution_mode=_resolved_execution_mode(raw),
         blackbox_outcome=_resolved_blackbox_outcome(raw),
         behavior_flags=_resolved_behavior_flags(raw),

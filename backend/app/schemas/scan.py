@@ -181,6 +181,7 @@ class AttackResultResponse(BaseModel):
     verdict_status: str | None = None
     verdict_reason: str | None = None
     rule_hits: list[dict] = Field(default_factory=list)
+    canary_provenance: dict | None = None
     execution_mode: str | None = None
     blackbox_outcome: str | None = None
     behavior_flags: dict[str, bool | None] = Field(default_factory=dict)

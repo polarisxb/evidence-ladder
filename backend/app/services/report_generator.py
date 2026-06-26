@@ -9,6 +9,7 @@ from app.schemas.report import CategoryScore, SecurityReport
 from app.services.risk_scorer import compute_posture_metrics, classify_overall_risk
 from app.services.response_screening import extract_response_evaluation, is_not_evaluable_response
 from app.services.concealment_detector import detect_concealment
+from app.services.canary_tracer import canary_provenance_payload
 
 logger = logging.getLogger(__name__)
 
@@ -280,6 +281,12 @@ def generate_report(task: ScanTask) -> SecurityReport:
                 "verdict_status": verdict_status,
                 "verdict_reason": raw.get("verdict_reason"),
                 "rule_hits": raw.get("rule_hits", []),
+                "canary_provenance": canary_provenance_payload({
+                    **raw,
+                    "verdict_status": verdict_status,
+                    "business_verification_status": business_verification_status,
+                    "category": r.category,
+                }),
                 "execution_mode": raw.get("execution_mode"),
                 "blackbox_outcome": raw.get("blackbox_outcome"),
                 "behavior_flags": raw.get("behavior_flags", {}),

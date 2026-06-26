@@ -1032,6 +1032,8 @@ def _run_verdict_with_shadow(
     control_assessment: str | None,
     response_evaluation: dict | None = None,
     business_verification_status: str | None = None,
+    attack_category: str | None = None,
+    variant_type: str | None = None,
 ) -> dict:
     """Compute the case verdict, optionally dual-running the new Arbiter.
 
@@ -1055,6 +1057,9 @@ def _run_verdict_with_shadow(
         analysis=analysis,
         target_config=target_config,
         control_assessment=control_assessment,
+        attack_category=attack_category,
+        variant_type=variant_type,
+        business_verification_status=business_verification_status,
     )
 
     if not (settings.verdict_arbiter_shadow_mode or settings.verdict_arbiter_enabled):
@@ -1184,6 +1189,8 @@ async def analyze_case_variants(
                 target_config=task.target_config,
                 control_assessment=ctrl_summary.get("control_assessment"),
                 response_evaluation=response_evaluation,
+                attack_category=template.get("category", ""),
+                variant_type=str(attack_variant.get("variant_type", "attack")),
             )
         else:
             analysis = await analyze_response(
@@ -1206,6 +1213,8 @@ async def analyze_case_variants(
                 target_config=task.target_config,
                 control_assessment=ctrl_summary.get("control_assessment"),
                 response_evaluation=response_evaluation,
+                attack_category=template.get("category", ""),
+                variant_type=str(attack_variant.get("variant_type", "attack")),
             )
     except Exception as exc:
         logger.warning(

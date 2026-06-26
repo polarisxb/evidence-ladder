@@ -48,7 +48,7 @@ async def _fake_analyze_response(attack_type, attack_payload, target_response, c
     )
 
 
-def _fake_classify_verdict(*, attack_payload, target_response, analysis, target_config, control_assessment=None):
+def _fake_classify_verdict(*, attack_payload, target_response, analysis, target_config, control_assessment=None, **kwargs):
     return {
         "verdict_status": "rule_verified" if analysis.attack_successful else "passed",
         "verdict_reason": "probe verdict",

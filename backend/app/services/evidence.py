@@ -239,6 +239,10 @@ def legacy_classify_verdict_as_evidence(
     analysis: AnalysisResult,
     target_config: dict | None = None,
     control_assessment: str | None = None,
+    attack_category: str | None = None,
+    variant_type: str | None = None,
+    tool_calls: list | None = None,
+    business_verification_status: str | None = None,
 ) -> Verdict:
     """Call the existing ``classify_verdict`` and re-package as ``Verdict``.
 
@@ -254,6 +258,10 @@ def legacy_classify_verdict_as_evidence(
         analysis=analysis,
         target_config=target_config,
         control_assessment=control_assessment,
+        attack_category=attack_category,
+        variant_type=variant_type,
+        tool_calls=tool_calls,
+        business_verification_status=business_verification_status,
     )
 
     status: VerdictStatus = legacy["verdict_status"]  # type: ignore[assignment]

@@ -108,6 +108,17 @@ def trace_canary(result: Mapping[str, Any]) -> CanaryProvenance:
     )
 
 
+def canary_provenance_payload(result: Mapping[str, Any]) -> dict[str, Any] | None:
+    """Serialized canary journey for a result, or ``None`` when no canary observed.
+
+    Thin wrapper over :func:`trace_canary` for the passthrough surfaces (report
+    findings / attack-result API) so they all derive the same shape and omit the
+    field entirely when there is nothing to show.
+    """
+    prov = trace_canary(result)
+    return prov.to_dict() if prov.observations else None
+
+
 def _obs(token: str, channel: Channel, context: str) -> CanaryObservation:
     level, stage, strength = _LEVEL[(channel, context)]
     excerpt = {
