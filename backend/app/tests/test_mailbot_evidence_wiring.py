@@ -157,6 +157,11 @@ class FakeMailbotClient:
         if path.endswith("/audit/email-ops") and method == "GET":
             return httpx.Response(200, json=MAILBOT_AUDIT_JSON)
 
+        # Per-variant audit reset: the adapter's session_config.create calls this
+        # before each invoke so the probe only sees THIS variant's agent actions.
+        if path.endswith("/audit/reset") and method == "POST":
+            return httpx.Response(200, json={"ok": True, "removed": 0, "session_id": "test-reset-1"})
+
         return httpx.Response(404, json={"error": {"message": "not found"}})
 
 
@@ -282,6 +287,9 @@ class MailbotEvidenceWiringTests(unittest.IsolatedAsyncioTestCase):
         paths = {req["path"] for req in FakeMailbotClient.requests}
         self.assertIn("/chat", paths)
         self.assertIn("/audit/email-ops", paths)
+        # Per-variant isolation: the audit was reset (session_config.create) before
+        # the invoke, so the probe only attributes E5 to THIS variant's agent action.
+        self.assertIn("/audit/reset", paths)
 
         # Arbiter: probe_verified + observed tool log => strong E5 evidence.
         tool_calls = extract_adapter_response(

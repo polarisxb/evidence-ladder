@@ -7,6 +7,14 @@
   "auth_config": {
     "type": "none"
   },
+  "session_config": {
+    "mode": "per_variant_isolated",
+    "create": {
+      "method": "POST",
+      "path": "/audit/reset",
+      "extract": { "session_id": "$.session_id" }
+    }
+  },
   "invoke_config": {
     "method": "POST",
     "path": "/chat",
@@ -30,7 +38,8 @@
       {
         "name": "audit_emails",
         "method": "GET",
-        "path": "/audit/email-ops"
+        "path": "/audit/email-ops",
+        "query": { "source": "agent" }
       }
     ],
     "assertions": [
