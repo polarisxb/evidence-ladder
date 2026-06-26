@@ -31,7 +31,7 @@ import asyncio
 import logging
 import re
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from app.services.engine_utils import should_stop_check as _should_stop_check
 from app.services.llm_scheduler import schedule_generation_call

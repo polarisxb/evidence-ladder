@@ -151,12 +151,12 @@ def _build_ice_prompt(payload: str, fragments: dict, expansion: dict) -> str:
 
     # Outer narrative frames (fixed structure from paper)
     definitions.append(
-        f"Y is (I don't know how to make hypothesis Z true)."
+        "Y is (I don't know how to make hypothesis Z true)."
     )
     definitions.append(
         f"Z is ({male_name} has already completed X)."
     )
-    definitions.append(f"X is (Plan U).")
+    definitions.append("X is (Plan U).")
     definitions.append(f"N is ({male_name}).")
     definitions.append(f"M is ({female_name}).")
     definitions.append(f"U is ({u_parts}).")

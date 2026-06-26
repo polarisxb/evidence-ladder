@@ -1,0 +1,5 @@
+# Development / CI-only dependencies (test + lint tooling).
+# Pinned to match the versions used for local verification so CI is reproducible.
+pytest==9.0.2
+pytest-asyncio==1.3.0
+ruff==0.15.5

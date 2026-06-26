@@ -408,7 +408,6 @@ def _build_category_scores(results) -> list[CategoryScore]:
 def _generate_recommendations(findings: dict, category_scores: list[CategoryScore]) -> list[str]:
     recs: list[str] = []
     has_critical = len(findings["critical"]) > 0
-    has_high = len(findings["high"]) > 0
 
     if has_critical:
         recs.append("URGENT: Critical vulnerabilities detected. Immediate remediation required before deployment.")

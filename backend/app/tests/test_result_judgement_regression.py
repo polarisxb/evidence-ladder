@@ -4,7 +4,6 @@ import unittest
 from datetime import datetime, timezone
 from unittest.mock import patch
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.api.reports import review_attack_result

@@ -22,21 +22,15 @@ from __future__ import annotations
 
 import unittest
 
-from app.schemas.report import BehaviorFlags
 from app.services.collectors import (
-    BehaviorCollector,
     Collector,
     CollectorContext,
-    JudgeCollector,
-    RuleHitCollector,
-    SignatureCollector,
 )
 from app.services.evidence import Evidence
 from app.services.verdict_arbiter import (
     BALANCED_PROFILE,
     LENIENT_PROFILE,
     STRICT_PROFILE,
-    StrictnessProfile,
     _r0_behavior_escalation,
     _r2_hard_attack,
     _r3_hard_defense,

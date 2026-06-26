@@ -16,7 +16,6 @@ The contract:
 from __future__ import annotations
 
 import unittest
-from types import SimpleNamespace
 from unittest.mock import patch
 
 from app.services import case_executor

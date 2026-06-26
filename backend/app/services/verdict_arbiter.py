@@ -47,11 +47,8 @@ from app.services.collectors import (
 )
 from app.services.evidence import (
     Evidence,
-    EvidenceDirection,
     EvidenceStrength,
-    NeedsReviewCategory,
     Verdict,
-    VerdictStatus,
 )
 
 logger = logging.getLogger(__name__)
