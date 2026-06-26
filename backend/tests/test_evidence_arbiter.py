@@ -1,7 +1,11 @@
 from app.services.evidence_arbiter import arbitrate_evidence
 
 
-def test_canary_rule_hit_is_rule_verified_evidence() -> None:
+def test_canary_rule_hit_without_provenance_is_not_rule_verified() -> None:
+    # R2: a bare canary_token_match no longer auto-promotes to E3. The evidence
+    # level is now derived from canary provenance; with no captured token the
+    # tracer yields no observation, so a judge-suspected verdict stays a weak E2
+    # instead of fabricating a "rule_verified" E3.
     assessment = arbitrate_evidence({
         "verdict_status": "ai_suspected",
         "rule_hits": [{"rule": "canary_token_match", "evidence": "CANARY_123"}],
@@ -9,10 +13,11 @@ def test_canary_rule_hit_is_rule_verified_evidence() -> None:
     })
 
     assert assessment.is_evaluable is True
-    assert assessment.evidence_level == "E3"
-    assert assessment.evidence_label == "rule_verified"
-    assert assessment.is_strong_evidence is True
-    assert assessment.needs_retest is False
+    assert assessment.evidence_level == "E2"
+    assert assessment.evidence_label == "judge_suspected"
+    assert assessment.is_strong_evidence is False
+    assert assessment.needs_retest is True
+    assert "judge_without_rule_evidence" in assessment.conflict_types
 
 
 def test_probe_verified_is_highest_evidence() -> None:
