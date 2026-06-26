@@ -2,8 +2,7 @@
 from __future__ import annotations
 
 import asyncio
-import time
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -11,12 +10,8 @@ from app.services.llm_client import LLMAPIError, LLMRateLimitError, ProviderClie
 from app.services.llm_scheduler import (
     FLOOR_BACKOFF_BASE,
     INITIAL_LIMIT,
-    MAX_CONSECUTIVE_FAILURES,
-    MAX_LIMIT,
     MIN_LIMIT,
     RETRY_BUCKET_MAX,
-    RETRY_COST_429,
-    SEVERE_FACTOR,
     SEVERE_THRESHOLD,
     SOFT_FACTOR,
     AIMDController,
@@ -87,7 +82,7 @@ class TestAIMDController:
     async def test_rate_limit_shrinks_window(self):
         ctrl = AIMDController()
         key = "k1"
-        start = await ctrl.acquire(key)
+        await ctrl.acquire(key)
         initial = ctrl._get(key).limit
         await ctrl.release_on_rate_limit(key, retry_after_s=1.0)
         assert ctrl._get(key).limit < initial
@@ -102,15 +97,14 @@ class TestAIMDController:
         bucket.limit = 20.0
 
         # First 429 → soft
-        start = await ctrl.acquire(key)
+        await ctrl.acquire(key)
         await ctrl.release_on_rate_limit(key, retry_after_s=0.01)
-        after_soft = bucket.limit
         assert bucket.severity == "soft"
 
         # Pump up consecutive 429s to SEVERE_THRESHOLD
         for _ in range(SEVERE_THRESHOLD - 1):
             bucket.limit = 20.0  # reset for clear comparison
-            start = await ctrl.acquire(key)
+            await ctrl.acquire(key)
             await ctrl.release_on_rate_limit(key, retry_after_s=0.01)
 
         assert bucket.severity == "severe"
@@ -124,7 +118,7 @@ class TestAIMDController:
         bucket.limit = 20.0
         bucket.ssthresh = 3.0  # default
 
-        start = await ctrl.acquire(key)
+        await ctrl.acquire(key)
         await ctrl.release_on_rate_limit(key, retry_after_s=0.01)
 
         # ssthresh should now be 20/2 = 10
@@ -140,7 +134,7 @@ class TestAIMDController:
         bucket = ctrl._get(key)
         bucket.limit = MIN_LIMIT
 
-        start = await ctrl.acquire(key)
+        await ctrl.acquire(key)
         await ctrl.release_on_rate_limit(key, retry_after_s=0.01)
         assert bucket.floor_backoff >= FLOOR_BACKOFF_BASE
 
@@ -171,7 +165,7 @@ class TestAIMDController:
         bucket.limit = 2.0
 
         t1 = await ctrl.acquire(key)
-        t2 = await ctrl.acquire(key)
+        await ctrl.acquire(key)
         assert bucket.in_flight == 2
 
         # Third acquire should block; use wait_for to prove it

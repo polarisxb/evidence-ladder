@@ -15,7 +15,6 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppException
-from app.services.url_guard import validate_target_url
 from app.database import get_db
 from app.models.model_provider import (
     ModelProvider,
@@ -364,7 +363,7 @@ async def set_judge_default(provider_id: str, db: AsyncSession = Depends(get_db)
     # Clear all existing judge defaults first
     await db.execute(
         update(ModelProvider)
-        .where(ModelProvider.is_judge_default == True)
+        .where(ModelProvider.is_judge_default.is_(True))
         .values(is_judge_default=False)
     )
     provider.is_judge_default = True
@@ -388,7 +387,7 @@ async def set_generation_default(provider_id: str, db: AsyncSession = Depends(ge
 
     await db.execute(
         update(ModelProvider)
-        .where(ModelProvider.is_generation_default == True)
+        .where(ModelProvider.is_generation_default.is_(True))
         .values(is_generation_default=False)
     )
     provider.is_generation_default = True

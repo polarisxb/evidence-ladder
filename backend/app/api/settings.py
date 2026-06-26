@@ -2,7 +2,7 @@ import logging
 import os
 
 from fastapi import APIRouter
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from app.config import settings
 from app.core.openai_client import get_platform_openai_client

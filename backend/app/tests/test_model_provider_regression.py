@@ -109,7 +109,10 @@ class ModelProviderRegressionTests(unittest.IsolatedAsyncioTestCase):
                 result = await run_provider_test(provider.id, session)
 
         self.assertFalse(result["data"]["connected"])
-        self.assertIn("No chat model was detected", result["data"]["error"])
+        self.assertIn(
+            "Unable to auto-detect models for this provider",
+            result["data"]["error"],
+        )
 
     async def test_create_scan_resolves_provider_models_when_left_auto(self):
         async with self.session_factory() as session:

@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.core.exceptions import AppException
 from app.models import Adapter
-from app.schemas.adapter import AdapterCreate, AdapterResponse
+from app.schemas.adapter import AdapterResponse
 from app.services.adapter_extractors import extract_adapter_response
 from app.services.adapter_renderer import build_adapter_context, render_template_tree
 from app.services.error_utils import sanitize_error

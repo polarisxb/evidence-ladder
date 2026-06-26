@@ -1,0 +1,17 @@
+# Ruff configuration for the backend.
+# Scope: lint only for now (no formatter, no import sorting) to keep diffs small.
+target-version = "py313"
+
+[lint]
+# Default-ish pyflakes (F) + pycodestyle errors (E), minus line-length.
+select = ["E", "F"]
+# E501 (line-too-long) intentionally disabled: enabling it would require a large
+# reformat across the codebase. Revisit when adopting `ruff format`.
+ignore = ["E501"]
+
+[lint.per-file-ignores]
+# SQLAlchemy declarative models use string forward-references such as
+# Mapped["ScanTask"] for relationships defined in sibling modules. Ruff reports
+# these as F821 (undefined-name), but they are resolved at runtime by the
+# declarative registry, so the warning is a false positive here.
+"app/models/**" = ["F821"]

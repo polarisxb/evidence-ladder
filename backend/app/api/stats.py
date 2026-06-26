@@ -33,7 +33,7 @@ async def get_overview_stats(db: AsyncSession = Depends(get_db)):
 
     successful_attacks = (
         await db.execute(
-            select(func.count(AttackResult.id)).where(AttackResult.attack_successful == True)
+            select(func.count(AttackResult.id)).where(AttackResult.attack_successful.is_(True))
         )
     ).scalar() or 0
 
@@ -86,7 +86,7 @@ async def get_risk_distribution(db: AsyncSession = Depends(get_db)):
             AttackResult.risk_level,
             func.count(AttackResult.id).label("count"),
         )
-        .where(AttackResult.attack_successful == True)
+        .where(AttackResult.attack_successful.is_(True))
         .group_by(AttackResult.risk_level)
     )
     rows = result.all()
@@ -108,7 +108,7 @@ async def get_category_success_rate(db: AsyncSession = Depends(get_db)):
         select(
             AttackResult.category,
             func.count(AttackResult.id).label("total"),
-            func.sum(case((AttackResult.attack_successful == True, 1), else_=0)).label("successful"),
+            func.sum(case((AttackResult.attack_successful.is_(True), 1), else_=0)).label("successful"),
         )
         .group_by(AttackResult.category)
     )

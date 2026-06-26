@@ -1,7 +1,6 @@
 import os
 import tempfile
 import unittest
-from types import SimpleNamespace
 from unittest.mock import patch
 from urllib.parse import urlparse
 

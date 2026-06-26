@@ -9,7 +9,7 @@ from app.core.exceptions import AppException
 from app.database import get_db
 from app.models import ScanTask
 from app.models.attack_case import AttackCase
-from app.schemas.scan import ScanCreate, ScanResponse, ScanProgress
+from app.schemas.scan import ScanCreate, ScanResponse
 from app.services.adapter_executor import get_adapter_or_raise
 from app.services.llm_client import (
     LLMConfigurationError,
