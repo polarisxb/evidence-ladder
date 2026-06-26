@@ -153,7 +153,7 @@ def arbitrate_evidence(result: Mapping[str, Any]) -> EvidenceAssessment:
         level = None
         label = "no_attack_evidence"
 
-    if prov.is_quoted_only:
+    if prov.is_quoted_only and level not in _STRONG_LEVELS:
         conflicts.append("canary_quoted_not_executed")
 
     if level == "E2" and not has_rule_evidence and not has_probe_evidence:
