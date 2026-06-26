@@ -55,7 +55,7 @@ jobs:
         run: ruff check app
 
   frontend-build:
-    name: Frontend build (tsc + vite)
+    name: Frontend test + build (vitest + tsc + vite)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -69,5 +69,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
         run: npm ci
+      - name: Test
+        run: npm run test
       - name: Build
         run: npm run build

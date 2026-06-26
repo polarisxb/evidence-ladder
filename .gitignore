@@ -10,8 +10,9 @@ venv/
 backend/.env
 mock_targets/*/.env
 
-# Database
-backend/data/*.db
+# Database / runtime data (sqlite db + WAL/SHM, pilot-run artifacts).
+# CI recreates the directory via `mkdir -p data`, so nothing here is tracked.
+backend/data/
 
 # Build
 frontend/dist/
@@ -68,6 +69,10 @@ docs/superpowers/
 # Local agent transcripts and cached tool outputs
 agent-tools/
 .terminals/
+
+# Local scratch — throwaway probe/patch scripts and temp notes (never commit)
+.tmp_*
+*_tmp.md
 
 # Personal Cursor MCP config (contains local user paths)
 # Includes backup files like mcp.json.bak-rename-<timestamp>.
