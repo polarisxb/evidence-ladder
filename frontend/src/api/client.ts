@@ -10,7 +10,12 @@ function normalizeApiBase(env: string | undefined): string {
 
 export const API_BASE = normalizeApiBase(import.meta.env.VITE_API_URL);
 const APP_API_KEY_STORAGE = "ai-sec-test.app_api_key";
-const EMBEDDED_APP_API_KEY = typeof import.meta !== "undefined"
+// SECURITY: `VITE_APP_SECRET` is inlined into the bundle at build time, so
+// shipping it in a production build would expose the shared API secret to
+// every browser. Only honour it during local development (`vite dev` /
+// tests). Production builds rely on the user-supplied key in localStorage
+// (see `setStoredAppApiKey`).
+const EMBEDDED_APP_API_KEY = (typeof import.meta !== "undefined" && import.meta.env?.DEV)
   ? String(import.meta.env.VITE_APP_SECRET ?? "").trim()
   : "";
 

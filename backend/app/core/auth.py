@@ -21,6 +21,8 @@ WS authentication is handled separately by ``app.core.ws_auth``
 (Stage 1.1d).
 """
 
+import hmac
+
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
@@ -43,7 +45,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         api_key = request.headers.get("X-API-Key", "")
-        if not settings.app_secret or api_key != settings.app_secret:
+        if not settings.app_secret or not hmac.compare_digest(
+            api_key.encode("utf-8"), settings.app_secret.encode("utf-8")
+        ):
             return JSONResponse(
                 status_code=401,
                 content={"error": "Invalid or missing API key"},

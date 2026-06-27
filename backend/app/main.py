@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,12 +16,27 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    _validate_auth_config()
+    await init_db()
+    await init_scheduler()
+    yield
+
+
 app = FastAPI(
     title=settings.app_name,
     description="AI Application Security Testing Platform",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
+# Middleware ordering note: Starlette runs the LAST-added middleware as the
+# OUTERMOST layer. CORS is added after AuthMiddleware so it wraps it, ensuring
+# rejected (e.g. 401) responses still carry CORS headers and the browser can
+# read the real status instead of a generic CORS error.
+app.add_middleware(AuthMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -29,7 +45,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.add_middleware(AuthMiddleware)
 app.add_exception_handler(AppException, app_exception_handler)
 app.include_router(api_router)
 
@@ -52,13 +67,6 @@ def _validate_auth_config() -> None:
             "to generate one), or set AUTH_REQUIRED=false for local "
             "development."
         )
-
-
-@app.on_event("startup")
-async def startup():
-    _validate_auth_config()
-    await init_db()
-    await init_scheduler()
 
 
 @app.get("/health")

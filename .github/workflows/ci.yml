@@ -36,7 +36,7 @@ jobs:
       - name: Ensure default database directory exists
         run: mkdir -p data
       - name: Run tests
-        run: pytest app/tests -q
+        run: pytest app/tests tests -q
 
   backend-lint:
     name: Backend lint (ruff)
@@ -52,7 +52,7 @@ jobs:
       - name: Install ruff
         run: pip install ruff==0.15.5
       - name: Lint
-        run: ruff check app
+        run: ruff check app tests
 
   frontend-build:
     name: Frontend test + build (vitest + tsc + vite)
