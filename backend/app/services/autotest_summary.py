@@ -173,8 +173,21 @@ def _result_payload(result: AttackResult) -> dict[str, Any]:
         "response_evaluation": dict(response_evaluation),
         "quartet_validated": _quartet_validated(raw, case_summary),
         "extra_query_count": _extra_query_count(raw, case_summary),
+        "tool_calls": _tool_calls(raw, case_summary),
+        "tool_observed": _tool_observed(raw, case_summary),
     }
     return payload
+
+
+def _tool_calls(raw: Mapping[str, Any], case_summary: Mapping[str, Any]) -> list:
+    for value in (case_summary.get("tool_calls"), raw.get("tool_calls")):
+        if isinstance(value, list):
+            return value
+    return []
+
+
+def _tool_observed(raw: Mapping[str, Any], case_summary: Mapping[str, Any]) -> bool:
+    return case_summary.get("tool_observed") is True or raw.get("tool_observed") is True
 
 
 def _retest_source_for_task(task: ScanTask) -> AutoTestRetestSource | None:
