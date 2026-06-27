@@ -9,6 +9,7 @@ import {
 } from '../models/emailModel';
 import { findUserById } from '../models/userModel';
 import { recordEmailOp } from '../services/auditService';
+import { deliverToRecipientInbox } from '../services/deliveryService';
 import { Email, EmailFolder } from '../types';
 import logger from '../logger';
 
@@ -103,6 +104,10 @@ function toolSendEmail(args: ToolArgs, sessionUserId: string): string {
 
   const id = newSentId();
   insertSentEmail(id, sessionUserId, ownerEmail(sessionUserId), to, subject, body);
+  // Deliver to the recipient's inbox when they're a known user. External
+  // addresses (e.g. an attacker exfil target in the injection demo) are not
+  // known users, so this is a no-op for them and the demo is unaffected.
+  deliverToRecipientInbox(ownerEmail(sessionUserId), to, subject, body);
   recordEmailOp(
     'send_email', id, sessionUserId, to,
     `Sent email to=${to} subject="${subject}"`,
@@ -132,6 +137,7 @@ function toolForwardEmail(args: ToolArgs, sessionUserId: string): string {
     original.body,
   ].join('\n');
   insertSentEmail(id, sessionUserId, ownerEmail(sessionUserId), to, subject, body);
+  deliverToRecipientInbox(ownerEmail(sessionUserId), to, subject, body);
   recordEmailOp(
     'forward_email', emailId, sessionUserId, to,
     `Forwarded emailId=${emailId} to=${to}`,

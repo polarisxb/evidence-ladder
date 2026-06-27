@@ -1,5 +1,5 @@
 /**
- * JianHengLogo — 天鉴 · 衡（TianJian Libra）Brand Mark (Typography Icon)
+ * JianHengLogo — Evidence-Ladder brand mark.
  *
  * A fusion of Chinese calligraphic typography and modern tech aesthetic:
  *
@@ -27,9 +27,9 @@ export function JianHengLogo({ className, title }: { className?: string; title?:
       fill="none"
       className={className}
       role="img"
-      aria-label={title ?? "TianJian Libra"}
+      aria-label={title ?? "Evidence-Ladder"}
     >
-      <title>{title ?? "天鉴 · 衡 · TianJian Libra"}</title>
+      <title>{title ?? "Evidence-Ladder"}</title>
       <defs>
         <linearGradient id="jh-bg" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#0f172a" />
