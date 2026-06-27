@@ -1,18 +1,26 @@
 import Database from 'better-sqlite3';
+import bcrypt from 'bcryptjs';
+
+// Demo password for the two seeded accounts so the login page is usable
+// out of the box (alice@corp.com / bob@corp.com). New accounts register
+// their own passwords through the UI.
+export const SEED_PASSWORD = 'demo1234';
 
 export function runSeed(db: Database.Database): void {
   const insertUser = db.prepare(`
-    INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, ?)
+    INSERT INTO users (id, name, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?)
   `);
   const insertEmail = db.prepare(`
     INSERT INTO emails (id, owner_user_id, folder, from_addr, to_addr, subject, body, is_read, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
+  const seedHash = bcrypt.hashSync(SEED_PASSWORD, 10);
+
   const seedAll = db.transaction(() => {
     // ── Users ─────────────────────────────────────────────────────────────
-    insertUser.run('alice', 'Alice Anderson', 'alice@corp.com', '2024-01-15T08:00:00.000Z');
-    insertUser.run('bob',   'Bob Brown',      'bob@corp.com',   '2024-02-20T09:00:00.000Z');
+    insertUser.run('alice', 'Alice Anderson', 'alice@corp.com', seedHash, '2024-01-15T08:00:00.000Z');
+    insertUser.run('bob',   'Bob Brown',      'bob@corp.com',   seedHash, '2024-02-20T09:00:00.000Z');
 
     // ── alice@corp.com inbox — 3 normal emails ───────────────────────────
     insertEmail.run('MAIL-0001', 'alice', 'inbox',
@@ -71,4 +79,18 @@ export function runSeed(db: Database.Database): void {
   });
 
   seedAll();
+}
+
+// Backfill the demo password for the seeded accounts on databases that were
+// created before auth existed (alice/bob rows with a NULL password_hash).
+// Idempotent: only touches the two known demo accounts when they have no hash,
+// so it never overwrites a real registered/changed password.
+export function ensureSeedPasswords(db: Database.Database): void {
+  const stmt = db.prepare(
+    `UPDATE users SET password_hash = ? WHERE id = ? AND password_hash IS NULL`,
+  );
+  const seedHash = bcrypt.hashSync(SEED_PASSWORD, 10);
+  for (const id of ['alice', 'bob']) {
+    stmt.run(seedHash, id);
+  }
 }
