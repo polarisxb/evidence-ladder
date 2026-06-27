@@ -1,8 +1,6 @@
 """Test configuration loading."""
 from pathlib import Path
 
-import pytest
-
 from app.config import settings
 
 
