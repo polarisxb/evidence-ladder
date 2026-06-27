@@ -23,15 +23,29 @@ export function Sidebar() {
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-[200px] bg-white flex flex-col py-6 px-3.5">
+      {/* Brand Wordmark: pure typography, no icon.
+          Uses Noto Serif SC / Source Han Serif SC (思源宋体) for a
+          classical, editorial feel — closer to premium print brands
+          (商务印书馆 / 故宫文创) than to generic SaaS icon-based logos.
+          The bronze-gold dot separator is the single visual flourish,
+          echoing "Gold Label" in calibration. */}
       <div className="flex flex-col items-start gap-0.5 px-2 pb-6">
         <div className="flex items-baseline gap-1">
           <span
-            className="text-[18px] font-bold text-gray-900 tracking-tight"
+            className="text-[19px] font-bold text-gray-900 tracking-[0.15em]"
+            style={{ fontFamily: '"Noto Serif SC","Source Han Serif SC","Songti SC",serif' }}
           >
-            Evidence-Ladder
+            天鉴
+          </span>
+          <span className="text-amber-600 text-[15px] font-bold leading-none -translate-y-0.5">·</span>
+          <span
+            className="text-[19px] font-bold text-gray-900 tracking-[0.15em]"
+            style={{ fontFamily: '"Noto Serif SC","Source Han Serif SC","Songti SC",serif' }}
+          >
+            衡
           </span>
         </div>
-        <span className="text-[9px] text-gray-400 font-medium tracking-[0.22em] uppercase">LLM Security Eval</span>
+        <span className="text-[9px] text-gray-400 font-medium tracking-[0.25em] uppercase">TianJian Libra</span>
       </div>
 
       <nav className="flex-1 space-y-0.5">
