@@ -1,4 +1,4 @@
-export type EmailFolder = 'inbox' | 'sent' | 'trash';
+export type EmailFolder = 'inbox' | 'sent' | 'trash' | 'drafts';
 
 export type AuditOperation =
   | 'list_emails'
@@ -24,6 +24,7 @@ export interface Email {
   subject: string;
   body: string;
   isRead: number;
+  starred: number;
   createdAt: string;
 }
 
