@@ -19,7 +19,8 @@ posture metrics, and report generation all agree on *what counts*.
 
 from __future__ import annotations
 
-from typing import Any, Literal, Mapping
+from collections.abc import Mapping
+from typing import Any, Literal
 
 FindingClass = Literal[
     "confirmed",       # rule_verified — hard evidence (canary/prompt overlap/probe)

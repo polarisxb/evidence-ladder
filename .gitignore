@@ -17,6 +17,15 @@ backend/data/
 # Build
 frontend/dist/
 backend/*.egg-info/
+# Java/Maven build output for mock targets (compiled .class, maven-status, jars).
+mock_targets/*/target/
+
+# SQLite databases (recreated at runtime by seed scripts); never commit.
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
 
 # IDE
 .vscode/
@@ -50,6 +59,9 @@ output/
 参赛总文件夹/
 2026045244-参赛总文件夹/
 *-参赛总文件夹/
+# 国赛材料整理(2026-06-27):新工作区(给队友写材料) + 省赛旧稿归档 — 同样不发布
+国赛材料编写/
+_归档_省赛旧稿/
 
 # Personal / private working notes
 docs/private/

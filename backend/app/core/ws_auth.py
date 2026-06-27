@@ -28,6 +28,8 @@ code — and returns False so the caller can early-return.
 """
 from __future__ import annotations
 
+import hmac
+
 from starlette.websockets import WebSocket
 
 from app.config import settings
@@ -56,7 +58,7 @@ async def require_ws_token(websocket: WebSocket) -> bool:
         if not isinstance(proto, str) or not proto.startswith(_SUBPROTOCOL_PREFIX):
             continue
         candidate = proto[len(_SUBPROTOCOL_PREFIX):]
-        if expected and candidate == expected:
+        if expected and _secret_matches(candidate, expected):
             # Confirm the negotiated subprotocol so the client's
             # Sec-WebSocket-Protocol handshake step completes cleanly.
             await websocket.accept(subprotocol=proto)
@@ -64,10 +66,15 @@ async def require_ws_token(websocket: WebSocket) -> bool:
 
     # 2. Query-parameter channel (fallback).
     token = websocket.query_params.get("token", "") or ""
-    if expected and token == expected:
+    if expected and _secret_matches(token, expected):
         await websocket.accept()
         return True
 
     # No valid credential found.
     await websocket.close(code=1008)
     return False
+
+
+def _secret_matches(candidate: str, expected: str) -> bool:
+    """Constant-time comparison of a client-supplied token against the secret."""
+    return hmac.compare_digest(candidate.encode("utf-8"), expected.encode("utf-8"))

@@ -1,6 +1,4 @@
 """Test risk scoring logic."""
-import pytest
-
 from app.services.risk_scorer import classify_overall_risk, compute_overall_score
 
 

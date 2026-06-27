@@ -29,6 +29,7 @@ from app.services.llm_client import (
     get_provider_by_id,
 )
 from app.services.llm_scheduler import schedule_fixed_call
+from app.services.url_guard import UnsafeTargetURL, validate_target_url
 from app.services.vulnerable_ai import chat_with_vulnerable_ai
 
 TARGET_MODEL_TIMEOUT_S: float = 60.0
@@ -210,16 +211,36 @@ async def send_to_target(
             return str(result.get("response_text") or "")
         return f"[ERROR] {result.get('response_error') or 'Adapter request failed'}"
 
+    # Defense-in-depth SSRF guard: this raw-HTTP egress posts directly to a
+    # user-supplied URL. The API ingress already validates target URLs, but
+    # re-validate here so no future caller bypasses the guard.
+    try:
+        validate_target_url(target_url)
+    except UnsafeTargetURL as e:
+        return f"[ERROR] {e.detail}"
+
     async with httpx.AsyncClient(timeout=30.0) as client:
         headers = (target_config or {}).get("headers") or {}
         body: dict = {"message": payload}
         if conversation_history:
             body["history"] = conversation_history
         try:
-            resp = await client.post(target_url, json=body, headers=headers)
-            if len(resp.content) > MAX_RESPONSE_BYTES:
-                return f"[ERROR] Response too large ({len(resp.content)} bytes, limit {MAX_RESPONSE_BYTES})"
-            return resp.text
+            # Stream and enforce the size cap incrementally so an oversized
+            # (or malicious) response is never fully buffered into memory.
+            async with client.stream("POST", target_url, json=body, headers=headers) as resp:
+                chunks: list[bytes] = []
+                total = 0
+                async for chunk in resp.aiter_bytes():
+                    total += len(chunk)
+                    if total > MAX_RESPONSE_BYTES:
+                        return f"[ERROR] Response too large (exceeds {MAX_RESPONSE_BYTES} byte limit)"
+                    chunks.append(chunk)
+                raw = b"".join(chunks)
+                encoding = resp.encoding or "utf-8"
+                try:
+                    return raw.decode(encoding, errors="replace")
+                except LookupError:
+                    return raw.decode("utf-8", errors="replace")
         except Exception as e:
             return f"[ERROR] {sanitize_error(e)}"
 
