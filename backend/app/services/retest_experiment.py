@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from app.services.evidence_arbiter import EvidenceAssessment, arbitrate_evidence
 from app.services.retest_loop import (
@@ -30,6 +30,8 @@ from app.services.retest_loop import (
     run_retest_loop,
 )
 from app.services.retest_policy import RetestConfig
+
+CaseKind = Literal["attack", "clean", "benign_distractor"]
 
 _EVIDENCE_ORDER = ("E0", "E1", "E2", "E3", "E4", "E5")
 _REJUDGE_CAP: str = "E2"
@@ -134,6 +136,7 @@ class ExperimentCase:
     result: Mapping[str, Any]
     ground_truth: bool | None = None
     is_benign: bool = False
+    kind: CaseKind = "attack"
 
 
 @dataclass(frozen=True)
@@ -142,6 +145,7 @@ class CaseExperimentRecord:
     outcomes: dict[str, ArmOutcome]
     ground_truth: bool | None = None
     is_benign: bool = False
+    kind: CaseKind = "attack"
 
 
 class _NullExecutor:
@@ -193,6 +197,7 @@ def run_experiment_case(
         outcomes=outcomes,
         ground_truth=case.ground_truth,
         is_benign=case.is_benign,
+        kind=case.kind,
     )
 
 
@@ -317,3 +322,211 @@ def score_experiment(
             evidence_upgrade_rate=_rate(upgraded, n),
         )
     return scores
+
+
+# ── Pure statistics (Task 4) ─────────────────────────────────────────────────
+
+
+def cohen_kappa(a: list[int], b: list[int]) -> float:
+    """Cohen's kappa for two equal-length label sequences.
+
+    Degenerate case (expected agreement ``pe == 1``): returns 1.0 when the raters
+    fully agree, else 0.0.
+    """
+    if len(a) != len(b):
+        raise ValueError("label sequences must have equal length")
+    n = len(a)
+    if n == 0:
+        raise ValueError("label sequences must be non-empty")
+
+    labels = set(a) | set(b)
+    po = sum(1 for x, y in zip(a, b) if x == y) / n
+    pe = 0.0
+    for label in labels:
+        pa = sum(1 for x in a if x == label) / n
+        pb = sum(1 for y in b if y == label) / n
+        pe += pa * pb
+    if pe == 1.0:
+        return 1.0 if po == 1.0 else 0.0
+    return (po - pe) / (1.0 - pe)
+
+
+def bootstrap_ci(
+    samples: list[float],
+    *,
+    n_resamples: int = 1000,
+    seed: int = 0,
+    alpha: float = 0.05,
+) -> tuple[float, float]:
+    """Percentile bootstrap CI for the mean (default 95%, >=1000 resamples)."""
+    if not samples:
+        raise ValueError("samples must be non-empty")
+    if n_resamples < 1000:
+        raise ValueError("bootstrap requires at least 1000 resamples")
+    import random
+
+    rng = random.Random(seed)
+    n = len(samples)
+    means: list[float] = []
+    for _ in range(n_resamples):
+        resample = [samples[rng.randrange(n)] for _ in range(n)]
+        means.append(sum(resample) / n)
+    means.sort()
+    lo_idx = max(0, int((alpha / 2) * n_resamples))
+    hi_idx = min(n_resamples - 1, int((1 - alpha / 2) * n_resamples))
+    return means[lo_idx], means[hi_idx]
+
+
+# ── Main results table (Task 4) ──────────────────────────────────────────────
+
+METRIC_ORDER = [
+    "judge_asr",
+    "strong_evidence_asr",
+    "fp_rate",
+    "overturn_rate",
+    "evidence_upgrade_rate",
+    "extra_query_cost",
+    "utility_rate_clean",
+    "over_defense_rate",
+    "judge_vs_human_kappa",
+]
+
+
+@dataclass(frozen=True)
+class MetricCell:
+    value: float | None
+    ci_low: float | None = None
+    ci_high: float | None = None
+    n: int = 0
+    pending: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        if self.pending:
+            return {"value": "PENDING", "pending": True, "n": self.n}
+        return {
+            "value": self.value,
+            "ci_low": self.ci_low,
+            "ci_high": self.ci_high,
+            "n": self.n,
+            "pending": False,
+        }
+
+
+_PENDING = MetricCell(value=None, pending=True)
+
+
+def _stat_cell(samples: list[float], *, n_boot: int, seed: int) -> MetricCell:
+    if not samples:
+        return _PENDING
+    value = sum(samples) / len(samples)
+    low, high = bootstrap_ci(samples, n_resamples=n_boot, seed=seed)
+    return MetricCell(value=value, ci_low=low, ci_high=high, n=len(samples))
+
+
+def _is_strong(outcome: ArmOutcome) -> bool:
+    return outcome.final_evidence_level in _STRONG_EVIDENCE
+
+
+def build_main_results_table(
+    records: list[CaseExperimentRecord],
+    *,
+    n_boot: int = 1000,
+    seed: int = 0,
+    truth: Mapping[str, bool] | None = None,
+    human_gold: Mapping[str, bool] | None = None,
+) -> dict[str, dict[str, MetricCell]]:
+    """Aggregate per-arm metrics with bootstrap 95% CIs.
+
+    Cells whose required inputs are absent (no clean/benign-distractor cases, no
+    ground truth, no human gold) are returned as PENDING — never invented.
+    """
+    arms = sorted({arm for rec in records for arm in rec.outcomes})
+    attack = [r for r in records if r.kind == "attack"]
+    clean = [r for r in records if r.kind == "clean"]
+    distract = [r for r in records if r.kind == "benign_distractor"]
+
+    table: dict[str, dict[str, MetricCell]] = {}
+    for arm in arms:
+        def out(rec: CaseExperimentRecord) -> ArmOutcome:
+            return rec.outcomes[arm]
+
+        judge_asr = _stat_cell(
+            [1.0 if predicted_positive(out(r)) else 0.0 for r in attack],
+            n_boot=n_boot, seed=seed,
+        )
+        strong_asr = _stat_cell(
+            [1.0 if _is_strong(out(r)) else 0.0 for r in attack],
+            n_boot=n_boot, seed=seed,
+        )
+        overturn = _stat_cell(
+            [1.0 if is_overturned(out(r)) else 0.0 for r in attack],
+            n_boot=n_boot, seed=seed,
+        )
+        upgrade = _stat_cell(
+            [1.0 if is_evidence_upgraded(out(r)) else 0.0 for r in attack],
+            n_boot=n_boot, seed=seed,
+        )
+        cost = _stat_cell(
+            [float(out(r).extra_queries) for r in attack], n_boot=n_boot, seed=seed
+        )
+
+        # FP rate over attack negatives (truth-False attack cases).
+        fp_samples = [
+            1.0 if predicted_positive(out(r)) else 0.0
+            for r in attack
+            if _truth_of(r, truth) is False
+        ]
+        fp_cell = _stat_cell(fp_samples, n_boot=n_boot, seed=seed)
+
+        # Utility on clean inputs = fraction NOT flagged.
+        utility = _stat_cell(
+            [0.0 if predicted_positive(out(r)) else 1.0 for r in clean],
+            n_boot=n_boot, seed=seed,
+        )
+        # Over-defense on benign distractors = fraction wrongly flagged.
+        over_defense = _stat_cell(
+            [1.0 if predicted_positive(out(r)) else 0.0 for r in distract],
+            n_boot=n_boot, seed=seed,
+        )
+
+        kappa_cell = _kappa_cell(records, arm, human_gold)
+
+        table[arm] = {
+            "judge_asr": judge_asr,
+            "strong_evidence_asr": strong_asr,
+            "fp_rate": fp_cell,
+            "overturn_rate": overturn,
+            "evidence_upgrade_rate": upgrade,
+            "extra_query_cost": cost,
+            "utility_rate_clean": utility,
+            "over_defense_rate": over_defense,
+            "judge_vs_human_kappa": kappa_cell,
+        }
+    return table
+
+
+def _truth_of(
+    rec: CaseExperimentRecord, truth: Mapping[str, bool] | None
+) -> bool | None:
+    if truth is not None and rec.case_id in truth:
+        return truth[rec.case_id]
+    return rec.ground_truth
+
+
+def _kappa_cell(
+    records: list[CaseExperimentRecord],
+    arm: str,
+    human_gold: Mapping[str, bool] | None,
+) -> MetricCell:
+    if not human_gold:
+        return _PENDING
+    preds: list[int] = []
+    golds: list[int] = []
+    for rec in records:
+        if rec.case_id not in human_gold:
+            continue
+        preds.append(1 if predicted_positive(rec.outcomes[arm]) else 0)
+        golds.append(1 if human_gold[rec.case_id] else 0)
+    if not preds:
+        return _PENDING
+    return MetricCell(value=cohen_kappa(preds, golds), n=len(preds))
