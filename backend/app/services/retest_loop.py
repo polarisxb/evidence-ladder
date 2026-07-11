@@ -145,3 +145,28 @@ class RetestLineage:
             "total_extra_queries": self.total_extra_queries,
             "total_extra_cost_ms": self.total_extra_cost_ms,
         }
+
+
+from typing import Protocol
+
+from app.services.retest_policy import RetestAction
+
+_ACTION_METHOD = {
+    "run_quartet": "run_quartet",
+    "run_canary_retest": "run_canary",
+    "run_probe": "run_probe",
+}
+
+
+class RetestExecutor(Protocol):
+    def run_quartet(self, result: Mapping[str, Any]) -> EvidenceDelta: ...
+    def run_canary(self, result: Mapping[str, Any]) -> EvidenceDelta: ...
+    def run_probe(self, result: Mapping[str, Any]) -> EvidenceDelta: ...
+
+
+def dispatch_action(executor: RetestExecutor, action: RetestAction,
+                    result: Mapping[str, Any]) -> EvidenceDelta:
+    method_name = _ACTION_METHOD.get(action.action_type)
+    if method_name is None:
+        raise ValueError(f"unknown retest action_type: {action.action_type!r}")
+    return getattr(executor, method_name)(result)
