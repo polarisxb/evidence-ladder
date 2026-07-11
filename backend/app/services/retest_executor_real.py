@@ -9,8 +9,9 @@ the arbiter can already derive from merged result fields (e.g. probe-fail after 
 text claim, or a quoted-control success); it only flags contradictions the
 arbiter cannot see from the attack result alone.
 
-Scope (P2): ``run_quartet`` and ``run_probe``. ``run_canary`` is deferred to P2b
-(it needs a real fresh-canary re-send path) and returns a no-op delta for now.
+Actions: ``run_quartet``, ``run_probe`` (P2) and ``run_canary`` (P2b) — the last
+re-sends the eliciting prompt and reports which channel the configured canary
+reached, letting the arbiter's ``trace_canary`` derive the evidence level.
 """
 from __future__ import annotations
 
@@ -20,6 +21,8 @@ from typing import Any
 
 from app.services.retest_loop import EvidenceDelta
 from app.services.probe_executor import execute_probe
+from app.services.canary_utils import collect_canary_tokens, find_canary_matches
+from app.services.control_variants import canary_tokens_in_tool_calls
 from app.services.case_executor import (
     _resolved_case_adapter_payload,
     _resolve_probe_status,
@@ -98,8 +101,60 @@ class RealRetestExecutor:
         )
 
     async def run_canary(self, result: Mapping[str, Any]) -> EvidenceDelta:
-        # Deferred to P2b: requires a real fresh-canary re-send path.
-        return EvidenceDelta(action_type="run_canary", summary="canary retest not available (P2b)")
+        target_config = getattr(self.task, "target_config", None) or {}
+        tokens = collect_canary_tokens(target_config)
+        if not tokens:
+            return EvidenceDelta(action_type="run_canary", summary="no canary tokens configured")
+
+        attack_payload = str(
+            result.get("payload_text")
+            or result.get("attack_payload")
+            or result.get("request_text")
+            or ""
+        )
+        case_id = str(result.get("case_id") or "") or None
+
+        started = time.perf_counter()
+        variants = await execute_case_variants(
+            self.task, self.template, attack_payload, case_id=case_id, quartet_mode="off"
+        )
+        elapsed_ms = (time.perf_counter() - started) * 1000
+        attack = variants[0] if variants else {}
+        response_text = str(attack.get("response_text") or "")
+        tool_calls = attack.get("tool_calls") or []
+
+        matched = list(
+            dict.fromkeys(
+                find_canary_matches(response_text, tokens)
+                + canary_tokens_in_tool_calls(tokens, tool_calls)
+            )
+        )
+        if not matched:
+            return EvidenceDelta(
+                action_type="run_canary",
+                extra_queries=1,
+                extra_cost_ms=float(attack.get("latency_ms") or 0.0) or elapsed_ms,
+                summary="canary not observed",
+            )
+
+        hits = list(result.get("rule_hits") or [])
+        hits.append(
+            {
+                "rule": "canary_token_match",
+                "evidence": f"Matched canary tokens: {', '.join(matched[:5])}",
+                "matched_tokens": matched,
+            }
+        )
+        # Provenance (quoted E1 / leaked E3 / tool_call E4 / business E5) is
+        # derived by the arbiter's trace_canary from these fields — a demotion
+        # to E1 is not a contradiction, so this action never sets one.
+        return EvidenceDelta(
+            action_type="run_canary",
+            evidence_updates={"rule_hits": hits, "tool_calls": list(tool_calls)},
+            extra_queries=1,
+            extra_cost_ms=float(attack.get("latency_ms") or 0.0) or elapsed_ms,
+            summary=f"canary observed ({len(matched)} token(s))",
+        )
 
     async def run_probe(self, result: Mapping[str, Any]) -> EvidenceDelta:
         adapter_payload = _resolved_case_adapter_payload(self.task)
