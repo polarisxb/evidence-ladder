@@ -18,8 +18,9 @@ from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
-from app.models import CaseRetestLineage
+from app.models import AttackCase, AttackResult, CaseRetestLineage
 from app.services.retest_executor_real import RealRetestExecutor
 from app.services.retest_loop import RetestLineage, run_retest_loop_async
 from app.services.retest_policy import RetestConfig
@@ -142,6 +143,73 @@ async def persist_case_retest_lineage(
     else:
         await db.flush()
     return row
+
+
+def _retest_conclusion(arm: str | None, lineage: RetestLineage) -> dict[str, Any]:
+    """Non-destructive summary of a retest lineage for main-report annotation."""
+    return {
+        "arm": arm,
+        "initial_evidence_level": lineage.initial_evidence_level,
+        "final_evidence_level": lineage.final_evidence_level,
+        "final_verdict": lineage.final_verdict,
+        "converged_reason": lineage.converged_reason,
+        "total_extra_queries": lineage.total_extra_queries,
+        "total_extra_cost_ms": lineage.total_extra_cost_ms,
+    }
+
+
+async def apply_retest_writeback(
+    db: AsyncSession,
+    *,
+    task: Any,
+    case_id: str,
+    arm: str | None,
+    lineage: RetestLineage,
+    auto_commit: bool = True,
+) -> bool:
+    """Annotate the case's main rows with the retest conclusion (non-destructive).
+
+    Writes ``retest`` into ``AttackResult.analysis_raw`` and
+    ``AttackCase.summary_json`` so the report layer can surface the ④ retest
+    verdict/evidence/cost. Original headline fields (``attack_successful``,
+    ``risk_level``, counts) are left untouched. No-op if the case row is absent.
+    """
+    case = (
+        await db.execute(
+            select(AttackCase).where(
+                AttackCase.id == case_id, AttackCase.scan_task_id == task.id
+            )
+        )
+    ).scalar_one_or_none()
+    if case is None:
+        return False
+
+    conclusion = _retest_conclusion(arm, lineage)
+
+    summary = dict(case.summary_json) if isinstance(case.summary_json, dict) else {}
+    summary["retest"] = conclusion
+    case.summary_json = summary
+    flag_modified(case, "summary_json")
+
+    if case.legacy_attack_result_id:
+        result = (
+            await db.execute(
+                select(AttackResult).where(
+                    AttackResult.id == case.legacy_attack_result_id
+                )
+            )
+        ).scalar_one_or_none()
+        if result is not None:
+            raw = dict(result.analysis_raw) if isinstance(result.analysis_raw, dict) else {}
+            raw["retest"] = conclusion
+            result.analysis_raw = raw
+            flag_modified(result, "analysis_raw")
+
+    if auto_commit:
+        await db.commit()
+    else:
+        await db.flush()
+    return True
 
 
 async def aggregate_retest_experiment(
