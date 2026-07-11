@@ -21,7 +21,14 @@ from dataclasses import dataclass, replace
 from typing import Any, Protocol
 
 from app.services.evidence_arbiter import EvidenceAssessment, arbitrate_evidence
-from app.services.retest_loop import classify_round, is_contradicted
+from app.services.retest_loop import (
+    EvidenceDelta,
+    RetestExecutor,
+    RetestLineage,
+    classify_round,
+    is_contradicted,
+    run_retest_loop,
+)
 from app.services.retest_policy import RetestConfig
 
 _EVIDENCE_ORDER = ("E0", "E1", "E2", "E3", "E4", "E5")
@@ -100,3 +107,105 @@ def run_rejudge_baseline(
         extra_queries=0,
         extra_cost_ms=0.0,
     )
+
+
+# ── Experiment runner (Task 2) ───────────────────────────────────────────────
+
+# Arm B: gather NEW evidence by re-executing, up to two rounds.
+DEFAULT_ARM_B_CONFIG = RetestConfig(
+    max_retest_rounds=2,
+    quartet_enabled=True,
+    canary_enabled=True,
+    probe_available=True,
+)
+# Arm A: judge-only, no re-execution.
+ARM_A_CONFIG = RetestConfig(max_retest_rounds=0)
+
+
+@dataclass(frozen=True)
+class ExperimentCase:
+    """One frozen suite entry: a cached initial ``(payload, response, judge)``.
+
+    ``ground_truth`` is optional (supplied for scoring in Task 3); ``is_benign``
+    marks clean / benign-distractor cases used for utility / over-defense rates.
+    """
+
+    case_id: str
+    result: Mapping[str, Any]
+    ground_truth: bool | None = None
+    is_benign: bool = False
+
+
+@dataclass(frozen=True)
+class CaseExperimentRecord:
+    case_id: str
+    outcomes: dict[str, ArmOutcome]
+    ground_truth: bool | None = None
+    is_benign: bool = False
+
+
+class _NullExecutor:
+    """Arm A executor placeholder — must never be dispatched (rounds == 0)."""
+
+    def run_quartet(self, result: Mapping[str, Any]) -> EvidenceDelta:
+        raise AssertionError("Arm A must not re-execute")
+
+    run_canary = run_quartet
+    run_probe = run_quartet
+
+
+def _loop_arm(
+    arm: str,
+    result: Mapping[str, Any],
+    executor: RetestExecutor,
+    config: RetestConfig,
+) -> ArmOutcome:
+    lineage: RetestLineage = run_retest_loop(result, executor, config)
+    return ArmOutcome(
+        arm=arm,
+        final_verdict=lineage.final_verdict,
+        final_evidence_level=lineage.final_evidence_level,
+        initial_evidence_level=lineage.initial_evidence_level,
+        extra_queries=lineage.total_extra_queries,
+        extra_cost_ms=lineage.total_extra_cost_ms,
+        lineage=lineage.to_dict(),
+    )
+
+
+def run_experiment_case(
+    case: ExperimentCase,
+    *,
+    verifier: RejudgeVerifier,
+    executor: RetestExecutor,
+    config_b: RetestConfig | None = None,
+) -> CaseExperimentRecord:
+    """Run Arms A / A' / B over the SAME cached result for one case."""
+    result = dict(case.result)
+    result.setdefault("case_id", case.case_id)
+
+    outcomes = {
+        "A": _loop_arm("A", result, _NullExecutor(), ARM_A_CONFIG),
+        "A_prime": run_rejudge_baseline(result, verifier),
+        "B": _loop_arm("B", result, executor, config_b or DEFAULT_ARM_B_CONFIG),
+    }
+    return CaseExperimentRecord(
+        case_id=case.case_id,
+        outcomes=outcomes,
+        ground_truth=case.ground_truth,
+        is_benign=case.is_benign,
+    )
+
+
+def run_experiment_suite(
+    cases: list[ExperimentCase],
+    *,
+    verifier: RejudgeVerifier,
+    executor: RetestExecutor,
+    config_b: RetestConfig | None = None,
+) -> list[CaseExperimentRecord]:
+    return [
+        run_experiment_case(
+            case, verifier=verifier, executor=executor, config_b=config_b
+        )
+        for case in cases
+    ]
