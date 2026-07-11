@@ -86,3 +86,62 @@ def classify_round(
     if rounds_used > 0 and assessment.evidence_level == level_before:
         return RoundDecision(True, "manual_review", "stall")
     return RoundDecision(False)
+
+
+from typing import Any as _Any  # already imported Any above; reuse it
+
+
+@dataclass(frozen=True)
+class RetestRound:
+    round_index: int
+    trigger_conflicts: tuple[str, ...]
+    actions: tuple[dict[str, str], ...]
+    evidence_before: str | None
+    evidence_after: str | None
+    delta_summary: str
+    extra_queries: int = 0
+    extra_cost_ms: float = 0.0
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "round_index": self.round_index,
+            "trigger_conflicts": list(self.trigger_conflicts),
+            "actions": [dict(a) for a in self.actions],
+            "evidence_before": self.evidence_before,
+            "evidence_after": self.evidence_after,
+            "delta_summary": self.delta_summary,
+            "extra_queries": self.extra_queries,
+            "extra_cost_ms": self.extra_cost_ms,
+        }
+
+
+@dataclass
+class RetestLineage:
+    case_id: str
+    initial_evidence_level: str | None
+    initial_conflict_types: tuple[str, ...]
+    rounds: list[RetestRound] = field(default_factory=list)
+    final_verdict: TerminalVerdict | None = None
+    final_evidence_level: str | None = None
+    converged_reason: ConvergedReason | None = None
+
+    @property
+    def total_extra_queries(self) -> int:
+        return sum(r.extra_queries for r in self.rounds)
+
+    @property
+    def total_extra_cost_ms(self) -> float:
+        return sum(r.extra_cost_ms for r in self.rounds)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "case_id": self.case_id,
+            "initial_evidence_level": self.initial_evidence_level,
+            "initial_conflict_types": list(self.initial_conflict_types),
+            "rounds": [r.to_dict() for r in self.rounds],
+            "final_verdict": self.final_verdict,
+            "final_evidence_level": self.final_evidence_level,
+            "converged_reason": self.converged_reason,
+            "total_extra_queries": self.total_extra_queries,
+            "total_extra_cost_ms": self.total_extra_cost_ms,
+        }
