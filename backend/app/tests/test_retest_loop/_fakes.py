@@ -29,3 +29,16 @@ class FakeRetestExecutor:
 
     def run_probe(self, result: Mapping[str, Any]) -> EvidenceDelta:
         return self._next(self._p, "run_probe")
+
+
+class AsyncFakeRetestExecutor(FakeRetestExecutor):
+    """Async twin of :class:`FakeRetestExecutor` for ``run_retest_loop_async``."""
+
+    async def run_quartet(self, result: Mapping[str, Any]) -> EvidenceDelta:
+        return self._next(self._q, "run_quartet")
+
+    async def run_canary(self, result: Mapping[str, Any]) -> EvidenceDelta:
+        return self._next(self._c, "run_canary")
+
+    async def run_probe(self, result: Mapping[str, Any]) -> EvidenceDelta:
+        return self._next(self._p, "run_probe")
