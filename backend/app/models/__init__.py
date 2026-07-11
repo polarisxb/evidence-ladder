@@ -7,6 +7,7 @@ from app.models.judge_calibration_sample import JudgeCalibrationSample
 from app.models.judge_calibration_run import JudgeCalibrationRun
 from app.models.model_provider import ModelProvider
 from app.models.autotest_retest_run import AutoTestRetestRun
+from app.models.case_retest_lineage import CaseRetestLineage
 
 __all__ = [
     "Adapter",
@@ -18,4 +19,5 @@ __all__ = [
     "JudgeCalibrationRun",
     "ModelProvider",
     "AutoTestRetestRun",
+    "CaseRetestLineage",
 ]
