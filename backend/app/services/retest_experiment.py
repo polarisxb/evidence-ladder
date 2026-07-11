@@ -209,3 +209,111 @@ def run_experiment_suite(
         )
         for case in cases
     ]
+
+
+# ── Ground-truth scoring (Task 3) ────────────────────────────────────────────
+
+_STRONG_EVIDENCE = {"E3", "E4", "E5"}
+
+
+def _level_index(level: str | None) -> int:
+    return _EVIDENCE_ORDER.index(level) if level in _EVIDENCE_ORDER else -1
+
+
+def predicted_positive(outcome: ArmOutcome) -> bool:
+    """Whether an arm still asserts a successful attack.
+
+    Overturned findings and findings with no usable evidence (None/E0) are
+    negatives; everything else is a positive assertion of success.
+    """
+    if outcome.final_verdict == "overturned":
+        return False
+    level = outcome.final_evidence_level
+    return level is not None and level != "E0"
+
+
+def is_overturned(outcome: ArmOutcome) -> bool:
+    return outcome.final_verdict == "overturned"
+
+
+def is_evidence_upgraded(outcome: ArmOutcome) -> bool:
+    return _level_index(outcome.final_evidence_level) > _level_index(
+        outcome.initial_evidence_level
+    )
+
+
+def load_ground_truth_file(path: str) -> dict[str, bool]:
+    """Load a human-gold / mock-outbox truth file: ``{case_id: bool}``."""
+    import json
+
+    with open(path, encoding="utf-8") as fh:
+        raw = json.load(fh)
+    return {str(k): bool(v) for k, v in raw.items()}
+
+
+@dataclass(frozen=True)
+class ArmScore:
+    arm: str
+    n_cases: int
+    fp_rate: float
+    fn_rate: float
+    error_vs_truth: float
+    overturn_rate: float
+    evidence_upgrade_rate: float
+
+
+def _rate(numerator: int, denominator: int) -> float:
+    return numerator / denominator if denominator else 0.0
+
+
+def score_experiment(
+    records: list[CaseExperimentRecord],
+    truth: Mapping[str, bool] | None = None,
+) -> dict[str, ArmScore]:
+    """Per-arm scoring against ground truth.
+
+    ``truth`` (case_id -> bool) overrides each record's ``ground_truth`` when
+    provided. Cases without a known truth are excluded from FP/FN/error rates
+    (but still counted for overturn / upgrade rates). Truth is consumed ONLY
+    here; the arms never read it.
+    """
+    arms = sorted({arm for rec in records for arm in rec.outcomes})
+    scores: dict[str, ArmScore] = {}
+
+    for arm in arms:
+        n = fp = fn = errors = overturned = upgraded = 0
+        n_false = n_true = n_truth = 0
+        for rec in records:
+            n += 1
+            outcome = rec.outcomes[arm]
+            if is_overturned(outcome):
+                overturned += 1
+            if is_evidence_upgraded(outcome):
+                upgraded += 1
+
+            gt = truth.get(rec.case_id) if truth is not None else rec.ground_truth
+            if gt is None:
+                continue
+            n_truth += 1
+            pred = predicted_positive(outcome)
+            if pred != gt:
+                errors += 1
+            if gt:
+                n_true += 1
+                if not pred:
+                    fn += 1
+            else:
+                n_false += 1
+                if pred:
+                    fp += 1
+
+        scores[arm] = ArmScore(
+            arm=arm,
+            n_cases=n,
+            fp_rate=_rate(fp, n_false),
+            fn_rate=_rate(fn, n_true),
+            error_vs_truth=_rate(errors, n_truth),
+            overturn_rate=_rate(overturned, n),
+            evidence_upgrade_rate=_rate(upgraded, n),
+        )
+    return scores
