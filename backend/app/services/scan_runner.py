@@ -57,6 +57,11 @@ from app.services.error_utils import sanitize_error
 from app.services.case_persistence import (
     persist_case_with_legacy_result as _persist_case_with_legacy_result,
 )
+from app.services.retest_orchestrator import (
+    resolve_retest_arm as _resolve_retest_arm,
+    run_case_retest as _run_case_retest,
+    persist_case_retest_lineage as _persist_case_retest_lineage,
+)
 from app.services.finding_classifier import is_confirmed_finding
 from app.services.quartet_generator import load_suite
 
@@ -618,7 +623,48 @@ async def _persist_and_count(
                 ).where(ScanTask.id == task_id)
             )
             c = row.one()
-            return c[0], c[1], c[2]
+            counts = (c[0], c[1], c[2])
+    # Run the ④ retest loop outside the write lock (it may issue target/probe
+    # queries) then persist its lineage. Gated by the experiment arm in
+    # advanced_config; a no-op for existing scans and never fails the case.
+    await _maybe_persist_case_retest(task, tpl, case_attempt)
+    return counts
+
+
+async def _maybe_persist_case_retest(task, tpl: dict, case_attempt: dict) -> None:
+    advanced = task.advanced_config if isinstance(task.advanced_config, dict) else {}
+    resolved = _resolve_retest_arm(advanced, target_type=getattr(task, "target_type", None))
+    if resolved is None:
+        return
+    arm, config = resolved
+    try:
+        lineage = await _run_case_retest(
+            task=task, template=tpl, case_attempt=case_attempt, config=config
+        )
+    except Exception as exc:
+        logger.warning(
+            "Retest loop failed for case %s: %s", case_attempt.get("case_id"), exc
+        )
+        return
+    reason = "; ".join(sorted(lineage.initial_conflict_types)) or None
+    try:
+        async with _get_db_write_lock():
+            async with async_session() as local_db:
+                await _persist_case_retest_lineage(
+                    local_db,
+                    task=task,
+                    case_id=str(case_attempt.get("case_id") or ""),
+                    arm=arm,
+                    retest_reason=reason,
+                    lineage=lineage,
+                    auto_commit=True,
+                )
+    except Exception as exc:
+        logger.warning(
+            "Persisting retest lineage failed for case %s: %s",
+            case_attempt.get("case_id"),
+            exc,
+        )
 
 
 async def _increment_completed(task_id: str) -> None:
