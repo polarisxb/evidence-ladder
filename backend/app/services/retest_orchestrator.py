@@ -16,12 +16,15 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import CaseRetestLineage
 from app.services.retest_executor_real import RealRetestExecutor
 from app.services.retest_loop import RetestLineage, run_retest_loop_async
 from app.services.retest_policy import RetestConfig
+
+_VERDICTS = ("confirmed", "overturned", "manual_review", "not_evaluable")
 
 
 def _list(value: Any) -> list:
@@ -139,3 +142,50 @@ async def persist_case_retest_lineage(
     else:
         await db.flush()
     return row
+
+
+async def aggregate_retest_experiment(
+    db: AsyncSession, scan_id: str
+) -> dict[str, dict[str, Any]]:
+    """Group one scan's retest lineages by experiment arm for A/B comparison.
+
+    Returns ``{arm: {total, verdicts{...}, total_extra_queries,
+    total_extra_cost_ms, mean_extra_queries, mean_extra_cost_ms}}`` — only arms
+    that produced lineages appear.
+    """
+    rows = (
+        (
+            await db.execute(
+                select(CaseRetestLineage).where(
+                    CaseRetestLineage.scan_task_id == scan_id
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    metrics: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        arm = row.arm or "unknown"
+        bucket = metrics.setdefault(
+            arm,
+            {
+                "total": 0,
+                "verdicts": {v: 0 for v in _VERDICTS},
+                "total_extra_queries": 0,
+                "total_extra_cost_ms": 0.0,
+            },
+        )
+        bucket["total"] += 1
+        verdict = row.final_verdict or "manual_review"
+        bucket["verdicts"][verdict] = bucket["verdicts"].get(verdict, 0) + 1
+        bucket["total_extra_queries"] += int(row.total_extra_queries or 0)
+        bucket["total_extra_cost_ms"] += float(row.total_extra_cost_ms or 0.0)
+
+    for bucket in metrics.values():
+        n = bucket["total"] or 1
+        bucket["mean_extra_queries"] = bucket["total_extra_queries"] / n
+        bucket["mean_extra_cost_ms"] = bucket["total_extra_cost_ms"] / n
+
+    return metrics
