@@ -3,8 +3,18 @@ from __future__ import annotations
 
 import copy
 from collections.abc import Mapping
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass, field, replace
+from typing import Any, Literal, Protocol
+
+from app.services.evidence_arbiter import (
+    EvidenceAssessment,
+    arbitrate_evidence,
+)
+from app.services.retest_policy import (
+    RetestAction,
+    RetestConfig,
+    plan_retests,
+)
 
 
 @dataclass(frozen=True)
@@ -40,11 +50,6 @@ def merge_evidence(result: Mapping[str, Any], delta: EvidenceDelta) -> dict[str,
             merged[key] = value
     return merged
 
-
-from typing import Literal
-
-from app.services.evidence_arbiter import EvidenceAssessment
-from app.services.retest_policy import RetestConfig
 
 TerminalVerdict = Literal["confirmed", "overturned", "manual_review", "not_evaluable"]
 ConvergedReason = Literal[
@@ -86,9 +91,6 @@ def classify_round(
     if rounds_used > 0 and assessment.evidence_level == level_before:
         return RoundDecision(True, "manual_review", "stall")
     return RoundDecision(False)
-
-
-from typing import Any as _Any  # already imported Any above; reuse it
 
 
 @dataclass(frozen=True)
@@ -147,10 +149,6 @@ class RetestLineage:
         }
 
 
-from typing import Protocol
-
-from app.services.retest_policy import RetestAction
-
 _ACTION_METHOD = {
     "run_quartet": "run_quartet",
     "run_canary_retest": "run_canary",
@@ -170,12 +168,6 @@ def dispatch_action(executor: RetestExecutor, action: RetestAction,
     if method_name is None:
         raise ValueError(f"unknown retest action_type: {action.action_type!r}")
     return getattr(executor, method_name)(result)
-
-
-from dataclasses import replace
-
-from app.services.evidence_arbiter import arbitrate_evidence
-from app.services.retest_policy import plan_retests
 
 
 def run_retest_loop(
