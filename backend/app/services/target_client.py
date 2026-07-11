@@ -22,6 +22,7 @@ from app.services.adapter_executor import (
     build_custom_compat_adapter,
     execute_adapter_request,
 )
+from app.services.builtin_probe import execute_builtin_target
 from app.services.llm_client import (
     LLMConfigurationError,
     ProviderClientInfo,
@@ -62,6 +63,9 @@ async def send_to_target(
     internal_config = dict(target_config or {}) if isinstance(target_config, dict) else {}
 
     if target_type == "builtin_vulnerable":
+        builtin_response = execute_builtin_target(payload, internal_config)
+        if builtin_response is not None:
+            return builtin_response
         level = (target_config or {}).get("vulnerable_level", 1)
         return await chat_with_vulnerable_ai(
             payload, level=level, conversation_history=conversation_history,

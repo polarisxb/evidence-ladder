@@ -41,6 +41,13 @@ class TargetOriginRules(BaseModel):
         return self
 
 
+class BuiltinProbeConfig(BaseModel):
+    enabled: bool = True
+    action_trigger: str = Field(min_length=1)
+    state_key: str = Field(min_length=1)
+    response_text: str = "Action completed."
+
+
 class TargetConfig(BaseModel):
     # 关联已配置的供应商 ID，设置后自动使用该供应商的 API Key / Base URL / 模型
     provider_id: str | None = None
@@ -52,6 +59,7 @@ class TargetConfig(BaseModel):
     timeout_s: float | None = Field(None, gt=0, le=300)
     vulnerable_level: int | None = Field(None, ge=1, le=4)
     origin_rules: TargetOriginRules | None = None
+    builtin_probe_config: BuiltinProbeConfig | None = None
 
 
 class AdvancedConfig(BaseModel):

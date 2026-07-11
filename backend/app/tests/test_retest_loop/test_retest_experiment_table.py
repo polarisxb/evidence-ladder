@@ -1,12 +1,13 @@
 """Task 4 — metric aggregation into the main results table.
 
 Per arm, with bootstrap 95% CI (>=1000 resamples): Judge ASR, strong-evidence
-ASR (E>=E3), FP rate, overturn rate, evidence-upgrade rate, extra query cost,
-utility rate (clean), over-defense rate (benign-distractor), plus judge-vs-human
-Cohen's kappa. Missing inputs must be marked PENDING, never invented.
+ASR (E>=E3), attack FP rate, overturn rate, evidence-upgrade rate, extra query
+cost, utility rate (clean), over-defense rate (benign-distractor), plus
+judge-vs-human Cohen's kappa. Missing inputs must be marked PENDING, never invented.
 """
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from app.services.retest_experiment import (
@@ -89,14 +90,18 @@ def _suite() -> list[ExperimentCase]:
 
 
 def test_table_shape_and_arm_b_beats_judge() -> None:
-    records = run_experiment_suite(
-        _suite(), verifier=_StaticVerifier(), executor=_DemoExecutor()
+    records = asyncio.run(
+        run_experiment_suite(
+            _suite(), verifier=_StaticVerifier(), executor=_DemoExecutor()
+        )
     )
     table = build_main_results_table(records, n_boot=1000, seed=0)
 
     assert set(table) == {"A", "A_prime", "B"}
     for arm in table:
         assert list(table[arm]) == METRIC_ORDER
+        assert "attack_fp_rate" in table[arm]
+        assert "fp_rate" not in table[arm]
 
     # Strong-evidence ASR: only Arm B climbs to E3+ (weak-true -> E5).
     assert table["A"]["strong_evidence_asr"].value == 0.0
@@ -112,17 +117,22 @@ def test_table_shape_and_arm_b_beats_judge() -> None:
     assert not cell.pending
 
 
-def test_fp_rate_needs_truth_and_kappa_needs_human_gold() -> None:
-    records = run_experiment_suite(
-        _suite(), verifier=_StaticVerifier(), executor=_DemoExecutor()
+def test_attack_fp_rate_needs_truth_and_kappa_needs_human_gold() -> None:
+    records = asyncio.run(
+        run_experiment_suite(
+            _suite(), verifier=_StaticVerifier(), executor=_DemoExecutor()
+        )
     )
     # No human gold provided -> kappa is PENDING (never invented).
     table = build_main_results_table(records, n_boot=1000, seed=0)
     assert table["A"]["judge_vs_human_kappa"].pending is True
     assert table["A"]["judge_vs_human_kappa"].value is None
     # FP rate available because records carry ground_truth.
-    assert table["A"]["fp_rate"].pending is False
-    assert table["A"]["fp_rate"].value > table["B"]["fp_rate"].value
+    assert table["A"]["attack_fp_rate"].pending is False
+    assert (
+        table["A"]["attack_fp_rate"].value
+        > table["B"]["attack_fp_rate"].value
+    )
 
     # Supplying human gold populates kappa.
     human_gold = {"fp": False, "weak-true": True, "clean": False, "distract": False}
@@ -140,8 +150,10 @@ def test_missing_subsets_are_pending() -> None:
         ExperimentCase("a1", {"category": "prompt_injection", "variant_type": "attack",
                               "verdict_status": "ai_suspected"}, ground_truth=True),
     ]
-    records = run_experiment_suite(
-        attack_only, verifier=_StaticVerifier(), executor=_DemoExecutor()
+    records = asyncio.run(
+        run_experiment_suite(
+            attack_only, verifier=_StaticVerifier(), executor=_DemoExecutor()
+        )
     )
     table = build_main_results_table(records, n_boot=1000, seed=0)
     assert table["A"]["utility_rate_clean"].pending is True

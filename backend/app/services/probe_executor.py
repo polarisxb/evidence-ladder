@@ -15,6 +15,7 @@ from app.schemas.adapter import (
 from app.services.adapter_executor import HTTP_TIMEOUT_S, coerce_adapter_payload, request_adapter_http
 from app.services.adapter_extractors import extract_json_path_value
 from app.services.adapter_renderer import build_adapter_context
+from app.services.builtin_probe import execute_builtin_probe
 from app.services.error_utils import sanitize_error
 from app.services.probe_assertions import evaluate_probe_assertions
 
@@ -54,6 +55,12 @@ async def execute_probe(
     adapter_payload = coerce_adapter_payload(adapter)
     if not adapter_payload.get("enabled", True):
         raise AppException(400, "Adapter is disabled")
+    if adapter_payload.get("mode") == "builtin_vulnerable":
+        return execute_builtin_probe(
+            adapter_payload,
+            scan_id=scan_id,
+            case_id=case_id,
+        )
 
     resolved_probe = resolve_probe_config(adapter_payload, probe_config)
     if not resolved_probe.enabled:

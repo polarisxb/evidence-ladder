@@ -6,8 +6,14 @@ result per case and records each arm's verdict, evidence level, extra query cost
 """
 from __future__ import annotations
 
+import asyncio
+from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
+from app.services import retest_executor_real as rex
+from app.services.retest_executor_real import RealRetestExecutor
 from app.services.retest_experiment import (
     ArmOutcome,
     ExperimentCase,
@@ -59,8 +65,10 @@ def test_runner_records_three_arms_per_case() -> None:
         ground_truth=True,
     )
 
-    records = run_experiment_suite(
-        [case], verifier=_StaticVerifier(), executor=_ProbeConfirmsExecutor()
+    records = asyncio.run(
+        run_experiment_suite(
+            [case], verifier=_StaticVerifier(), executor=_ProbeConfirmsExecutor()
+        )
     )
     assert len(records) == 1
     rec = records[0]
@@ -100,13 +108,62 @@ def test_runner_arm_a_never_executes() -> None:
             "verdict_status": "ai_suspected",
         },
     )
-    # Arm A uses an internal null executor; Arm B would use _Boom but this case
-    # produces a quartet action, so restrict to reading Arm A only.
-    records = run_experiment_suite(
-        [case],
-        verifier=_StaticVerifier(),
-        executor=_ProbeConfirmsExecutor(),
+    # Arm A receives _Boom while Arm B uses the confirming executor.
+    records = asyncio.run(
+        run_experiment_suite(
+            [case],
+            verifier=_StaticVerifier(),
+            executor=_ProbeConfirmsExecutor(),
+            executor_a=_Boom(),
+        )
     )
     a = records[0].outcomes["A"]
     assert a.extra_queries == 0
     assert _idx(a.final_evidence_level) <= _idx("E2")
+
+
+@pytest.mark.asyncio
+async def test_runner_arm_b_awaits_real_executor(monkeypatch) -> None:
+    probe_calls = 0
+
+    async def _execute_probe(adapter, **kwargs):
+        nonlocal probe_calls
+        probe_calls += 1
+        return SimpleNamespace(
+            verified=True,
+            failure_type=None,
+            step_results=[SimpleNamespace()],
+        )
+
+    monkeypatch.setattr(rex, "execute_probe", _execute_probe)
+    task = SimpleNamespace(
+        id="scan-real",
+        runtime_vars={},
+        target_type="adapter",
+        target_config={},
+        _resolved_adapter_payload={
+            "enabled": True,
+            "probe_config": {"enabled": True},
+        },
+    )
+    case = ExperimentCase(
+        case_id="weak-true",
+        result={
+            "category": "excessive_agency",
+            "variant_type": "attack",
+            "verdict_status": "ai_suspected",
+            "behavior_flags": {"unauthorized_action_claim": True},
+        },
+        ground_truth=True,
+    )
+
+    records = await run_experiment_suite(
+        [case],
+        verifier=_StaticVerifier(),
+        executor=RealRetestExecutor(task),
+    )
+
+    assert probe_calls == 1
+    arm_b = records[0].outcomes["B"]
+    assert arm_b.final_evidence_level == "E5"
+    assert arm_b.final_verdict == "confirmed"

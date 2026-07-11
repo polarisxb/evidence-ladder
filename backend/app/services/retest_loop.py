@@ -1,8 +1,10 @@
 # backend/app/services/retest_loop.py
 from __future__ import annotations
 
+import asyncio
 import copy
-from collections.abc import Mapping
+import inspect
+from collections.abc import Awaitable, Mapping
 from dataclasses import dataclass, field, replace
 from typing import Any, Literal, Protocol
 
@@ -157,17 +159,17 @@ _ACTION_METHOD = {
 
 
 class RetestExecutor(Protocol):
-    def run_quartet(self, result: Mapping[str, Any]) -> EvidenceDelta: ...
-    def run_canary(self, result: Mapping[str, Any]) -> EvidenceDelta: ...
-    def run_probe(self, result: Mapping[str, Any]) -> EvidenceDelta: ...
+    def run_quartet(
+        self, result: Mapping[str, Any]
+    ) -> EvidenceDelta | Awaitable[EvidenceDelta]: ...
 
+    def run_canary(
+        self, result: Mapping[str, Any]
+    ) -> EvidenceDelta | Awaitable[EvidenceDelta]: ...
 
-def dispatch_action(executor: RetestExecutor, action: RetestAction,
-                    result: Mapping[str, Any]) -> EvidenceDelta:
-    method_name = _ACTION_METHOD.get(action.action_type)
-    if method_name is None:
-        raise ValueError(f"unknown retest action_type: {action.action_type!r}")
-    return getattr(executor, method_name)(result)
+    def run_probe(
+        self, result: Mapping[str, Any]
+    ) -> EvidenceDelta | Awaitable[EvidenceDelta]: ...
 
 
 def run_retest_loop(
@@ -175,64 +177,7 @@ def run_retest_loop(
     executor: RetestExecutor,
     config: RetestConfig | None = None,
 ) -> RetestLineage:
-    config = config or RetestConfig()
-    current: dict[str, Any] = dict(result)
-    assessment = arbitrate_evidence(current)
-    lineage = RetestLineage(
-        case_id=str(current.get("case_id") or ""),
-        initial_evidence_level=assessment.evidence_level,
-        initial_conflict_types=assessment.conflict_types,
-    )
-
-    rounds_used = 0
-    while True:
-        decision = classify_round(
-            assessment=assessment,
-            contradicted=is_contradicted(assessment, False),
-            level_before=assessment.evidence_level,
-            rounds_used=rounds_used,
-            config=config,
-        )
-        if decision.terminal:
-            return _finalize(lineage, decision, assessment)
-
-        round_cfg = replace(config, current_retest_round=rounds_used)
-        actions = plan_retests(current, round_cfg)
-        if not actions:
-            return _finalize(
-                lineage, RoundDecision(True, "manual_review", "no_action"), assessment
-            )
-
-        level_before = assessment.evidence_level
-        deltas = [dispatch_action(executor, a, current) for a in actions]
-        round_contradiction = any(d.contradiction for d in deltas)
-        for d in deltas:
-            current = merge_evidence(current, d)
-        assessment = arbitrate_evidence(current)
-        rounds_used += 1
-
-        lineage.rounds.append(
-            RetestRound(
-                round_index=rounds_used,
-                trigger_conflicts=tuple(a.reason for a in actions),
-                actions=tuple(a.to_dict() for a in actions),
-                evidence_before=level_before,
-                evidence_after=assessment.evidence_level,
-                delta_summary="; ".join(d.summary for d in deltas if d.summary),
-                extra_queries=sum(d.extra_queries for d in deltas),
-                extra_cost_ms=sum(d.extra_cost_ms for d in deltas),
-            )
-        )
-
-        decision = classify_round(
-            assessment=assessment,
-            contradicted=is_contradicted(assessment, round_contradiction),
-            level_before=level_before,
-            rounds_used=rounds_used,
-            config=config,
-        )
-        if decision.terminal:
-            return _finalize(lineage, decision, assessment)
+    return asyncio.run(run_retest_loop_async(result, executor, config))
 
 
 def _finalize(
@@ -244,32 +189,21 @@ def _finalize(
     return lineage
 
 
-# ── Async twin (P2) ──────────────────────────────────────────────────────────
-# The sync loop above stays pure and DB/IO-free (Fake executor only). Real
-# executors (quartet/probe) do async target/probe IO and are driven from
-# scan_runner's running event loop, so they need an async orchestrator. It
-# reuses every pure helper (classify_round / merge_evidence / _finalize) and
-# only mirrors the ``while`` loop with ``await``ed dispatch.
-
-
-class AsyncRetestExecutor(Protocol):
-    async def run_quartet(self, result: Mapping[str, Any]) -> EvidenceDelta: ...
-    async def run_canary(self, result: Mapping[str, Any]) -> EvidenceDelta: ...
-    async def run_probe(self, result: Mapping[str, Any]) -> EvidenceDelta: ...
-
-
 async def dispatch_action_async(
-    executor: AsyncRetestExecutor, action: RetestAction, result: Mapping[str, Any]
+    executor: RetestExecutor, action: RetestAction, result: Mapping[str, Any]
 ) -> EvidenceDelta:
     method_name = _ACTION_METHOD.get(action.action_type)
     if method_name is None:
         raise ValueError(f"unknown retest action_type: {action.action_type!r}")
-    return await getattr(executor, method_name)(result)
+    delta = getattr(executor, method_name)(result)
+    if inspect.isawaitable(delta):
+        return await delta
+    return delta
 
 
 async def run_retest_loop_async(
     result: Mapping[str, Any],
-    executor: AsyncRetestExecutor,
+    executor: RetestExecutor,
     config: RetestConfig | None = None,
 ) -> RetestLineage:
     config = config or RetestConfig()

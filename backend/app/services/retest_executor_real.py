@@ -158,6 +158,18 @@ class RealRetestExecutor:
 
     async def run_probe(self, result: Mapping[str, Any]) -> EvidenceDelta:
         adapter_payload = _resolved_case_adapter_payload(self.task)
+        if (
+            adapter_payload is None
+            and getattr(self.task, "target_type", None) == "builtin_vulnerable"
+        ):
+            target_config = getattr(self.task, "target_config", None) or {}
+            builtin_probe_config = target_config.get("builtin_probe_config")
+            if builtin_probe_config:
+                adapter_payload = {
+                    "enabled": True,
+                    "mode": "builtin_vulnerable",
+                    "probe_config": builtin_probe_config,
+                }
         probe_config = (
             adapter_payload.get("probe_config") if isinstance(adapter_payload, dict) else None
         )
