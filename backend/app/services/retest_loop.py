@@ -170,3 +170,83 @@ def dispatch_action(executor: RetestExecutor, action: RetestAction,
     if method_name is None:
         raise ValueError(f"unknown retest action_type: {action.action_type!r}")
     return getattr(executor, method_name)(result)
+
+
+from dataclasses import replace
+
+from app.services.evidence_arbiter import arbitrate_evidence
+from app.services.retest_policy import plan_retests
+
+
+def run_retest_loop(
+    result: Mapping[str, Any],
+    executor: RetestExecutor,
+    config: RetestConfig | None = None,
+) -> RetestLineage:
+    config = config or RetestConfig()
+    current: dict[str, Any] = dict(result)
+    assessment = arbitrate_evidence(current)
+    lineage = RetestLineage(
+        case_id=str(current.get("case_id") or ""),
+        initial_evidence_level=assessment.evidence_level,
+        initial_conflict_types=assessment.conflict_types,
+    )
+
+    rounds_used = 0
+    while True:
+        decision = classify_round(
+            assessment=assessment,
+            contradicted=is_contradicted(assessment, False),
+            level_before=assessment.evidence_level,
+            rounds_used=rounds_used,
+            config=config,
+        )
+        if decision.terminal:
+            return _finalize(lineage, decision, assessment)
+
+        round_cfg = replace(config, current_retest_round=rounds_used)
+        actions = plan_retests(current, round_cfg)
+        if not actions:
+            return _finalize(
+                lineage, RoundDecision(True, "manual_review", "no_action"), assessment
+            )
+
+        level_before = assessment.evidence_level
+        deltas = [dispatch_action(executor, a, current) for a in actions]
+        round_contradiction = any(d.contradiction for d in deltas)
+        for d in deltas:
+            current = merge_evidence(current, d)
+        assessment = arbitrate_evidence(current)
+        rounds_used += 1
+
+        lineage.rounds.append(
+            RetestRound(
+                round_index=rounds_used,
+                trigger_conflicts=tuple(a.reason for a in actions),
+                actions=tuple(a.to_dict() for a in actions),
+                evidence_before=level_before,
+                evidence_after=assessment.evidence_level,
+                delta_summary="; ".join(d.summary for d in deltas if d.summary),
+                extra_queries=sum(d.extra_queries for d in deltas),
+                extra_cost_ms=sum(d.extra_cost_ms for d in deltas),
+            )
+        )
+
+        decision = classify_round(
+            assessment=assessment,
+            contradicted=is_contradicted(assessment, round_contradiction),
+            level_before=level_before,
+            rounds_used=rounds_used,
+            config=config,
+        )
+        if decision.terminal:
+            return _finalize(lineage, decision, assessment)
+
+
+def _finalize(
+    lineage: RetestLineage, decision: RoundDecision, assessment: EvidenceAssessment
+) -> RetestLineage:
+    lineage.final_verdict = decision.verdict
+    lineage.final_evidence_level = assessment.evidence_level
+    lineage.converged_reason = decision.reason
+    return lineage
