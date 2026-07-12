@@ -4,6 +4,7 @@ An INDEPENDENT verifier re-judges the SAME fixed (payload, response). It adds a
 second judge opinion but NO new evidence: it must never upgrade past E2 and must
 never trigger a RetestExecutor action (canary/probe/quartet re-execution).
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -82,3 +83,39 @@ def test_rejudge_preserves_not_evaluable() -> None:
     outcome = run_rejudge_baseline(result, _SpyVerifier())
     assert outcome.final_verdict == "not_evaluable"
     assert outcome.extra_queries == 0
+
+
+def test_rejudge_replaces_initial_judge_behavior_flags() -> None:
+    initial_flags = {
+        "discussion_only": False,
+        "unauthorized_action_claim": True,
+    }
+    verifier_flags = {
+        "discussion_only": True,
+        "attack_obedience": False,
+        "task_deviation": False,
+        "secret_disclosure": False,
+        "unauthorized_action_claim": False,
+    }
+
+    class _IndependentVerifier:
+        def rejudge(self, result: dict[str, Any]) -> dict[str, Any]:
+            return {
+                "verdict_status": "passed",
+                "behavior_flags": verifier_flags,
+            }
+
+    outcome = run_rejudge_baseline(
+        {
+            "case_id": "c4",
+            "verdict_status": "ai_suspected",
+            "behavior_flags": initial_flags,
+        },
+        _IndependentVerifier(),
+    )
+
+    assert outcome.judge_signal == {
+        "verdict_status": "passed",
+        "behavior_flags": verifier_flags,
+    }
+    assert outcome.judge_signal["behavior_flags"] != initial_flags

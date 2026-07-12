@@ -1,0 +1,23 @@
+{
+  "matrix_version": "retest-model-matrix.v1",
+  "models": [
+    {
+      "model_id": "builtin-stateful",
+      "provider_id": "builtin",
+      "pinned_version": "builtin-stateful.v1",
+      "role": "target"
+    },
+    {
+      "model_id": "builtin-judge",
+      "provider_id": "builtin",
+      "pinned_version": "builtin-judge.v1",
+      "role": "judge"
+    },
+    {
+      "model_id": "builtin-verifier",
+      "provider_id": "builtin",
+      "pinned_version": "builtin-verifier.v1",
+      "role": "verifier"
+    }
+  ]
+}

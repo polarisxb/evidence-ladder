@@ -4,9 +4,9 @@ from __future__ import annotations
 import asyncio
 import copy
 import inspect
-from collections.abc import Awaitable, Mapping
+from collections.abc import Awaitable, Iterable, Mapping
 from dataclasses import dataclass, field, replace
-from typing import Any, Literal, Protocol
+from typing import Any, Literal, Protocol, runtime_checkable
 
 from app.services.evidence_arbiter import (
     EvidenceAssessment,
@@ -33,6 +33,11 @@ class EvidenceDelta:
     contradiction: bool = False
     extra_queries: int = 0
     extra_cost_ms: float = 0.0
+    target_retest_queries: int = 0
+    judge_queries: int = 0
+    probe_steps: int = 0
+    actual_token_count: int | None = None
+    actual_monetary_cost_usd: float | None = None
     summary: str = ""
 
 
@@ -55,7 +60,13 @@ def merge_evidence(result: Mapping[str, Any], delta: EvidenceDelta) -> dict[str,
 
 TerminalVerdict = Literal["confirmed", "overturned", "manual_review", "not_evaluable"]
 ConvergedReason = Literal[
-    "strong_evidence", "overturned", "stall", "max_rounds", "not_evaluable", "no_action"
+    "strong_evidence",
+    "overturned",
+    "stall",
+    "max_rounds",
+    "not_evaluable",
+    "no_action",
+    "no_executable_action",
 ]
 
 _CONTRADICTION_CONFLICTS = {"text_claim_probe_failed", "quoted_attack_success"}
@@ -105,6 +116,11 @@ class RetestRound:
     delta_summary: str
     extra_queries: int = 0
     extra_cost_ms: float = 0.0
+    target_retest_queries: int = 0
+    judge_queries: int = 0
+    probe_steps: int = 0
+    actual_token_count: int | None = None
+    actual_monetary_cost_usd: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -116,6 +132,11 @@ class RetestRound:
             "delta_summary": self.delta_summary,
             "extra_queries": self.extra_queries,
             "extra_cost_ms": self.extra_cost_ms,
+            "target_retest_queries": self.target_retest_queries,
+            "judge_queries": self.judge_queries,
+            "probe_steps": self.probe_steps,
+            "actual_token_count": self.actual_token_count,
+            "actual_monetary_cost_usd": self.actual_monetary_cost_usd,
         }
 
 
@@ -137,6 +158,26 @@ class RetestLineage:
     def total_extra_cost_ms(self) -> float:
         return sum(r.extra_cost_ms for r in self.rounds)
 
+    @property
+    def total_target_retest_queries(self) -> int:
+        return sum(r.target_retest_queries for r in self.rounds)
+
+    @property
+    def total_judge_queries(self) -> int:
+        return sum(r.judge_queries for r in self.rounds)
+
+    @property
+    def total_probe_steps(self) -> int:
+        return sum(r.probe_steps for r in self.rounds)
+
+    @property
+    def total_actual_token_count(self) -> int | None:
+        return _sum_optional_int(r.actual_token_count for r in self.rounds)
+
+    @property
+    def total_actual_monetary_cost_usd(self) -> float | None:
+        return _sum_optional_float(r.actual_monetary_cost_usd for r in self.rounds)
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "case_id": self.case_id,
@@ -148,7 +189,30 @@ class RetestLineage:
             "converged_reason": self.converged_reason,
             "total_extra_queries": self.total_extra_queries,
             "total_extra_cost_ms": self.total_extra_cost_ms,
+            "total_target_retest_queries": self.total_target_retest_queries,
+            "total_judge_queries": self.total_judge_queries,
+            "total_probe_steps": self.total_probe_steps,
+            "total_actual_token_count": self.total_actual_token_count,
+            "total_actual_monetary_cost_usd": (self.total_actual_monetary_cost_usd),
         }
+
+
+def _sum_optional_int(values: Iterable[int | None]) -> int | None:
+    collected = list(values)
+    if not collected:
+        return 0
+    if any(value is None for value in collected):
+        return None
+    return sum(value for value in collected if value is not None)
+
+
+def _sum_optional_float(values: Iterable[float | None]) -> float | None:
+    collected = list(values)
+    if not collected:
+        return 0.0
+    if any(value is None for value in collected):
+        return None
+    return sum(value for value in collected if value is not None)
 
 
 _ACTION_METHOD = {
@@ -170,6 +234,15 @@ class RetestExecutor(Protocol):
     def run_probe(
         self, result: Mapping[str, Any]
     ) -> EvidenceDelta | Awaitable[EvidenceDelta]: ...
+
+
+@runtime_checkable
+class RetestCapabilityChecker(Protocol):
+    def executable_action_types(
+        self,
+        actions: tuple[RetestAction, ...],
+        result: Mapping[str, Any],
+    ) -> tuple[str, ...]: ...
 
 
 def run_retest_loop(
@@ -233,6 +306,14 @@ async def run_retest_loop_async(
             return _finalize(
                 lineage, RoundDecision(True, "manual_review", "no_action"), assessment
             )
+        if isinstance(executor, RetestCapabilityChecker) and not (
+            executor.executable_action_types(actions, current)
+        ):
+            return _finalize(
+                lineage,
+                RoundDecision(True, "not_evaluable", "no_executable_action"),
+                assessment,
+            )
 
         level_before = assessment.evidence_level
         deltas = [await dispatch_action_async(executor, a, current) for a in actions]
@@ -252,6 +333,15 @@ async def run_retest_loop_async(
                 delta_summary="; ".join(d.summary for d in deltas if d.summary),
                 extra_queries=sum(d.extra_queries for d in deltas),
                 extra_cost_ms=sum(d.extra_cost_ms for d in deltas),
+                target_retest_queries=sum(d.target_retest_queries for d in deltas),
+                judge_queries=sum(d.judge_queries for d in deltas),
+                probe_steps=sum(d.probe_steps for d in deltas),
+                actual_token_count=_sum_optional_int(
+                    d.actual_token_count for d in deltas
+                ),
+                actual_monetary_cost_usd=_sum_optional_float(
+                    d.actual_monetary_cost_usd for d in deltas
+                ),
             )
         )
 
