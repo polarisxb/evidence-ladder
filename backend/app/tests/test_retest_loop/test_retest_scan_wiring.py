@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.database import Base
-from app.models import CaseRetestLineage
+from app.models import AttackCase, AttackResult, CaseRetestLineage
 from app.services import scan_runner
 from app.services.retest_loop import RetestLineage
 
@@ -61,6 +61,47 @@ async def test_arm_b_persists_lineage(monkeypatch):
         assert row.arm == "B"
         assert row.final_verdict == "confirmed"
         assert row.retest_reason == "text_claim_requires_probe"
+    await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_arm_b_writes_back_to_main_rows(monkeypatch):
+    engine, factory = await _factory()
+
+    async with factory() as db:
+        result = AttackResult(
+            id="res-1", scan_task_id="scan-1", template_id="SP-001",
+            category="x", technique="t", attack_name="n",
+            payload_text="p", target_response="r",
+            attack_successful=True, risk_level="high", risk_score=7.0,
+            analysis_raw={"verdict_status": "ai_suspected"},
+        )
+        db.add(result)
+        await db.flush()
+        db.add(AttackCase(
+            id="case-1", scan_task_id="scan-1", template_id="SP-001",
+            category="x", technique="t", attack_name="n",
+            legacy_attack_result_id="res-1", summary_json={"verdict_status": "ai_suspected"},
+        ))
+        await db.commit()
+
+    async def _fake_run(**kwargs):
+        return _lineage()
+
+    monkeypatch.setattr(scan_runner, "_run_case_retest", _fake_run)
+    monkeypatch.setattr(scan_runner, "async_session", factory)
+
+    task = types.SimpleNamespace(id="scan-1", target_type="adapter",
+                                 advanced_config={"retest_arm": "B"})
+    await scan_runner._maybe_persist_case_retest(task, {"category": "x"}, {"case_id": "case-1"})
+
+    async with factory() as db:
+        res = (await db.execute(select(AttackResult))).scalar_one()
+        case = (await db.execute(select(AttackCase))).scalar_one()
+        assert res.attack_successful is True  # non-destructive
+        assert res.analysis_raw["retest"]["final_verdict"] == "confirmed"
+        assert res.analysis_raw["retest"]["arm"] == "B"
+        assert case.summary_json["retest"]["final_evidence_level"] == "E5"
     await engine.dispose()
 
 
