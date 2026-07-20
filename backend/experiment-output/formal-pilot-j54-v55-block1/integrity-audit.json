@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "publication_ready": false,
+  "suite_hash": "2dfef6f5461d8c4375070558cd7edb9b6a3ede1e4d46b8509d55d49ffd6ce748",
+  "expected_records": 40,
+  "cache_records": 40,
+  "lineage_records": 40,
+  "errors": [],
+  "warnings": [
+    "percentile bootstrap intervals are degenerate for all-zero/all-one cells"
+  ],
+  "checksums": {
+    "initial-pass-cache.json": "e2dfc1aecd91c71d566fd3c6a386c79d88844a73956f57f62ee1198924c2462e",
+    "lineages.jsonl": "3019d36b497137af1902470c62fb5c77054de112f1a0f98004fa7c9f53d4db5c",
+    "results.csv": "471ba724e7f50727a2d222c64b672cc38f10fa52b5465ca1371b07e6ffde4597",
+    "results.json": "c842313d9c0e49e7d9f67fcc64f41ff87da74896cc1cea64e00d002e461f392d",
+    "run-manifest.json": "a98859348e55637f4a0d0a59e0327f5221335168b04ae5f80c07fa7626968e5b"
+  }
+}

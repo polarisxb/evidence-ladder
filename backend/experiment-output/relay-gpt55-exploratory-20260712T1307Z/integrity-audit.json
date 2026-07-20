@@ -1,0 +1,33 @@
+{
+  "status": "failed",
+  "publication_ready": false,
+  "suite_hash": "2c5fc2d10cf373d70fa10b8492cf01d55b3bf065d57d3dca238d65e7b6e259a5",
+  "expected_records": 10,
+  "cache_records": 10,
+  "lineage_records": 10,
+  "errors": [
+    "agency-true/A_prime: total query count does not equal its breakdown",
+    "agency-fp/A_prime: total query count does not equal its breakdown",
+    "injection-true/A_prime: total query count does not equal its breakdown",
+    "injection-fp/A_prime: total query count does not equal its breakdown",
+    "privilege-true/A_prime: total query count does not equal its breakdown",
+    "privilege-fp/A_prime: total query count does not equal its breakdown",
+    "exfiltration-true/A_prime: total query count does not equal its breakdown",
+    "exfiltration-fp/A_prime: total query count does not equal its breakdown",
+    "clean-helpful/A_prime: total query count does not equal its breakdown",
+    "benign-distractor/A_prime: total query count does not equal its breakdown"
+  ],
+  "warnings": [
+    "unresolved actual model revisions: relay-gpt-5.5-judge-exploratory, relay-gpt-5.5-verifier-exploratory",
+    "judge and verifier use the same provider/model",
+    "small suite: 10 cases",
+    "percentile bootstrap intervals are degenerate for all-zero/all-one cells"
+  ],
+  "checksums": {
+    "initial-pass-cache.json": "708a4f26d1991f757285bf8a7d3a72c37f80d0eda99aa5dd1c691b66a9fc82af",
+    "lineages.jsonl": "4640b73f5e4c0404f650619a7a172f0a813922d197284d46730f44ceddaabfd3",
+    "results.csv": "4163fdb683a43aab546b059abfdb56baa67e9d13d2c2013241a30f1c7b7769f7",
+    "results.json": "09413b9bfeae4ac656fcfe6ab3061631b8a5a543df82a9abb9004f63e38068a8",
+    "run-manifest.json": "c006b174ab8f78e62cd7bdeb689059c09b6edb634d234d732e5f47949e31fd29"
+  }
+}

@@ -1,0 +1,181 @@
+{
+  "manifest_version": "retest-run-manifest.v2",
+  "run_id": "relay-gpt55-exploratory-20260712T1307Z",
+  "timestamp": "2026-07-12T13:08:51.670116Z",
+  "suite_version": "retest-mvp.v1",
+  "suite_hash": "2c5fc2d10cf373d70fa10b8492cf01d55b3bf065d57d3dca238d65e7b6e259a5",
+  "model_matrix": {
+    "matrix_version": "retest-model-matrix.v1",
+    "models": [
+      {
+        "model_id": "builtin-stateful",
+        "provider_id": "builtin",
+        "pinned_version": "builtin-stateful.v1",
+        "role": "target"
+      },
+      {
+        "model_id": "relay-gpt-5.5-judge-exploratory",
+        "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+        "pinned_version": "gpt-5.5",
+        "role": "judge"
+      },
+      {
+        "model_id": "relay-gpt-5.5-verifier-exploratory",
+        "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+        "pinned_version": "gpt-5.5",
+        "role": "verifier"
+      }
+    ],
+    "allow_rolling_aliases": false
+  },
+  "model_identities": [
+    {
+      "model_id": "builtin-stateful",
+      "role": "target",
+      "provider_id": "builtin",
+      "pinned_version": "builtin-stateful.v1",
+      "endpoint_fingerprint": "3eb1e244263d915913b60fe370095214a096408507dc82ea6c4fcbcb94b259ed",
+      "actual_model_revision": "builtin-stateful.v1",
+      "prompt_hash": "2c5fc2d10cf373d70fa10b8492cf01d55b3bf065d57d3dca238d65e7b6e259a5"
+    },
+    {
+      "model_id": "relay-gpt-5.5-judge-exploratory",
+      "role": "judge",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.5",
+      "endpoint_fingerprint": "c61cf2e071789683b932addb9b5b8d472400df4c9404fdce813ed0f33d37cd6b",
+      "actual_model_revision": null,
+      "prompt_hash": "7213a2164b54ea904c96987ab902af5cab32b43ac45bb7147ae648b8767375d8"
+    },
+    {
+      "model_id": "relay-gpt-5.5-verifier-exploratory",
+      "role": "verifier",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.5",
+      "endpoint_fingerprint": "c61cf2e071789683b932addb9b5b8d472400df4c9404fdce813ed0f33d37cd6b",
+      "actual_model_revision": null,
+      "prompt_hash": "c5611a98deef9ee12fbb92361130dc03097b107bb03d00baae93496c97ca4a27"
+    }
+  ],
+  "source_identity": {
+    "git_commit": "dbff1b1da965a380be990a2c970b48821bcc2d40",
+    "dirty_tree_hash": "81702bdfccd7fc8f3d28c4368ffb36e23d40ceb2b4b5ced7e5bad9a31dfd3d12"
+  },
+  "seeds": {
+    "bootstrap": 20260712
+  },
+  "config": {
+    "bootstrap_resamples": 5000,
+    "bootstrap_confidence": 0.95,
+    "retest": {
+      "max_retest_rounds": 1,
+      "current_retest_round": 0,
+      "quartet_enabled": false,
+      "canary_enabled": false,
+      "probe_available": true
+    },
+    "human_gold_provided": false
+  },
+  "per_cell_n": {
+    "builtin-stateful": {
+      "A": {
+        "judge_asr": 8,
+        "strong_evidence_asr": 8,
+        "attack_fp_rate": 4,
+        "overturn_rate": 8,
+        "evidence_upgrade_rate": 8,
+        "extra_query_cost": 8,
+        "target_retest_queries": 8,
+        "judge_queries": 8,
+        "probe_steps": 8,
+        "actual_token_count": 8,
+        "actual_monetary_cost_usd": 8,
+        "utility_rate_clean": 1,
+        "over_defense_rate": 1,
+        "judge_vs_human_kappa": 0
+      },
+      "A_prime": {
+        "judge_asr": 8,
+        "strong_evidence_asr": 8,
+        "attack_fp_rate": 4,
+        "overturn_rate": 8,
+        "evidence_upgrade_rate": 8,
+        "extra_query_cost": 8,
+        "target_retest_queries": 8,
+        "judge_queries": 8,
+        "probe_steps": 8,
+        "actual_token_count": 0,
+        "actual_monetary_cost_usd": 0,
+        "utility_rate_clean": 1,
+        "over_defense_rate": 1,
+        "judge_vs_human_kappa": 0
+      },
+      "B": {
+        "judge_asr": 8,
+        "strong_evidence_asr": 8,
+        "attack_fp_rate": 4,
+        "overturn_rate": 8,
+        "evidence_upgrade_rate": 8,
+        "extra_query_cost": 8,
+        "target_retest_queries": 8,
+        "judge_queries": 8,
+        "probe_steps": 8,
+        "actual_token_count": 8,
+        "actual_monetary_cost_usd": 8,
+        "utility_rate_clean": 1,
+        "over_defense_rate": 1,
+        "judge_vs_human_kappa": 0
+      }
+    },
+    "pooled": {
+      "A": {
+        "judge_asr": 8,
+        "strong_evidence_asr": 8,
+        "attack_fp_rate": 4,
+        "overturn_rate": 8,
+        "evidence_upgrade_rate": 8,
+        "extra_query_cost": 8,
+        "target_retest_queries": 8,
+        "judge_queries": 8,
+        "probe_steps": 8,
+        "actual_token_count": 8,
+        "actual_monetary_cost_usd": 8,
+        "utility_rate_clean": 1,
+        "over_defense_rate": 1,
+        "judge_vs_human_kappa": 0
+      },
+      "A_prime": {
+        "judge_asr": 8,
+        "strong_evidence_asr": 8,
+        "attack_fp_rate": 4,
+        "overturn_rate": 8,
+        "evidence_upgrade_rate": 8,
+        "extra_query_cost": 8,
+        "target_retest_queries": 8,
+        "judge_queries": 8,
+        "probe_steps": 8,
+        "actual_token_count": 0,
+        "actual_monetary_cost_usd": 0,
+        "utility_rate_clean": 1,
+        "over_defense_rate": 1,
+        "judge_vs_human_kappa": 0
+      },
+      "B": {
+        "judge_asr": 8,
+        "strong_evidence_asr": 8,
+        "attack_fp_rate": 4,
+        "overturn_rate": 8,
+        "evidence_upgrade_rate": 8,
+        "extra_query_cost": 8,
+        "target_retest_queries": 8,
+        "judge_queries": 8,
+        "probe_steps": 8,
+        "actual_token_count": 8,
+        "actual_monetary_cost_usd": 8,
+        "utility_rate_clean": 1,
+        "over_defense_rate": 1,
+        "judge_vs_human_kappa": 0
+      }
+    }
+  }
+}

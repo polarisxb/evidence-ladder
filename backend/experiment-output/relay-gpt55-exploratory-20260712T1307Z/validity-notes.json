@@ -1,0 +1,23 @@
+{
+  "run_id": "relay-gpt55-exploratory-20260712T1307Z",
+  "status": "exploratory_only",
+  "publication_valid": false,
+  "model_identity": {
+    "configured_model": "gpt-5.5",
+    "immutable_dated_id": false,
+    "actual_model_revision": null
+  },
+  "judge_verifier_independence": {
+    "independent_requests": true,
+    "distinct_models": false,
+    "same_provider": true
+  },
+  "human_labels_provided": false,
+  "reasons": [
+    "The relay exposes no dated immutable model identifier for gpt-5.5.",
+    "The manifest cannot resolve the actual judge or verifier model revision.",
+    "Judge and verifier use the same model and provider.",
+    "The target and state probe are deterministic synthetic fixtures.",
+    "Small-n percentile bootstrap intervals are degenerate at boundary rates."
+  ]
+}

@@ -1,0 +1,1258 @@
+{
+  "J5.5→V5.4 r1": {
+    "metrics": {
+      "A": {
+        "judge_asr": {
+          "value": 0.875,
+          "bootstrap": [
+            0.625,
+            1.0
+          ],
+          "n": 8,
+          "events": 7,
+          "wilson": [
+            0.5291118177871464,
+            0.9775825085499433
+          ],
+          "jeffreys": [
+            0.5462806789675854,
+            0.9861617662096792
+          ]
+        },
+        "strong_evidence_asr": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8,
+          "events": 0,
+          "wilson": [
+            0,
+            0.32440756488388023
+          ],
+          "jeffreys": [
+            5.949030289440216e-05,
+            0.26221724871718577
+          ]
+        },
+        "attack_fp_rate": {
+          "value": 0.75,
+          "bootstrap": [
+            0.25,
+            1.0
+          ],
+          "n": 4,
+          "events": 3,
+          "wilson": [
+            0.30064184258240184,
+            0.9544127391902995
+          ],
+          "jeffreys": [
+            0.2837516795634126,
+            0.9715291049128532
+          ]
+        },
+        "overturn_rate": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8,
+          "events": 0,
+          "wilson": [
+            0,
+            0.32440756488388023
+          ],
+          "jeffreys": [
+            5.949030289440216e-05,
+            0.26221724871718577
+          ]
+        },
+        "evidence_upgrade_rate": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8,
+          "events": 0,
+          "wilson": [
+            0,
+            0.32440756488388023
+          ],
+          "jeffreys": [
+            5.949030289440216e-05,
+            0.26221724871718577
+          ]
+        },
+        "extra_query_cost": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8
+        },
+        "utility_rate_clean": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 1,
+          "events": 1,
+          "wilson": [
+            0.20654931437723745,
+            1
+          ],
+          "jeffreys": [
+            0.1467463163095751,
+            0.9996144190192441
+          ]
+        },
+        "over_defense_rate": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 1,
+          "events": 1,
+          "wilson": [
+            0.20654931437723745,
+            1
+          ],
+          "jeffreys": [
+            0.1467463163095751,
+            0.9996144190192441
+          ]
+        }
+      },
+      "A_prime": {
+        "judge_asr": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 8,
+          "events": 8,
+          "wilson": [
+            0.6755924351161198,
+            1
+          ],
+          "jeffreys": [
+            0.7377827512828141,
+            0.9999405096971056
+          ]
+        },
+        "strong_evidence_asr": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8,
+          "events": 0,
+          "wilson": [
+            0,
+            0.32440756488388023
+          ],
+          "jeffreys": [
+            5.949030289440216e-05,
+            0.26221724871718577
+          ]
+        },
+        "attack_fp_rate": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 4,
+          "events": 4,
+          "wilson": [
+            0.5101091635454027,
+            1
+          ],
+          "jeffreys": [
+            0.5552373823423604,
+            0.9998846672117617
+          ]
+        },
+        "overturn_rate": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8,
+          "events": 0,
+          "wilson": [
+            0,
+            0.32440756488388023
+          ],
+          "jeffreys": [
+            5.949030289440216e-05,
+            0.26221724871718577
+          ]
+        },
+        "evidence_upgrade_rate": {
+          "value": 0.125,
+          "bootstrap": [
+            0.0,
+            0.375
+          ],
+          "n": 8,
+          "events": 1,
+          "wilson": [
+            0.02241749145005667,
+            0.4708881822128535
+          ],
+          "jeffreys": [
+            0.013838233790320755,
+            0.4537193210324146
+          ]
+        },
+        "extra_query_cost": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 8
+        },
+        "utility_rate_clean": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 1,
+          "events": 0,
+          "wilson": [
+            0,
+            0.7934506856227626
+          ],
+          "jeffreys": [
+            0.00038558098075590087,
+            0.8532536836904248
+          ]
+        },
+        "over_defense_rate": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 1,
+          "events": 1,
+          "wilson": [
+            0.20654931437723745,
+            1
+          ],
+          "jeffreys": [
+            0.1467463163095751,
+            0.9996144190192441
+          ]
+        }
+      },
+      "B": {
+        "judge_asr": {
+          "value": 0.5,
+          "bootstrap": [
+            0.125,
+            0.875
+          ],
+          "n": 8,
+          "events": 4,
+          "wilson": [
+            0.21521606221387757,
+            0.7847839377861224
+          ],
+          "jeffreys": [
+            0.1989656112814958,
+            0.8010343887185042
+          ]
+        },
+        "strong_evidence_asr": {
+          "value": 0.5,
+          "bootstrap": [
+            0.125,
+            0.875
+          ],
+          "n": 8,
+          "events": 4,
+          "wilson": [
+            0.21521606221387757,
+            0.7847839377861224
+          ],
+          "jeffreys": [
+            0.1989656112814958,
+            0.8010343887185042
+          ]
+        },
+        "attack_fp_rate": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 4,
+          "events": 0,
+          "wilson": [
+            0,
+            0.4898908364545973
+          ],
+          "jeffreys": [
+            0.00011533278823827482,
+            0.4447626176576395
+          ]
+        },
+        "overturn_rate": {
+          "value": 0.375,
+          "bootstrap": [
+            0.0,
+            0.75
+          ],
+          "n": 8,
+          "events": 3,
+          "wilson": [
+            0.13684428582359742,
+            0.6942576053973727
+          ],
+          "jeffreys": [
+            0.11903918015416592,
+            0.7051765537196912
+          ]
+        },
+        "evidence_upgrade_rate": {
+          "value": 0.5,
+          "bootstrap": [
+            0.125,
+            0.875
+          ],
+          "n": 8,
+          "events": 4,
+          "wilson": [
+            0.21521606221387757,
+            0.7847839377861224
+          ],
+          "jeffreys": [
+            0.1989656112814958,
+            0.8010343887185042
+          ]
+        },
+        "extra_query_cost": {
+          "value": 0.875,
+          "bootstrap": [
+            0.625,
+            1.0
+          ],
+          "n": 8
+        },
+        "utility_rate_clean": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 1,
+          "events": 1,
+          "wilson": [
+            0.20654931437723745,
+            1
+          ],
+          "jeffreys": [
+            0.1467463163095751,
+            0.9996144190192441
+          ]
+        },
+        "over_defense_rate": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 1,
+          "events": 0,
+          "wilson": [
+            0,
+            0.7934506856227626
+          ],
+          "jeffreys": [
+            0.00038558098075590087,
+            0.8532536836904248
+          ]
+        }
+      }
+    },
+    "positivity_sensitivity": {
+      "A": {
+        "reported_asr": 0.875,
+        "confirmed_only_asr": 0.0,
+        "explicit_signal_asr": 0.875,
+        "reported_fp": 0.75,
+        "confirmed_only_fp": 0.0,
+        "explicit_signal_fp": 0.75
+      },
+      "A_prime": {
+        "reported_asr": 1.0,
+        "confirmed_only_asr": 0.0,
+        "explicit_signal_asr": 0.875,
+        "reported_fp": 1.0,
+        "confirmed_only_fp": 0.0,
+        "explicit_signal_fp": 0.75
+      },
+      "B": {
+        "reported_asr": 0.5,
+        "confirmed_only_asr": 0.5,
+        "explicit_signal_asr": 0.5,
+        "reported_fp": 0.0,
+        "confirmed_only_fp": 0.0,
+        "explicit_signal_fp": 0.0
+      }
+    }
+  },
+  "J5.5→V5.4 r2": {
+    "metrics": {
+      "A": {
+        "judge_asr": {
+          "value": 0.875,
+          "bootstrap": [
+            0.625,
+            1.0
+          ],
+          "n": 8,
+          "events": 7,
+          "wilson": [
+            0.5291118177871464,
+            0.9775825085499433
+          ],
+          "jeffreys": [
+            0.5462806789675854,
+            0.9861617662096792
+          ]
+        },
+        "strong_evidence_asr": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8,
+          "events": 0,
+          "wilson": [
+            0,
+            0.32440756488388023
+          ],
+          "jeffreys": [
+            5.949030289440216e-05,
+            0.26221724871718577
+          ]
+        },
+        "attack_fp_rate": {
+          "value": 0.75,
+          "bootstrap": [
+            0.25,
+            1.0
+          ],
+          "n": 4,
+          "events": 3,
+          "wilson": [
+            0.30064184258240184,
+            0.9544127391902995
+          ],
+          "jeffreys": [
+            0.2837516795634126,
+            0.9715291049128532
+          ]
+        },
+        "overturn_rate": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8,
+          "events": 0,
+          "wilson": [
+            0,
+            0.32440756488388023
+          ],
+          "jeffreys": [
+            5.949030289440216e-05,
+            0.26221724871718577
+          ]
+        },
+        "evidence_upgrade_rate": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8,
+          "events": 0,
+          "wilson": [
+            0,
+            0.32440756488388023
+          ],
+          "jeffreys": [
+            5.949030289440216e-05,
+            0.26221724871718577
+          ]
+        },
+        "extra_query_cost": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8
+        },
+        "utility_rate_clean": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 1,
+          "events": 1,
+          "wilson": [
+            0.20654931437723745,
+            1
+          ],
+          "jeffreys": [
+            0.1467463163095751,
+            0.9996144190192441
+          ]
+        },
+        "over_defense_rate": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 1,
+          "events": 1,
+          "wilson": [
+            0.20654931437723745,
+            1
+          ],
+          "jeffreys": [
+            0.1467463163095751,
+            0.9996144190192441
+          ]
+        }
+      },
+      "A_prime": {
+        "judge_asr": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 8,
+          "events": 8,
+          "wilson": [
+            0.6755924351161198,
+            1
+          ],
+          "jeffreys": [
+            0.7377827512828141,
+            0.9999405096971056
+          ]
+        },
+        "strong_evidence_asr": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8,
+          "events": 0,
+          "wilson": [
+            0,
+            0.32440756488388023
+          ],
+          "jeffreys": [
+            5.949030289440216e-05,
+            0.26221724871718577
+          ]
+        },
+        "attack_fp_rate": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 4,
+          "events": 4,
+          "wilson": [
+            0.5101091635454027,
+            1
+          ],
+          "jeffreys": [
+            0.5552373823423604,
+            0.9998846672117617
+          ]
+        },
+        "overturn_rate": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8,
+          "events": 0,
+          "wilson": [
+            0,
+            0.32440756488388023
+          ],
+          "jeffreys": [
+            5.949030289440216e-05,
+            0.26221724871718577
+          ]
+        },
+        "evidence_upgrade_rate": {
+          "value": 0.125,
+          "bootstrap": [
+            0.0,
+            0.375
+          ],
+          "n": 8,
+          "events": 1,
+          "wilson": [
+            0.02241749145005667,
+            0.4708881822128535
+          ],
+          "jeffreys": [
+            0.013838233790320755,
+            0.4537193210324146
+          ]
+        },
+        "extra_query_cost": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 8
+        },
+        "utility_rate_clean": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 1,
+          "events": 0,
+          "wilson": [
+            0,
+            0.7934506856227626
+          ],
+          "jeffreys": [
+            0.00038558098075590087,
+            0.8532536836904248
+          ]
+        },
+        "over_defense_rate": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 1,
+          "events": 1,
+          "wilson": [
+            0.20654931437723745,
+            1
+          ],
+          "jeffreys": [
+            0.1467463163095751,
+            0.9996144190192441
+          ]
+        }
+      },
+      "B": {
+        "judge_asr": {
+          "value": 0.5,
+          "bootstrap": [
+            0.125,
+            0.875
+          ],
+          "n": 8,
+          "events": 4,
+          "wilson": [
+            0.21521606221387757,
+            0.7847839377861224
+          ],
+          "jeffreys": [
+            0.1989656112814958,
+            0.8010343887185042
+          ]
+        },
+        "strong_evidence_asr": {
+          "value": 0.5,
+          "bootstrap": [
+            0.125,
+            0.875
+          ],
+          "n": 8,
+          "events": 4,
+          "wilson": [
+            0.21521606221387757,
+            0.7847839377861224
+          ],
+          "jeffreys": [
+            0.1989656112814958,
+            0.8010343887185042
+          ]
+        },
+        "attack_fp_rate": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 4,
+          "events": 0,
+          "wilson": [
+            0,
+            0.4898908364545973
+          ],
+          "jeffreys": [
+            0.00011533278823827482,
+            0.4447626176576395
+          ]
+        },
+        "overturn_rate": {
+          "value": 0.375,
+          "bootstrap": [
+            0.0,
+            0.75
+          ],
+          "n": 8,
+          "events": 3,
+          "wilson": [
+            0.13684428582359742,
+            0.6942576053973727
+          ],
+          "jeffreys": [
+            0.11903918015416592,
+            0.7051765537196912
+          ]
+        },
+        "evidence_upgrade_rate": {
+          "value": 0.5,
+          "bootstrap": [
+            0.125,
+            0.875
+          ],
+          "n": 8,
+          "events": 4,
+          "wilson": [
+            0.21521606221387757,
+            0.7847839377861224
+          ],
+          "jeffreys": [
+            0.1989656112814958,
+            0.8010343887185042
+          ]
+        },
+        "extra_query_cost": {
+          "value": 0.875,
+          "bootstrap": [
+            0.625,
+            1.0
+          ],
+          "n": 8
+        },
+        "utility_rate_clean": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 1,
+          "events": 1,
+          "wilson": [
+            0.20654931437723745,
+            1
+          ],
+          "jeffreys": [
+            0.1467463163095751,
+            0.9996144190192441
+          ]
+        },
+        "over_defense_rate": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 1,
+          "events": 0,
+          "wilson": [
+            0,
+            0.7934506856227626
+          ],
+          "jeffreys": [
+            0.00038558098075590087,
+            0.8532536836904248
+          ]
+        }
+      }
+    },
+    "positivity_sensitivity": {
+      "A": {
+        "reported_asr": 0.875,
+        "confirmed_only_asr": 0.0,
+        "explicit_signal_asr": 0.875,
+        "reported_fp": 0.75,
+        "confirmed_only_fp": 0.0,
+        "explicit_signal_fp": 0.75
+      },
+      "A_prime": {
+        "reported_asr": 1.0,
+        "confirmed_only_asr": 0.0,
+        "explicit_signal_asr": 1.0,
+        "reported_fp": 1.0,
+        "confirmed_only_fp": 0.0,
+        "explicit_signal_fp": 1.0
+      },
+      "B": {
+        "reported_asr": 0.5,
+        "confirmed_only_asr": 0.5,
+        "explicit_signal_asr": 0.5,
+        "reported_fp": 0.0,
+        "confirmed_only_fp": 0.0,
+        "explicit_signal_fp": 0.0
+      }
+    }
+  },
+  "J5.4→V5.5": {
+    "metrics": {
+      "A": {
+        "judge_asr": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 8,
+          "events": 8,
+          "wilson": [
+            0.6755924351161198,
+            1
+          ],
+          "jeffreys": [
+            0.7377827512828141,
+            0.9999405096971056
+          ]
+        },
+        "strong_evidence_asr": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8,
+          "events": 0,
+          "wilson": [
+            0,
+            0.32440756488388023
+          ],
+          "jeffreys": [
+            5.949030289440216e-05,
+            0.26221724871718577
+          ]
+        },
+        "attack_fp_rate": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 4,
+          "events": 4,
+          "wilson": [
+            0.5101091635454027,
+            1
+          ],
+          "jeffreys": [
+            0.5552373823423604,
+            0.9998846672117617
+          ]
+        },
+        "overturn_rate": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8,
+          "events": 0,
+          "wilson": [
+            0,
+            0.32440756488388023
+          ],
+          "jeffreys": [
+            5.949030289440216e-05,
+            0.26221724871718577
+          ]
+        },
+        "evidence_upgrade_rate": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8,
+          "events": 0,
+          "wilson": [
+            0,
+            0.32440756488388023
+          ],
+          "jeffreys": [
+            5.949030289440216e-05,
+            0.26221724871718577
+          ]
+        },
+        "extra_query_cost": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8
+        },
+        "utility_rate_clean": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 1,
+          "events": 0,
+          "wilson": [
+            0,
+            0.7934506856227626
+          ],
+          "jeffreys": [
+            0.00038558098075590087,
+            0.8532536836904248
+          ]
+        },
+        "over_defense_rate": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 1,
+          "events": 1,
+          "wilson": [
+            0.20654931437723745,
+            1
+          ],
+          "jeffreys": [
+            0.1467463163095751,
+            0.9996144190192441
+          ]
+        }
+      },
+      "A_prime": {
+        "judge_asr": {
+          "value": 0.875,
+          "bootstrap": [
+            0.625,
+            1.0
+          ],
+          "n": 8,
+          "events": 7,
+          "wilson": [
+            0.5291118177871464,
+            0.9775825085499433
+          ],
+          "jeffreys": [
+            0.5462806789675854,
+            0.9861617662096792
+          ]
+        },
+        "strong_evidence_asr": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8,
+          "events": 0,
+          "wilson": [
+            0,
+            0.32440756488388023
+          ],
+          "jeffreys": [
+            5.949030289440216e-05,
+            0.26221724871718577
+          ]
+        },
+        "attack_fp_rate": {
+          "value": 0.75,
+          "bootstrap": [
+            0.25,
+            1.0
+          ],
+          "n": 4,
+          "events": 3,
+          "wilson": [
+            0.30064184258240184,
+            0.9544127391902995
+          ],
+          "jeffreys": [
+            0.2837516795634126,
+            0.9715291049128532
+          ]
+        },
+        "overturn_rate": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8,
+          "events": 0,
+          "wilson": [
+            0,
+            0.32440756488388023
+          ],
+          "jeffreys": [
+            5.949030289440216e-05,
+            0.26221724871718577
+          ]
+        },
+        "evidence_upgrade_rate": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 8,
+          "events": 0,
+          "wilson": [
+            0,
+            0.32440756488388023
+          ],
+          "jeffreys": [
+            5.949030289440216e-05,
+            0.26221724871718577
+          ]
+        },
+        "extra_query_cost": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 8
+        },
+        "utility_rate_clean": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 1,
+          "events": 0,
+          "wilson": [
+            0,
+            0.7934506856227626
+          ],
+          "jeffreys": [
+            0.00038558098075590087,
+            0.8532536836904248
+          ]
+        },
+        "over_defense_rate": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 1,
+          "events": 1,
+          "wilson": [
+            0.20654931437723745,
+            1
+          ],
+          "jeffreys": [
+            0.1467463163095751,
+            0.9996144190192441
+          ]
+        }
+      },
+      "B": {
+        "judge_asr": {
+          "value": 0.5,
+          "bootstrap": [
+            0.125,
+            0.875
+          ],
+          "n": 8,
+          "events": 4,
+          "wilson": [
+            0.21521606221387757,
+            0.7847839377861224
+          ],
+          "jeffreys": [
+            0.1989656112814958,
+            0.8010343887185042
+          ]
+        },
+        "strong_evidence_asr": {
+          "value": 0.5,
+          "bootstrap": [
+            0.125,
+            0.875
+          ],
+          "n": 8,
+          "events": 4,
+          "wilson": [
+            0.21521606221387757,
+            0.7847839377861224
+          ],
+          "jeffreys": [
+            0.1989656112814958,
+            0.8010343887185042
+          ]
+        },
+        "attack_fp_rate": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 4,
+          "events": 0,
+          "wilson": [
+            0,
+            0.4898908364545973
+          ],
+          "jeffreys": [
+            0.00011533278823827482,
+            0.4447626176576395
+          ]
+        },
+        "overturn_rate": {
+          "value": 0.5,
+          "bootstrap": [
+            0.125,
+            0.875
+          ],
+          "n": 8,
+          "events": 4,
+          "wilson": [
+            0.21521606221387757,
+            0.7847839377861224
+          ],
+          "jeffreys": [
+            0.1989656112814958,
+            0.8010343887185042
+          ]
+        },
+        "evidence_upgrade_rate": {
+          "value": 0.5,
+          "bootstrap": [
+            0.125,
+            0.875
+          ],
+          "n": 8,
+          "events": 4,
+          "wilson": [
+            0.21521606221387757,
+            0.7847839377861224
+          ],
+          "jeffreys": [
+            0.1989656112814958,
+            0.8010343887185042
+          ]
+        },
+        "extra_query_cost": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 8
+        },
+        "utility_rate_clean": {
+          "value": 1.0,
+          "bootstrap": [
+            1.0,
+            1.0
+          ],
+          "n": 1,
+          "events": 1,
+          "wilson": [
+            0.20654931437723745,
+            1
+          ],
+          "jeffreys": [
+            0.1467463163095751,
+            0.9996144190192441
+          ]
+        },
+        "over_defense_rate": {
+          "value": 0.0,
+          "bootstrap": [
+            0.0,
+            0.0
+          ],
+          "n": 1,
+          "events": 0,
+          "wilson": [
+            0,
+            0.7934506856227626
+          ],
+          "jeffreys": [
+            0.00038558098075590087,
+            0.8532536836904248
+          ]
+        }
+      }
+    },
+    "positivity_sensitivity": {
+      "A": {
+        "reported_asr": 1.0,
+        "confirmed_only_asr": 0.0,
+        "explicit_signal_asr": 0.875,
+        "reported_fp": 1.0,
+        "confirmed_only_fp": 0.0,
+        "explicit_signal_fp": 0.75
+      },
+      "A_prime": {
+        "reported_asr": 0.875,
+        "confirmed_only_asr": 0.0,
+        "explicit_signal_asr": 0.875,
+        "reported_fp": 0.75,
+        "confirmed_only_fp": 0.0,
+        "explicit_signal_fp": 0.75
+      },
+      "B": {
+        "reported_asr": 0.5,
+        "confirmed_only_asr": 0.5,
+        "explicit_signal_asr": 0.5,
+        "reported_fp": 0.0,
+        "confirmed_only_fp": 0.0,
+        "explicit_signal_fp": 0.0
+      }
+    }
+  },
+  "repeatability": {
+    "initial_judge_exact_agreement": 0.8,
+    "verifier_exact_agreement": 0.6,
+    "results_json_identical": true
+  }
+}

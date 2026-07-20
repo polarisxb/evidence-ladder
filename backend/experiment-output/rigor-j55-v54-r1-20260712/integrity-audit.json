@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "publication_ready": false,
+  "suite_hash": "2c5fc2d10cf373d70fa10b8492cf01d55b3bf065d57d3dca238d65e7b6e259a5",
+  "expected_records": 10,
+  "cache_records": 10,
+  "lineage_records": 10,
+  "errors": [],
+  "warnings": [
+    "unresolved actual model revisions: relay-gpt-5.5-judge, relay-gpt-5.4-verifier",
+    "small suite: 10 cases",
+    "percentile bootstrap intervals are degenerate for all-zero/all-one cells"
+  ],
+  "checksums": {
+    "initial-pass-cache.json": "03740c8d64d4f39bc0c6affaaf5bd4cd9ee9a173581981a250d74cb3da894976",
+    "lineages.jsonl": "7f26af899abe70e7c0c57948160c9c1734e244e10bfbd4f3eb54817026a6c14c",
+    "results.csv": "a86f5dd0f0aca998d2ff609209c53f8a8994525973c1d9b8a6b682bd676307f3",
+    "results.json": "5ef29d1795b0b3b6fa9a5fc5de5edec8cba4eaf273bb7e295ac7f258fa1ac282",
+    "run-manifest.json": "50847084328979f31b40097880432ab090c5ed7d7c233b480ec87ffdb68f11a6"
+  }
+}

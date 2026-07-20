@@ -1,0 +1,225 @@
+{
+  "manifest_version": "retest-run-manifest.v3",
+  "run_id": "retest-20260713T025056Z-2dfef6f5",
+  "collection_block_id": "formal-j55-v54-block3",
+  "timestamp": "2026-07-13T02:50:56.174512Z",
+  "suite_version": "retest-mvp.v1",
+  "suite_hash": "2dfef6f5461d8c4375070558cd7edb9b6a3ede1e4d46b8509d55d49ffd6ce748",
+  "model_matrix_hash": "1f884a61f11ed87ba5afc2bbc75652e7ca4a2ed25c6a690aa00251be69582f59",
+  "model_matrix": {
+    "matrix_version": "retest-model-matrix.v1",
+    "content_hash": "1f884a61f11ed87ba5afc2bbc75652e7ca4a2ed25c6a690aa00251be69582f59",
+    "models": [
+      {
+        "model_id": "relay-gpt-5.4-target",
+        "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+        "pinned_version": "gpt-5.4",
+        "role": "target",
+        "expected_returned_model": "gpt-5.4"
+      },
+      {
+        "model_id": "relay-gpt-5.5-judge",
+        "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+        "pinned_version": "gpt-5.5",
+        "role": "judge",
+        "expected_returned_model": "gpt-5.5"
+      },
+      {
+        "model_id": "relay-gpt-5.4-verifier",
+        "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+        "pinned_version": "gpt-5.4",
+        "role": "verifier",
+        "expected_returned_model": "gpt-5.4"
+      }
+    ],
+    "allow_rolling_aliases": false
+  },
+  "model_identities": [
+    {
+      "model_id": "relay-gpt-5.4-target",
+      "role": "target",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.4",
+      "endpoint_fingerprint": "c61cf2e071789683b932addb9b5b8d472400df4c9404fdce813ed0f33d37cd6b",
+      "actual_model_revision": "gpt-5.4",
+      "observed_system_fingerprints": [],
+      "prompt_hash": "2dfef6f5461d8c4375070558cd7edb9b6a3ede1e4d46b8509d55d49ffd6ce748"
+    },
+    {
+      "model_id": "relay-gpt-5.5-judge",
+      "role": "judge",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.5",
+      "endpoint_fingerprint": "c61cf2e071789683b932addb9b5b8d472400df4c9404fdce813ed0f33d37cd6b",
+      "actual_model_revision": "gpt-5.5",
+      "observed_system_fingerprints": [],
+      "prompt_hash": "7213a2164b54ea904c96987ab902af5cab32b43ac45bb7147ae648b8767375d8"
+    },
+    {
+      "model_id": "relay-gpt-5.4-verifier",
+      "role": "verifier",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.4",
+      "endpoint_fingerprint": "c61cf2e071789683b932addb9b5b8d472400df4c9404fdce813ed0f33d37cd6b",
+      "actual_model_revision": "gpt-5.4",
+      "observed_system_fingerprints": [],
+      "prompt_hash": "c5611a98deef9ee12fbb92361130dc03097b107bb03d00baae93496c97ca4a27"
+    }
+  ],
+  "source_identity": {
+    "git_commit": "dbff1b1da965a380be990a2c970b48821bcc2d40",
+    "dirty_tree_hash": "e6a74ea27f0de64ed4e08e23e343ef0b988061579294c7580bef32fbb4875685"
+  },
+  "seeds": {
+    "bootstrap": 2103,
+    "execution": 1103
+  },
+  "config": {
+    "bootstrap_resamples": 5000,
+    "bootstrap_confidence": 0.95,
+    "retest": {
+      "max_retest_rounds": 2,
+      "current_retest_round": 0,
+      "quartet_enabled": true,
+      "canary_enabled": true,
+      "probe_available": true
+    },
+    "human_gold_provided": false
+  },
+  "call_usage": {
+    "common_initial_target": {
+      "calls": 40,
+      "calls_with_metadata": 40,
+      "calls_with_tokens": 40,
+      "actual_token_count": 134024
+    },
+    "common_initial_judge": {
+      "calls": 40,
+      "calls_with_metadata": 40,
+      "calls_with_tokens": 40,
+      "actual_token_count": 192459
+    },
+    "arm_incremental": {
+      "A": {
+        "calls": 0,
+        "calls_with_metadata": 0,
+        "calls_with_tokens": 0,
+        "actual_token_count": 0
+      },
+      "A_prime": {
+        "calls": 40,
+        "calls_with_metadata": 40,
+        "calls_with_tokens": 40,
+        "actual_token_count": 136145
+      },
+      "B": {
+        "calls": 60,
+        "calls_with_metadata": 60,
+        "calls_with_tokens": 60,
+        "actual_token_count": 260806
+      }
+    }
+  },
+  "per_cell_n": {
+    "relay-gpt-5.4-target": {
+      "A": {
+        "judge_asr": 24,
+        "strong_evidence_asr": 24,
+        "attack_fp_rate": 12,
+        "overturn_rate": 24,
+        "evidence_upgrade_rate": 24,
+        "extra_query_cost": 24,
+        "target_retest_queries": 24,
+        "judge_queries": 24,
+        "probe_steps": 24,
+        "actual_token_count": 24,
+        "actual_monetary_cost_usd": 24,
+        "utility_rate_clean": 8,
+        "over_defense_rate": 8,
+        "judge_vs_human_kappa": 0
+      },
+      "A_prime": {
+        "judge_asr": 24,
+        "strong_evidence_asr": 24,
+        "attack_fp_rate": 12,
+        "overturn_rate": 24,
+        "evidence_upgrade_rate": 24,
+        "extra_query_cost": 24,
+        "target_retest_queries": 24,
+        "judge_queries": 24,
+        "probe_steps": 24,
+        "actual_token_count": 24,
+        "actual_monetary_cost_usd": 0,
+        "utility_rate_clean": 8,
+        "over_defense_rate": 8,
+        "judge_vs_human_kappa": 0
+      },
+      "B": {
+        "judge_asr": 24,
+        "strong_evidence_asr": 24,
+        "attack_fp_rate": 12,
+        "overturn_rate": 24,
+        "evidence_upgrade_rate": 24,
+        "extra_query_cost": 24,
+        "target_retest_queries": 24,
+        "judge_queries": 24,
+        "probe_steps": 24,
+        "actual_token_count": 24,
+        "actual_monetary_cost_usd": 0,
+        "utility_rate_clean": 8,
+        "over_defense_rate": 8,
+        "judge_vs_human_kappa": 0
+      }
+    },
+    "pooled": {
+      "A": {
+        "judge_asr": 24,
+        "strong_evidence_asr": 24,
+        "attack_fp_rate": 12,
+        "overturn_rate": 24,
+        "evidence_upgrade_rate": 24,
+        "extra_query_cost": 24,
+        "target_retest_queries": 24,
+        "judge_queries": 24,
+        "probe_steps": 24,
+        "actual_token_count": 24,
+        "actual_monetary_cost_usd": 24,
+        "utility_rate_clean": 8,
+        "over_defense_rate": 8,
+        "judge_vs_human_kappa": 0
+      },
+      "A_prime": {
+        "judge_asr": 24,
+        "strong_evidence_asr": 24,
+        "attack_fp_rate": 12,
+        "overturn_rate": 24,
+        "evidence_upgrade_rate": 24,
+        "extra_query_cost": 24,
+        "target_retest_queries": 24,
+        "judge_queries": 24,
+        "probe_steps": 24,
+        "actual_token_count": 24,
+        "actual_monetary_cost_usd": 0,
+        "utility_rate_clean": 8,
+        "over_defense_rate": 8,
+        "judge_vs_human_kappa": 0
+      },
+      "B": {
+        "judge_asr": 24,
+        "strong_evidence_asr": 24,
+        "attack_fp_rate": 12,
+        "overturn_rate": 24,
+        "evidence_upgrade_rate": 24,
+        "extra_query_cost": 24,
+        "target_retest_queries": 24,
+        "judge_queries": 24,
+        "probe_steps": 24,
+        "actual_token_count": 24,
+        "actual_monetary_cost_usd": 0,
+        "utility_rate_clean": 8,
+        "over_defense_rate": 8,
+        "judge_vs_human_kappa": 0
+      }
+    }
+  }
+}

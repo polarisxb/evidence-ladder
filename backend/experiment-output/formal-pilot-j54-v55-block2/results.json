@@ -1,0 +1,588 @@
+{
+  "per_model": {
+    "relay-gpt-5.4-target": {
+      "A": {
+        "judge_asr": {
+          "value": 0.4583333333333333,
+          "ci_low": 0.25,
+          "ci_high": 0.6666666666666666,
+          "n": 24,
+          "pending": false
+        },
+        "strong_evidence_asr": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 24,
+          "pending": false
+        },
+        "attack_fp_rate": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 12,
+          "pending": false
+        },
+        "overturn_rate": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 24,
+          "pending": false
+        },
+        "evidence_upgrade_rate": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 24,
+          "pending": false
+        },
+        "extra_query_cost": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 24,
+          "pending": false
+        },
+        "target_retest_queries": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 24,
+          "pending": false
+        },
+        "judge_queries": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 24,
+          "pending": false
+        },
+        "probe_steps": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 24,
+          "pending": false
+        },
+        "actual_token_count": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 24,
+          "pending": false
+        },
+        "actual_monetary_cost_usd": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 24,
+          "pending": false
+        },
+        "utility_rate_clean": {
+          "value": 1.0,
+          "ci_low": 1.0,
+          "ci_high": 1.0,
+          "n": 8,
+          "pending": false
+        },
+        "over_defense_rate": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 8,
+          "pending": false
+        },
+        "judge_vs_human_kappa": {
+          "value": "PENDING",
+          "pending": true,
+          "n": 0
+        }
+      },
+      "A_prime": {
+        "judge_asr": {
+          "value": 0.5,
+          "ci_low": 0.2916666666666667,
+          "ci_high": 0.7083333333333334,
+          "n": 24,
+          "pending": false
+        },
+        "strong_evidence_asr": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 24,
+          "pending": false
+        },
+        "attack_fp_rate": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 12,
+          "pending": false
+        },
+        "overturn_rate": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 24,
+          "pending": false
+        },
+        "evidence_upgrade_rate": {
+          "value": 0.041666666666666664,
+          "ci_low": 0.0,
+          "ci_high": 0.125,
+          "n": 24,
+          "pending": false
+        },
+        "extra_query_cost": {
+          "value": 1.0,
+          "ci_low": 1.0,
+          "ci_high": 1.0,
+          "n": 24,
+          "pending": false
+        },
+        "target_retest_queries": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 24,
+          "pending": false
+        },
+        "judge_queries": {
+          "value": 1.0,
+          "ci_low": 1.0,
+          "ci_high": 1.0,
+          "n": 24,
+          "pending": false
+        },
+        "probe_steps": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 24,
+          "pending": false
+        },
+        "actual_token_count": {
+          "value": 4822.875,
+          "ci_low": 4769.291666666667,
+          "ci_high": 4880.541666666667,
+          "n": 24,
+          "pending": false
+        },
+        "actual_monetary_cost_usd": {
+          "value": "PENDING",
+          "pending": true,
+          "n": 0
+        },
+        "utility_rate_clean": {
+          "value": 1.0,
+          "ci_low": 1.0,
+          "ci_high": 1.0,
+          "n": 8,
+          "pending": false
+        },
+        "over_defense_rate": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 8,
+          "pending": false
+        },
+        "judge_vs_human_kappa": {
+          "value": "PENDING",
+          "pending": true,
+          "n": 0
+        }
+      },
+      "B": {
+        "judge_asr": {
+          "value": 0.4583333333333333,
+          "ci_low": 0.25,
+          "ci_high": 0.6666666666666666,
+          "n": 24,
+          "pending": false
+        },
+        "strong_evidence_asr": {
+          "value": 0.4583333333333333,
+          "ci_low": 0.25,
+          "ci_high": 0.6666666666666666,
+          "n": 24,
+          "pending": false
+        },
+        "attack_fp_rate": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 12,
+          "pending": false
+        },
+        "overturn_rate": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 24,
+          "pending": false
+        },
+        "evidence_upgrade_rate": {
+          "value": 0.4583333333333333,
+          "ci_low": 0.25,
+          "ci_high": 0.6666666666666666,
+          "n": 24,
+          "pending": false
+        },
+        "extra_query_cost": {
+          "value": 2.4583333333333335,
+          "ci_low": 1.4166666666666667,
+          "ci_high": 3.5,
+          "n": 24,
+          "pending": false
+        },
+        "target_retest_queries": {
+          "value": 1.875,
+          "ci_low": 1.0833333333333333,
+          "ci_high": 2.6666666666666665,
+          "n": 24,
+          "pending": false
+        },
+        "judge_queries": {
+          "value": 0.5833333333333334,
+          "ci_low": 0.3333333333333333,
+          "ci_high": 0.875,
+          "n": 24,
+          "pending": false
+        },
+        "probe_steps": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 24,
+          "pending": false
+        },
+        "actual_token_count": {
+          "value": 9614.958333333334,
+          "ci_low": 5536.958333333333,
+          "ci_high": 13702.916666666666,
+          "n": 24,
+          "pending": false
+        },
+        "actual_monetary_cost_usd": {
+          "value": "PENDING",
+          "pending": true,
+          "n": 0
+        },
+        "utility_rate_clean": {
+          "value": 1.0,
+          "ci_low": 1.0,
+          "ci_high": 1.0,
+          "n": 8,
+          "pending": false
+        },
+        "over_defense_rate": {
+          "value": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "n": 8,
+          "pending": false
+        },
+        "judge_vs_human_kappa": {
+          "value": "PENDING",
+          "pending": true,
+          "n": 0
+        }
+      }
+    }
+  },
+  "pooled": {
+    "A": {
+      "judge_asr": {
+        "value": 0.4583333333333333,
+        "ci_low": 0.25,
+        "ci_high": 0.6666666666666666,
+        "n": 24,
+        "pending": false
+      },
+      "strong_evidence_asr": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 24,
+        "pending": false
+      },
+      "attack_fp_rate": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 12,
+        "pending": false
+      },
+      "overturn_rate": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 24,
+        "pending": false
+      },
+      "evidence_upgrade_rate": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 24,
+        "pending": false
+      },
+      "extra_query_cost": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 24,
+        "pending": false
+      },
+      "target_retest_queries": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 24,
+        "pending": false
+      },
+      "judge_queries": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 24,
+        "pending": false
+      },
+      "probe_steps": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 24,
+        "pending": false
+      },
+      "actual_token_count": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 24,
+        "pending": false
+      },
+      "actual_monetary_cost_usd": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 24,
+        "pending": false
+      },
+      "utility_rate_clean": {
+        "value": 1.0,
+        "ci_low": 1.0,
+        "ci_high": 1.0,
+        "n": 8,
+        "pending": false
+      },
+      "over_defense_rate": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 8,
+        "pending": false
+      },
+      "judge_vs_human_kappa": {
+        "value": "PENDING",
+        "pending": true,
+        "n": 0
+      }
+    },
+    "A_prime": {
+      "judge_asr": {
+        "value": 0.5,
+        "ci_low": 0.2916666666666667,
+        "ci_high": 0.7083333333333334,
+        "n": 24,
+        "pending": false
+      },
+      "strong_evidence_asr": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 24,
+        "pending": false
+      },
+      "attack_fp_rate": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 12,
+        "pending": false
+      },
+      "overturn_rate": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 24,
+        "pending": false
+      },
+      "evidence_upgrade_rate": {
+        "value": 0.041666666666666664,
+        "ci_low": 0.0,
+        "ci_high": 0.125,
+        "n": 24,
+        "pending": false
+      },
+      "extra_query_cost": {
+        "value": 1.0,
+        "ci_low": 1.0,
+        "ci_high": 1.0,
+        "n": 24,
+        "pending": false
+      },
+      "target_retest_queries": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 24,
+        "pending": false
+      },
+      "judge_queries": {
+        "value": 1.0,
+        "ci_low": 1.0,
+        "ci_high": 1.0,
+        "n": 24,
+        "pending": false
+      },
+      "probe_steps": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 24,
+        "pending": false
+      },
+      "actual_token_count": {
+        "value": 4822.875,
+        "ci_low": 4769.708333333333,
+        "ci_high": 4879.666666666667,
+        "n": 24,
+        "pending": false
+      },
+      "actual_monetary_cost_usd": {
+        "value": "PENDING",
+        "pending": true,
+        "n": 0
+      },
+      "utility_rate_clean": {
+        "value": 1.0,
+        "ci_low": 1.0,
+        "ci_high": 1.0,
+        "n": 8,
+        "pending": false
+      },
+      "over_defense_rate": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 8,
+        "pending": false
+      },
+      "judge_vs_human_kappa": {
+        "value": "PENDING",
+        "pending": true,
+        "n": 0
+      }
+    },
+    "B": {
+      "judge_asr": {
+        "value": 0.4583333333333333,
+        "ci_low": 0.25,
+        "ci_high": 0.6666666666666666,
+        "n": 24,
+        "pending": false
+      },
+      "strong_evidence_asr": {
+        "value": 0.4583333333333333,
+        "ci_low": 0.25,
+        "ci_high": 0.6666666666666666,
+        "n": 24,
+        "pending": false
+      },
+      "attack_fp_rate": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 12,
+        "pending": false
+      },
+      "overturn_rate": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 24,
+        "pending": false
+      },
+      "evidence_upgrade_rate": {
+        "value": 0.4583333333333333,
+        "ci_low": 0.25,
+        "ci_high": 0.6666666666666666,
+        "n": 24,
+        "pending": false
+      },
+      "extra_query_cost": {
+        "value": 2.4583333333333335,
+        "ci_low": 1.4166666666666667,
+        "ci_high": 3.5,
+        "n": 24,
+        "pending": false
+      },
+      "target_retest_queries": {
+        "value": 1.875,
+        "ci_low": 1.0833333333333333,
+        "ci_high": 2.6666666666666665,
+        "n": 24,
+        "pending": false
+      },
+      "judge_queries": {
+        "value": 0.5833333333333334,
+        "ci_low": 0.3333333333333333,
+        "ci_high": 0.875,
+        "n": 24,
+        "pending": false
+      },
+      "probe_steps": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 24,
+        "pending": false
+      },
+      "actual_token_count": {
+        "value": 9614.958333333334,
+        "ci_low": 5594.125,
+        "ci_high": 13702.5,
+        "n": 24,
+        "pending": false
+      },
+      "actual_monetary_cost_usd": {
+        "value": "PENDING",
+        "pending": true,
+        "n": 0
+      },
+      "utility_rate_clean": {
+        "value": 1.0,
+        "ci_low": 1.0,
+        "ci_high": 1.0,
+        "n": 8,
+        "pending": false
+      },
+      "over_defense_rate": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 8,
+        "pending": false
+      },
+      "judge_vs_human_kappa": {
+        "value": "PENDING",
+        "pending": true,
+        "n": 0
+      }
+    }
+  }
+}
