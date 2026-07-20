@@ -14,6 +14,16 @@ mock_targets/*/.env
 # CI recreates the directory via `mkdir -p data`, so nothing here is tracked.
 backend/data/
 
+# Ad-hoc experiment run output written to the experiment-output ROOT.
+# Frozen/curated runs live in named subdirs (builtin-mvp/, formal-pilot-*/,
+# stateful-*/) and stay tracked; loose default-named outputs at the root are
+# transient and must not clutter the working tree.
+backend/experiment-output/results.json
+backend/experiment-output/results.csv
+backend/experiment-output/lineages.jsonl
+backend/experiment-output/run-manifest.json
+backend/experiment-output/initial-pass-cache.json
+
 # Build
 frontend/dist/
 backend/*.egg-info/
