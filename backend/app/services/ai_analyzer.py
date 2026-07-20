@@ -1,11 +1,13 @@
 import asyncio
 import json
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any
 
 from app.config import settings as _settings
 from app.schemas.report import AnalysisResult, BehaviorFlags, CvssMetrics
 from app.services.llm_client import (
+    ChatCallResult,
     ProviderClientInfo,
     get_judge_provider,
     get_provider_by_id,
@@ -26,6 +28,17 @@ _VALID_RISK_LEVELS = {"critical", "high", "medium", "low", "none"}
 @dataclass
 class AnalyzerUsage:
     judge_queries: int = 0
+    model_call_metadata: list[dict[str, Any]] = field(default_factory=list)
+
+    def actual_token_count(self) -> int | None:
+        if self.judge_queries == 0:
+            return 0
+        if len(self.model_call_metadata) != self.judge_queries:
+            return None
+        totals = [metadata.get("total_tokens") for metadata in self.model_call_metadata]
+        if not all(isinstance(total, int) for total in totals):
+            return None
+        return sum(total for total in totals if isinstance(total, int))
 
 
 REFUSAL_PATTERNS = list(_REFUSAL_MARKERS)
@@ -367,7 +380,10 @@ async def analyze_response(
         if usage is not None:
             usage.judge_queries += 1
         first_result = await _single_llm_evaluation(
-            judge_provider, user_content, model=judge_model
+            judge_provider,
+            user_content,
+            model=judge_model,
+            usage=usage,
         )
 
     if first_result is None:
@@ -399,6 +415,7 @@ async def analyze_response(
             user_content,
             temperature=0.3,
             model=judge_model,
+            usage=usage,
         )
 
     if second_result is None:
@@ -420,6 +437,7 @@ async def _single_llm_evaluation(
     *,
     temperature: float = 0.1,
     model: str | None = None,
+    usage: AnalyzerUsage | None = None,
 ) -> AnalysisResult | None:
     """Execute one LLM evaluation with retry. Returns None if all retries exhausted."""
     from app.config import settings
@@ -430,7 +448,7 @@ async def _single_llm_evaluation(
         {"role": "user", "content": user_content},
     ]
     try:
-        raw = await schedule_fixed_call(
+        raw_result = await schedule_fixed_call(
             provider,
             effective_model,
             messages,
@@ -438,7 +456,19 @@ async def _single_llm_evaluation(
             json_mode=True,
             temperature=temperature,
             max_tokens=1500,
+            capture_metadata=usage is not None,
         )
+        if isinstance(raw_result, ChatCallResult):
+            if usage is not None:
+                usage.model_call_metadata.append(
+                    {
+                        **raw_result.metadata.as_dict(),
+                        "call_role": "judge",
+                    }
+                )
+            raw = raw_result.content
+        else:
+            raw = raw_result
         raw = raw or "{}"
         data = json.loads(raw)
 

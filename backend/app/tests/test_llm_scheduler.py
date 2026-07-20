@@ -2,11 +2,20 @@
 from __future__ import annotations
 
 import asyncio
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.services.llm_client import LLMAPIError, LLMRateLimitError, ProviderClientInfo
+from app.services.llm_client import (
+    ChatCallResult,
+    LLMAPIError,
+    LLMRateLimitError,
+    ModelCallMetadata,
+    ProviderClientInfo,
+    _anthropic_call_metadata,
+    _openai_call_metadata,
+)
 from app.services.llm_scheduler import (
     FLOOR_BACKOFF_BASE,
     INITIAL_LIMIT,
@@ -32,6 +41,49 @@ from app.services.llm_scheduler import (
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def test_openai_call_metadata_extracts_identity_and_usage() -> None:
+    metadata = _openai_call_metadata(
+        SimpleNamespace(
+            model="returned-openai-model",
+            system_fingerprint="fingerprint-1",
+            id="response-1",
+            _request_id="request-1",
+            usage=SimpleNamespace(
+                prompt_tokens=10,
+                completion_tokens=4,
+                total_tokens=14,
+            ),
+        ),
+        requested_model="requested-openai-model",
+        provider_type="custom",
+        requested_at="2026-07-12T00:00:00+00:00",
+    )
+
+    assert metadata.returned_model == "returned-openai-model"
+    assert metadata.system_fingerprint == "fingerprint-1"
+    assert metadata.response_id == "response-1"
+    assert metadata.request_id == "request-1"
+    assert metadata.total_tokens == 14
+
+
+def test_anthropic_call_metadata_maps_input_and_output_usage() -> None:
+    metadata = _anthropic_call_metadata(
+        SimpleNamespace(
+            model="returned-anthropic-model",
+            id="message-1",
+            _request_id="request-2",
+            usage=SimpleNamespace(input_tokens=9, output_tokens=3),
+        ),
+        requested_model="requested-anthropic-model",
+        provider_type="claude",
+        requested_at="2026-07-12T00:00:00+00:00",
+    )
+
+    assert metadata.prompt_tokens == 9
+    assert metadata.completion_tokens == 3
+    assert metadata.total_tokens == 12
+
 
 def _make_slot(
     role: str = "judge",
@@ -621,6 +673,43 @@ class TestFixedVsRotation:
             call_args = mock_chat.call_args
             assert call_args[0][0] is pinned_info
             assert call_args[0][1] == pinned_model
+
+    @pytest.mark.asyncio
+    async def test_fixed_call_can_return_provider_metadata(self):
+        import app.services.llm_scheduler as sched
+
+        sched._aimd = AIMDController()
+        sched._pool = ProviderPool(sched._aimd)
+        sched._dedup = JudgeDedup()
+        sched._retry_bucket = RETRY_BUCKET_MAX
+        pinned_info = ProviderClientInfo(provider_type="custom", api_key="key")
+        expected = ChatCallResult(
+            content="response",
+            metadata=ModelCallMetadata(
+                requested_model="requested-model",
+                provider_type="custom",
+                requested_at="2026-07-12T00:00:00+00:00",
+                returned_model="returned-model",
+                total_tokens=12,
+            ),
+        )
+
+        with patch.object(
+            sched,
+            "call_chat_with_metadata",
+            new_callable=AsyncMock,
+        ) as mock_chat:
+            mock_chat.return_value = expected
+            result = await schedule_fixed_call(
+                pinned_info,
+                "requested-model",
+                [{"role": "user", "content": "evaluate"}],
+                role="judge",
+                capture_metadata=True,
+            )
+
+        assert result == expected
+        mock_chat.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_schedule_call_picks_from_pool(self):

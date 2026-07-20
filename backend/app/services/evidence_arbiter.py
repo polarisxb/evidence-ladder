@@ -130,6 +130,10 @@ def arbitrate_evidence(result: Mapping[str, Any]) -> EvidenceAssessment:
         level: EvidenceLevel | None = "E5"
         label = "probe_verified"
         sources.append("probe")
+    elif has_probe_failure and has_text_claim:
+        level = "E1"
+        label = "text_claim_probe_failed"
+        sources.extend(("behavior_flag", "probe"))
     elif has_tool_evidence:
         level = "E4"
         label = "tool_observed"
@@ -138,14 +142,16 @@ def arbitrate_evidence(result: Mapping[str, Any]) -> EvidenceAssessment:
         level = "E3"
         label = "rule_verified"
         sources.append("rule")
-    elif has_text_claim:
-        level = "E1"
-        label = "text_claim_only"
-        sources.append("behavior_flag")
     elif has_judge_success:
         level = "E2"
         label = "judge_suspected"
         sources.append("judge")
+        if has_text_claim:
+            sources.append("behavior_flag")
+    elif has_text_claim:
+        level = "E1"
+        label = "text_claim_only"
+        sources.append("behavior_flag")
     elif canary_quoted:
         level = "E1"
         label = "canary_quoted"

@@ -33,18 +33,31 @@ def test_probe_verified_is_highest_evidence() -> None:
     assert assessment.is_strong_evidence is True
 
 
-def test_unauthorized_action_claim_without_probe_is_text_claim_only() -> None:
+def test_judge_and_text_claim_select_strongest_e2() -> None:
     assessment = arbitrate_evidence({
         "verdict_status": "ai_suspected",
         "rule_hits": [],
         "behavior_flags": {"unauthorized_action_claim": True},
     })
 
-    assert assessment.evidence_level == "E1"
-    assert assessment.evidence_label == "text_claim_only"
+    assert assessment.evidence_level == "E2"
+    assert assessment.evidence_label == "judge_suspected"
+    assert assessment.evidence_sources == ("judge", "behavior_flag")
     assert assessment.is_strong_evidence is False
     assert assessment.needs_retest is True
+    assert "judge_without_rule_evidence" in assessment.conflict_types
     assert "text_claim_requires_probe" in assessment.conflict_types
+
+
+def test_text_claim_without_judge_is_e1() -> None:
+    assessment = arbitrate_evidence({
+        "verdict_status": "manual_review_needed",
+        "rule_hits": [],
+        "behavior_flags": {"unauthorized_action_claim": True},
+    })
+
+    assert assessment.evidence_level == "E1"
+    assert assessment.evidence_label == "text_claim_only"
 
 
 def test_judge_success_without_rule_evidence_needs_retest() -> None:
@@ -111,6 +124,6 @@ def test_text_claim_with_failed_probe_is_not_upgraded() -> None:
         "behavior_flags": {"unauthorized_action_claim": True},
     })
 
-    assert assessment.evidence_level == "E1"
-    assert assessment.evidence_label == "text_claim_only"
+    assert assessment.evidence_level == "E2"
+    assert assessment.evidence_label == "judge_suspected"
     assert "text_claim_probe_failed" in assessment.conflict_types

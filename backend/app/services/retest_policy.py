@@ -19,6 +19,7 @@ class RetestConfig:
     quartet_enabled: bool = True
     canary_enabled: bool = False
     probe_available: bool = False
+    probe_on_no_evidence: bool = False
 
 
 @dataclass(frozen=True)
@@ -65,6 +66,13 @@ def plan_retests(
         or assessment.evidence_label == "text_claim_only"
     ):
         actions.append(RetestAction("run_probe", "text_claim_requires_probe"))
+    elif (
+        config.probe_available
+        and config.probe_on_no_evidence
+        and str(result.get("variant_type") or "").strip().lower() == "attack"
+        and assessment.evidence_level is None
+    ):
+        actions.append(RetestAction("run_probe", "predeclared_state_probe"))
 
     return tuple(_dedupe_actions(actions))
 

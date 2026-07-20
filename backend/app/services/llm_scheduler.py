@@ -18,10 +18,12 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from app.services.llm_client import (
+    ChatCallResult,
     LLMAPIError,
     LLMRateLimitError,
     ProviderClientInfo,
     call_chat,
+    call_chat_with_metadata,
     make_platform_provider,
 )
 
@@ -748,13 +750,18 @@ async def schedule_fixed_call(
     temperature: float = 0.7,
     json_mode: bool = False,
     max_tokens: int = 1024,
-) -> str:
+    capture_metadata: bool = False,
+) -> str | ChatCallResult:
     global _retry_bucket
 
     if _aimd is None:
         raise RuntimeError("Scheduler not initialized — call init_scheduler() first")
 
-    cached = _check_dedup(dedup_key, attack_category, response_text)
+    cached = (
+        None
+        if capture_metadata
+        else _check_dedup(dedup_key, attack_category, response_text)
+    )
     if cached is not None:
         return cached
 
@@ -773,18 +780,35 @@ async def schedule_fixed_call(
         start_time = await _aimd.acquire(key_id)
 
         try:
-            result = await call_chat(
-                provider_info,
-                model,
-                messages,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                json_mode=json_mode,
-            )
+            if capture_metadata:
+                result = await call_chat_with_metadata(
+                    provider_info,
+                    model,
+                    messages,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    json_mode=json_mode,
+                )
+                response_content = result.content
+            else:
+                result = await call_chat(
+                    provider_info,
+                    model,
+                    messages,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    json_mode=json_mode,
+                )
+                response_content = result
 
             await _aimd.release_on_success(key_id, start_time)
             _retry_bucket = min(_retry_bucket + RETRY_BUCKET_REFILL, RETRY_BUCKET_MAX)
-            _store_dedup(dedup_key, result, attack_category, response_text)
+            _store_dedup(
+                dedup_key,
+                response_content,
+                attack_category,
+                response_text,
+            )
             return result
 
         except LLMRateLimitError as exc:

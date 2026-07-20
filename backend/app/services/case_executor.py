@@ -50,10 +50,8 @@ from app.services.collectors import CollectorContext
 from app.services.verdict_arbiter import arbitrate
 from app.config import settings
 from app.services.target_client import (
-    build_send_target_config,
     invoke_target_with_envelope,
     sanitize_error,
-    send_to_target,
 )
 
 logger = logging.getLogger(__name__)
@@ -564,54 +562,12 @@ async def _invoke_target_once(
 ) -> TargetResponseEnvelope:
     """Run one target call and return the envelope. Shared by the
     first-attempt and the in-case retry path (see ``execute_case_variant``)."""
-    if task.target_type in {"adapter", "custom"}:
-        return await invoke_target_with_envelope(
-            task,
-            case_variant.get("request_text", ""),
-            case_id=case_id,
-            variant_type=str(case_variant.get("variant_type", "attack")),
-            conversation_history=conversation_history,
-        )
-
-    send_config = build_send_target_config(
+    return await invoke_target_with_envelope(
         task,
+        case_variant.get("request_text", ""),
         case_id=case_id,
         variant_type=str(case_variant.get("variant_type", "attack")),
-    )
-    direct_response_text = await send_to_target(
-        case_variant.get("request_text", ""),
-        task.target_url,
-        task.target_type,
-        send_config,
         conversation_history=conversation_history,
-    )
-    response_error = (
-        direct_response_text
-        if isinstance(direct_response_text, str)
-        and (
-            direct_response_text.strip().lower().startswith("[error]")
-            or direct_response_text.strip().lower().startswith("error:")
-        )
-        else None
-    )
-    default_origin = (
-        "model"
-        if task.target_type in {"builtin_vulnerable", "claude", "openai_compatible"}
-        else "unknown"
-    )
-    return TargetResponseEnvelope(
-        response_text=direct_response_text,
-        response_error=response_error,
-        response_status="failed" if response_error else "completed",
-        session_id=None,
-        target_type=task.target_type,
-        transport_ok=response_error is None,
-        http_status=None,
-        content_type=None,
-        transport_meta={},
-        response_origin=default_origin,
-        origin_confidence="high" if default_origin == "model" else "low",
-        evaluation_validity="evaluable",
     )
 
 

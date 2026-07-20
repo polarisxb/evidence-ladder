@@ -22,8 +22,12 @@ from app.services.adapter_executor import (
     build_custom_compat_adapter,
     execute_adapter_request,
 )
-from app.services.builtin_probe import execute_builtin_target
+from app.services.builtin_probe import (
+    commit_builtin_hidden_state,
+    execute_builtin_target,
+)
 from app.services.llm_client import (
+    ChatCallResult,
     LLMConfigurationError,
     ProviderClientInfo,
     get_generation_provider,
@@ -35,6 +39,42 @@ from app.services.vulnerable_ai import chat_with_vulnerable_ai
 
 TARGET_MODEL_TIMEOUT_S: float = 60.0
 MAX_RESPONSE_BYTES: int = 1 * 1024 * 1024  # 1 MB
+
+
+def apply_stateful_sandbox_commit_policy(task, *, case_id: str) -> None:
+    target_config = (
+        dict(task.target_config)
+        if isinstance(getattr(task, "target_config", None), dict)
+        else {}
+    )
+    sandbox_config = target_config.get("stateful_sandbox_config")
+    if not isinstance(sandbox_config, dict) or not sandbox_config.get(
+        "enabled",
+        False,
+    ):
+        return
+    commit_policy = sandbox_config.get("commit_policy")
+    if commit_policy == "never":
+        return
+    if commit_policy != "always":
+        raise ValueError(
+            "stateful_sandbox_config.commit_policy must be 'always' or 'never'"
+        )
+    probe_config = target_config.get("builtin_probe_config")
+    state_key = (
+        str(probe_config.get("state_key") or "").strip()
+        if isinstance(probe_config, dict)
+        else ""
+    )
+    if not state_key:
+        raise ValueError(
+            "stateful sandbox requires builtin_probe_config.state_key"
+        )
+    commit_builtin_hidden_state(
+        scan_id=str(getattr(task, "id", "") or ""),
+        case_id=case_id,
+        state_key=state_key,
+    )
 
 
 def _canonical_openai_base_url(url: str | None) -> str:
@@ -58,7 +98,9 @@ async def send_to_target(
     target_type: str,
     target_config: dict | None,
     conversation_history: list[dict] | None = None,
-) -> str:
+    *,
+    capture_metadata: bool = False,
+) -> str | ChatCallResult:
     """Send a payload to the configured target and return the response text."""
     internal_config = dict(target_config or {}) if isinstance(target_config, dict) else {}
 
@@ -108,8 +150,9 @@ async def send_to_target(
                 model,
                 messages,
                 role="target",
-                temperature=0.7,
-                max_tokens=500,
+                temperature=float(cfg.get("temperature", 0.7)),
+                max_tokens=int(cfg.get("max_tokens", 500)),
+                capture_metadata=capture_metadata,
             )
         except asyncio.TimeoutError:
             return f"[ERROR] Claude target request timed out after {int(TARGET_MODEL_TIMEOUT_S)}s"
@@ -187,8 +230,9 @@ async def send_to_target(
                 model,
                 messages,
                 role="target",
-                temperature=0.7,
-                max_tokens=500,
+                temperature=float(cfg.get("temperature", 0.7)),
+                max_tokens=int(cfg.get("max_tokens", 500)),
+                capture_metadata=capture_metadata,
             )
         except asyncio.TimeoutError:
             return f"[ERROR] Target model request timed out after {int(TARGET_MODEL_TIMEOUT_S)}s"
@@ -322,13 +366,29 @@ async def invoke_target_with_envelope(
             evaluation_validity="evaluable",
         )
 
-    response_text = await send_to_target(
+    response_result = await send_to_target(
         payload,
         task.target_url,
         task.target_type,
         send_config,
         conversation_history=conversation_history,
+        capture_metadata=True,
     )
+    if isinstance(response_result, ChatCallResult):
+        response_text = response_result.content
+        apply_stateful_sandbox_commit_policy(task, case_id=case_id)
+        call_metadata = response_result.metadata.as_dict()
+        transport_meta: dict[str, object] = {
+            "model_call": call_metadata,
+            "usage": {
+                "prompt_tokens": call_metadata["prompt_tokens"],
+                "completion_tokens": call_metadata["completion_tokens"],
+                "total_tokens": call_metadata["total_tokens"],
+            },
+        }
+    else:
+        response_text = response_result
+        transport_meta = {}
     response_error = (
         response_text
         if isinstance(response_text, str)
@@ -344,7 +404,7 @@ async def invoke_target_with_envelope(
         transport_ok=response_error is None,
         http_status=None,
         content_type=None,
-        transport_meta={},
+        transport_meta=transport_meta,
         response_origin=default_origin,
         origin_confidence=default_confidence,
         evaluation_validity="evaluable",

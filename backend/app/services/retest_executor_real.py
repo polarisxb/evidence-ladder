@@ -1,4 +1,4 @@
-"""Real (in-process) RetestExecutor — wires retest actions to the adapter +
+"""Real (in-process) RetestExecutor 鈥?wires retest actions to the adapter +
 collector modules so the async retest loop climbs evidence levels against a
 live target/probe.
 
@@ -9,7 +9,7 @@ the arbiter can already derive from merged result fields (e.g. probe-fail after 
 text claim, or a quoted-control success); it only flags contradictions the
 arbiter cannot see from the attack result alone.
 
-Actions: ``run_quartet``, ``run_probe`` (P2) and ``run_canary`` (P2b) — the last
+Actions: ``run_quartet``, ``run_probe`` (P2) and ``run_canary`` (P2b) 鈥?the last
 re-sends the eliciting prompt and reports which channel the configured canary
 reached, letting the arbiter's ``trace_canary`` derive the evidence level.
 """
@@ -71,6 +71,20 @@ def _variant_actual_cost(
     return token_count, monetary_cost
 
 
+def _variant_model_call_metadata(
+    variant: Mapping[str, Any],
+) -> tuple[Mapping[str, Any], ...]:
+    transport_meta = variant.get("transport_meta")
+    if not isinstance(transport_meta, Mapping):
+        return ()
+    metadata = transport_meta.get("model_call")
+    return (
+        ({**dict(metadata), "call_role": "target"},)
+        if isinstance(metadata, Mapping)
+        else ()
+    )
+
+
 def _target_actual_cost(
     task: Any,
     variants: list[Mapping[str, Any]],
@@ -89,6 +103,22 @@ def _target_actual_cost(
     else:
         monetary_cost = sum(cost for _, cost in costs if cost is not None)
     return token_count, monetary_cost
+
+
+def _uses_builtin_probe_channel(task: Any) -> bool:
+    target_config = getattr(task, "target_config", None) or {}
+    sandbox_config = (
+        target_config.get("stateful_sandbox_config")
+        if isinstance(target_config, Mapping)
+        else None
+    )
+    return (
+        getattr(task, "target_type", None) == "builtin_vulnerable"
+        or (
+            isinstance(sandbox_config, Mapping)
+            and sandbox_config.get("enabled", False)
+        )
+    )
 
 
 class RealRetestExecutor:
@@ -133,7 +163,7 @@ class RealRetestExecutor:
         adapter_payload = _resolved_case_adapter_payload(self.task)
         if (
             adapter_payload is None
-            and getattr(self.task, "target_type", None) == "builtin_vulnerable"
+            and _uses_builtin_probe_channel(self.task)
         ):
             target_config = getattr(self.task, "target_config", None) or {}
             builtin_probe_config = target_config.get("builtin_probe_config")
@@ -193,7 +223,7 @@ class RealRetestExecutor:
         controls = [
             cv for cv in case_variants if str(cv.get("variant_type")) != "attack"
         ]
-        extra_queries = len(controls)
+        target_retest_queries = len(controls)
         target_tokens, target_cost = _target_actual_cost(self.task, controls)
         if analyzer_usage.judge_queries == 0:
             judge_tokens: int | None = 0
@@ -202,7 +232,7 @@ class RealRetestExecutor:
             judge_tokens = 0
             judge_cost = 0.0
         else:
-            judge_tokens = None
+            judge_tokens = analyzer_usage.actual_token_count()
             judge_cost = None
         extra_cost_ms = (
             sum(float(cv.get("latency_ms") or 0.0) for cv in controls) or elapsed_ms
@@ -230,15 +260,21 @@ class RealRetestExecutor:
             action_type="run_quartet",
             evidence_updates=evidence_updates,
             contradiction=contradiction,
-            extra_queries=extra_queries,
+            extra_queries=target_retest_queries + analyzer_usage.judge_queries,
             extra_cost_ms=extra_cost_ms,
-            target_retest_queries=extra_queries,
+            target_retest_queries=target_retest_queries,
             judge_queries=analyzer_usage.judge_queries,
             actual_token_count=_optional_sum_int(target_tokens, judge_tokens),
             actual_monetary_cost_usd=_optional_sum_float(
                 target_cost,
                 judge_cost,
             ),
+            model_call_metadata=tuple(
+                metadata
+                for control in controls
+                for metadata in _variant_model_call_metadata(control)
+            )
+            + tuple(analyzer_usage.model_call_metadata),
             summary=f"quartet -> {control_assessment}",
         )
 
@@ -289,6 +325,7 @@ class RealRetestExecutor:
                 target_retest_queries=1,
                 actual_token_count=actual_tokens,
                 actual_monetary_cost_usd=actual_cost,
+                model_call_metadata=_variant_model_call_metadata(attack),
                 summary="canary not observed",
             )
 
@@ -301,7 +338,7 @@ class RealRetestExecutor:
             }
         )
         # Provenance (quoted E1 / leaked E3 / tool_call E4 / business E5) is
-        # derived by the arbiter's trace_canary from these fields — a demotion
+        # derived by the arbiter's trace_canary from these fields 鈥?a demotion
         # to E1 is not a contradiction, so this action never sets one.
         return EvidenceDelta(
             action_type="run_canary",
@@ -311,6 +348,7 @@ class RealRetestExecutor:
             target_retest_queries=1,
             actual_token_count=actual_tokens,
             actual_monetary_cost_usd=actual_cost,
+            model_call_metadata=_variant_model_call_metadata(attack),
             summary=f"canary observed ({len(matched)} token(s))",
         )
 
@@ -344,12 +382,12 @@ class RealRetestExecutor:
                 probe_steps=1,
                 actual_token_count=(
                     0
-                    if getattr(self.task, "target_type", None) == "builtin_vulnerable"
+                    if _uses_builtin_probe_channel(self.task)
                     else None
                 ),
                 actual_monetary_cost_usd=(
                     0.0
-                    if getattr(self.task, "target_type", None) == "builtin_vulnerable"
+                    if _uses_builtin_probe_channel(self.task)
                     else None
                 ),
                 summary="probe raised -> inconclusive",
@@ -366,12 +404,12 @@ class RealRetestExecutor:
             probe_steps=max(step_count, 1),
             actual_token_count=(
                 0
-                if getattr(self.task, "target_type", None) == "builtin_vulnerable"
+                if _uses_builtin_probe_channel(self.task)
                 else None
             ),
             actual_monetary_cost_usd=(
                 0.0
-                if getattr(self.task, "target_type", None) == "builtin_vulnerable"
+                if _uses_builtin_probe_channel(self.task)
                 else None
             ),
             summary=f"probe -> {status}",

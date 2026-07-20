@@ -22,6 +22,7 @@ import httpx
 import logging
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,90 @@ class ProviderClientInfo:
 
     # For JSON-mode: Anthropic needs a special pre-fill trick; others use response_format
     extra: dict = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ModelCallMetadata:
+    requested_model: str
+    provider_type: str
+    requested_at: str
+    returned_model: str | None = None
+    system_fingerprint: str | None = None
+    response_id: str | None = None
+    request_id: str | None = None
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    total_tokens: int | None = None
+
+    def as_dict(self) -> dict[str, str | int | None]:
+        return {
+            "requested_model": self.requested_model,
+            "provider_type": self.provider_type,
+            "requested_at": self.requested_at,
+            "returned_model": self.returned_model,
+            "system_fingerprint": self.system_fingerprint,
+            "response_id": self.response_id,
+            "request_id": self.request_id,
+            "prompt_tokens": self.prompt_tokens,
+            "completion_tokens": self.completion_tokens,
+            "total_tokens": self.total_tokens,
+        }
+
+
+@dataclass(frozen=True)
+class ChatCallResult:
+    content: str
+    metadata: ModelCallMetadata
+
+
+def _openai_call_metadata(
+    response,
+    *,
+    requested_model: str,
+    provider_type: str,
+    requested_at: str,
+) -> ModelCallMetadata:
+    usage = response.usage
+    return ModelCallMetadata(
+        requested_model=requested_model,
+        provider_type=provider_type,
+        requested_at=requested_at,
+        returned_model=response.model,
+        system_fingerprint=response.system_fingerprint,
+        response_id=response.id,
+        request_id=response._request_id,
+        prompt_tokens=usage.prompt_tokens if usage is not None else None,
+        completion_tokens=usage.completion_tokens if usage is not None else None,
+        total_tokens=usage.total_tokens if usage is not None else None,
+    )
+
+
+def _anthropic_call_metadata(
+    response,
+    *,
+    requested_model: str,
+    provider_type: str,
+    requested_at: str,
+) -> ModelCallMetadata:
+    usage = response.usage
+    input_tokens = usage.input_tokens if usage is not None else None
+    output_tokens = usage.output_tokens if usage is not None else None
+    total_tokens = (
+        input_tokens + output_tokens
+        if isinstance(input_tokens, int) and isinstance(output_tokens, int)
+        else None
+    )
+    return ModelCallMetadata(
+        requested_model=requested_model,
+        provider_type=provider_type,
+        requested_at=requested_at,
+        returned_model=response.model,
+        response_id=response.id,
+        request_id=response._request_id,
+        prompt_tokens=input_tokens,
+        completion_tokens=output_tokens,
+        total_tokens=total_tokens,
+    )
 
 
 def _resolve_provider_base_url(provider_type: str, custom_base_url: str | None) -> str | None:
@@ -204,15 +289,37 @@ async def call_chat(
     Returns:
         The assistant's response as a plain string.
     """
+    result = await call_chat_with_metadata(
+        info, model, messages,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        json_mode=json_mode,
+    )
+    return result.content
+
+
+async def call_chat_with_metadata(
+    info: ProviderClientInfo,
+    model: str,
+    messages: list[dict],
+    *,
+    max_tokens: int = _DEFAULT_MAX_TOKENS,
+    temperature: float = 0.7,
+    json_mode: bool = False,
+) -> ChatCallResult:
     if info.provider_type == "claude":
         return await _call_anthropic(
-            info, model, messages,
+            info,
+            model,
+            messages,
             max_tokens=max_tokens,
             temperature=temperature,
             json_mode=json_mode,
         )
     return await _call_openai_compatible(
-        info, model, messages,
+        info,
+        model,
+        messages,
         max_tokens=max_tokens,
         temperature=temperature,
         json_mode=json_mode,
@@ -231,7 +338,7 @@ async def _call_openai_compatible(
     max_tokens: int,
     temperature: float,
     json_mode: bool,
-) -> str:
+) -> ChatCallResult:
     from openai import AsyncOpenAI, RateLimitError, APIError
 
     cache_key = (info.api_key, info.base_url)
@@ -248,9 +355,18 @@ async def _call_openai_compatible(
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
 
+    requested_at = datetime.now(timezone.utc).isoformat()
     try:
         response = await client.chat.completions.create(**kwargs)
-        return response.choices[0].message.content or ""
+        return ChatCallResult(
+            content=response.choices[0].message.content or "",
+            metadata=_openai_call_metadata(
+                response,
+                requested_model=model,
+                provider_type=info.provider_type,
+                requested_at=requested_at,
+            ),
+        )
     except RateLimitError as exc:
         retry_after: float | None = None
         if hasattr(exc, "response") and exc.response is not None:
@@ -280,7 +396,7 @@ async def _call_anthropic(
     max_tokens: int,
     temperature: float,
     json_mode: bool,
-) -> str:
+) -> ChatCallResult:
     try:
         import anthropic
     except ImportError as exc:
@@ -331,6 +447,7 @@ async def _call_anthropic(
     if system_text is not anthropic.NOT_GIVEN:  # type: ignore[attr-defined]
         create_kwargs["system"] = system_text
 
+    requested_at = datetime.now(timezone.utc).isoformat()
     try:
         response = await client.messages.create(**create_kwargs)
         # content is a list of ContentBlock — extract text blocks
@@ -340,7 +457,15 @@ async def _call_anthropic(
                 parts.append(block.text)
         text = "".join(parts)
         # Re-attach the pre-fill prefix (e.g. "{") so the caller gets valid JSON
-        return prefill + text if prefill else text
+        return ChatCallResult(
+            content=prefill + text if prefill else text,
+            metadata=_anthropic_call_metadata(
+                response,
+                requested_model=model,
+                provider_type=info.provider_type,
+                requested_at=requested_at,
+            ),
+        )
     except Exception as exc:
         exc_type = type(exc).__name__
         if exc_type in _ANTHROPIC_RATE_LIMIT_NAMES:

@@ -38,6 +38,7 @@ class EvidenceDelta:
     probe_steps: int = 0
     actual_token_count: int | None = None
     actual_monetary_cost_usd: float | None = None
+    model_call_metadata: tuple[Mapping[str, Any], ...] = ()
     summary: str = ""
 
 
@@ -121,6 +122,7 @@ class RetestRound:
     probe_steps: int = 0
     actual_token_count: int | None = None
     actual_monetary_cost_usd: float | None = None
+    model_call_metadata: tuple[dict[str, Any], ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -137,6 +139,9 @@ class RetestRound:
             "probe_steps": self.probe_steps,
             "actual_token_count": self.actual_token_count,
             "actual_monetary_cost_usd": self.actual_monetary_cost_usd,
+            "model_call_metadata": [
+                dict(metadata) for metadata in self.model_call_metadata
+            ],
         }
 
 
@@ -323,6 +328,13 @@ async def run_retest_loop_async(
         assessment = arbitrate_evidence(current)
         rounds_used += 1
 
+        total_queries = sum(
+            (
+                d.target_retest_queries + d.judge_queries + d.probe_steps
+                or d.extra_queries
+            )
+            for d in deltas
+        )
         lineage.rounds.append(
             RetestRound(
                 round_index=rounds_used,
@@ -331,7 +343,7 @@ async def run_retest_loop_async(
                 evidence_before=level_before,
                 evidence_after=assessment.evidence_level,
                 delta_summary="; ".join(d.summary for d in deltas if d.summary),
-                extra_queries=sum(d.extra_queries for d in deltas),
+                extra_queries=total_queries,
                 extra_cost_ms=sum(d.extra_cost_ms for d in deltas),
                 target_retest_queries=sum(d.target_retest_queries for d in deltas),
                 judge_queries=sum(d.judge_queries for d in deltas),
@@ -341,6 +353,11 @@ async def run_retest_loop_async(
                 ),
                 actual_monetary_cost_usd=_sum_optional_float(
                     d.actual_monetary_cost_usd for d in deltas
+                ),
+                model_call_metadata=tuple(
+                    dict(metadata)
+                    for delta in deltas
+                    for metadata in delta.model_call_metadata
                 ),
             )
         )

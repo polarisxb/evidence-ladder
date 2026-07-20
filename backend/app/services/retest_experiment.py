@@ -3,12 +3,12 @@
 Three arms are run over the SAME frozen suite and the SAME cached initial
 responses, differing ONLY in mode:
 
-* Arm A  (judge-only) : ``RetestConfig(max_retest_rounds=0)`` — verdict from the
+* Arm A  (judge-only) : ``RetestConfig(max_retest_rounds=0)`` 鈥?verdict from the
   judge alone, never above E2.
 * Arm A' (re-judge)   : an INDEPENDENT verifier re-judges the SAME fixed
   ``(payload, response)``. It adds a second judge opinion but NO new evidence,
   is capped at E2, and never triggers a RetestExecutor action.
-* Arm B  (④ retest)   : gathers NEW evidence by re-executing (canary/probe/
+* Arm B  (鈶?retest)   : gathers NEW evidence by re-executing (canary/probe/
   quartet) and can climb E0->E5.
 
 This module owns only Arm A' for now (Task 1). It reuses the pure arbiter and
@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
-from typing import Any, Literal, Protocol
+from typing import Any, Literal, Protocol, runtime_checkable
 
 from app.services.evidence_arbiter import EvidenceAssessment, arbitrate_evidence
 from app.services.retest_loop import (
@@ -68,6 +68,11 @@ class RejudgeVerifier(Protocol):
     def rejudge(self, result: Mapping[str, Any]) -> Mapping[str, Any]: ...
 
 
+@runtime_checkable
+class MetadataAwareVerifier(Protocol):
+    call_metadata: Mapping[str, Any] | None
+
+
 @dataclass(frozen=True)
 class ArmOutcome:
     """One arm's decision for one case, in a shape shared across arms."""
@@ -84,6 +89,7 @@ class ArmOutcome:
     actual_token_count: int | None = 0
     actual_monetary_cost_usd: float | None = 0.0
     judge_signal: dict[str, Any] | None = None
+    judge_call_metadata: dict[str, Any] | None = None
     lineage: dict[str, Any] | None = None
 
 
@@ -136,21 +142,39 @@ def run_rejudge_baseline(
         rounds_used=0,
         config=config,
     )
+    call_metadata = (
+        verifier.call_metadata
+        if isinstance(verifier, MetadataAwareVerifier)
+        else None
+    )
+    token_count: int | None = None
+    monetary_cost: float | None = None
+    if call_metadata is not None:
+        raw_tokens = call_metadata.get("total_tokens")
+        if isinstance(raw_tokens, int):
+            token_count = raw_tokens
+        raw_cost = call_metadata.get("monetary_cost_usd")
+        if isinstance(raw_cost, (int, float)):
+            monetary_cost = float(raw_cost)
+
     return ArmOutcome(
         arm="A_prime",
         final_verdict=decision.verdict,
         final_evidence_level=capped.evidence_level,
         initial_evidence_level=base.evidence_level,
-        extra_queries=0,
+        extra_queries=1,
         extra_cost_ms=0.0,
         judge_queries=1,
-        actual_token_count=None,
-        actual_monetary_cost_usd=None,
+        actual_token_count=token_count,
+        actual_monetary_cost_usd=monetary_cost,
         judge_signal=dict(signal) if isinstance(signal, Mapping) else None,
+        judge_call_metadata=(
+            dict(call_metadata) if call_metadata is not None else None
+        ),
     )
 
 
-# ── Experiment runner (Task 2) ───────────────────────────────────────────────
+# 鈹€鈹€ Experiment runner (Task 2) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 # Arm B: gather NEW evidence by re-executing, up to two rounds.
 DEFAULT_ARM_B_CONFIG = RetestConfig(
@@ -188,7 +212,7 @@ class CaseExperimentRecord:
 
 
 class _NullExecutor:
-    """Arm A executor placeholder — must never be dispatched (rounds == 0)."""
+    """Arm A executor placeholder 鈥?must never be dispatched (rounds == 0)."""
 
     def run_quartet(self, result: Mapping[str, Any]) -> EvidenceDelta:
         raise AssertionError("Arm A must not re-execute")
@@ -266,7 +290,7 @@ async def run_experiment_suite(
     ]
 
 
-# ── Ground-truth scoring (Task 3) ────────────────────────────────────────────
+# 鈹€鈹€ Ground-truth scoring (Task 3) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 _STRONG_EVIDENCE = {"E3", "E4", "E5"}
 
@@ -385,7 +409,7 @@ def score_experiment(
     return scores
 
 
-# ── Pure statistics (Task 4) ─────────────────────────────────────────────────
+# 鈹€鈹€ Pure statistics (Task 4) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 
 def cohen_kappa(a: list[int], b: list[int]) -> float:
@@ -468,7 +492,7 @@ def clustered_bootstrap_ci(
     return means[lo_idx], means[hi_idx]
 
 
-# ── Main results table (Task 4) ──────────────────────────────────────────────
+# 鈹€鈹€ Main results table (Task 4) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
 METRIC_ORDER = [
     "judge_asr",
@@ -578,7 +602,7 @@ def build_main_results_table(
     """Aggregate per-arm metrics with bootstrap 95% CIs.
 
     Cells whose required inputs are absent (no clean/benign-distractor cases, no
-    ground truth, no human gold) are returned as PENDING — never invented.
+    ground truth, no human gold) are returned as PENDING 鈥?never invented.
     """
     arms = sorted({arm for rec in records for arm in rec.outcomes})
     attack = [r for r in records if r.kind == "attack"]

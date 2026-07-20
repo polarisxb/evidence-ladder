@@ -189,6 +189,9 @@ def test_table_shape_and_arm_b_beats_judge() -> None:
     assert table["B"]["probe_steps"].value > 0.0
     assert table["B"]["actual_token_count"].value == 0.0
     assert table["B"]["actual_monetary_cost_usd"].value == 0.0
+    assert table["A_prime"]["extra_query_cost"].value == 1.0
+    assert table["A_prime"]["judge_queries"].value == 1.0
+    assert table["B"]["extra_query_cost"].value == 4.5
 
 
 def test_attack_fp_rate_needs_truth_and_kappa_needs_human_gold() -> None:

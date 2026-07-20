@@ -81,7 +81,9 @@ def test_runner_records_three_arms_per_case() -> None:
     assert _idx(a.final_evidence_level) <= _idx("E2")
     assert a.extra_queries == 0
     assert _idx(ap.final_evidence_level) <= _idx("E2")
-    assert ap.extra_queries == 0
+    assert ap.extra_queries == 1
+    assert ap.target_retest_queries == 0
+    assert ap.judge_queries == 1
 
     # Arm B gathers new evidence and climbs to E5 / confirmed at a query cost.
     assert b.final_evidence_level == "E5"

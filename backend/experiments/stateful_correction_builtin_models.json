@@ -1,0 +1,25 @@
+{
+  "matrix_version": "retest-model-matrix.v1",
+  "content_hash": "3a01f27f91ec95c648d9ae2da670aed897e9d817f2f772420704b72856484a86",
+  "models": [
+    {
+      "model_id": "builtin-stateful-target",
+      "provider_id": "builtin",
+      "pinned_version": "builtin-stateful.v1",
+      "role": "target"
+    },
+    {
+      "model_id": "builtin-judge",
+      "provider_id": "builtin",
+      "pinned_version": "builtin-judge.v1",
+      "role": "judge"
+    },
+    {
+      "model_id": "builtin-verifier",
+      "provider_id": "builtin",
+      "pinned_version": "builtin-verifier.v1",
+      "role": "verifier"
+    }
+  ],
+  "allow_rolling_aliases": false
+}

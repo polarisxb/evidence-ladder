@@ -1,0 +1,28 @@
+{
+  "matrix_version": "retest-model-matrix.v1",
+  "content_hash": "1f884a61f11ed87ba5afc2bbc75652e7ca4a2ed25c6a690aa00251be69582f59",
+  "models": [
+    {
+      "model_id": "relay-gpt-5.4-target",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.4",
+      "expected_returned_model": "gpt-5.4",
+      "role": "target"
+    },
+    {
+      "model_id": "relay-gpt-5.5-judge",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.5",
+      "expected_returned_model": "gpt-5.5",
+      "role": "judge"
+    },
+    {
+      "model_id": "relay-gpt-5.4-verifier",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.4",
+      "expected_returned_model": "gpt-5.4",
+      "role": "verifier"
+    }
+  ],
+  "allow_rolling_aliases": false
+}

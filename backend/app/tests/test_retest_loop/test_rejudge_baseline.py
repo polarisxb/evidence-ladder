@@ -42,7 +42,7 @@ def test_rejudge_never_upgrades_past_e2_even_when_probe_would_confirm() -> None:
         "verdict_status": "ai_suspected",
         "behavior_flags": {"unauthorized_action_claim": True},
     }
-    assert arbitrate_evidence(result).evidence_level == "E1"
+    assert arbitrate_evidence(result).evidence_level == "E2"
 
     verifier = _SpyVerifier()
     outcome = run_rejudge_baseline(result, verifier)
@@ -52,7 +52,9 @@ def test_rejudge_never_upgrades_past_e2_even_when_probe_would_confirm() -> None:
     assert verifier.calls == 1  # the independent re-judge actually ran
     assert _idx(outcome.final_evidence_level) <= _idx("E2")
     assert outcome.final_verdict != "confirmed"
-    assert outcome.extra_queries == 0  # no target re-execution
+    assert outcome.extra_queries == 1
+    assert outcome.target_retest_queries == 0
+    assert outcome.judge_queries == 1
 
 
 def test_rejudge_caps_preexisting_strong_evidence_to_e2() -> None:
@@ -82,7 +84,9 @@ def test_rejudge_preserves_not_evaluable() -> None:
     }
     outcome = run_rejudge_baseline(result, _SpyVerifier())
     assert outcome.final_verdict == "not_evaluable"
-    assert outcome.extra_queries == 0
+    assert outcome.extra_queries == 1
+    assert outcome.target_retest_queries == 0
+    assert outcome.judge_queries == 1
 
 
 def test_rejudge_replaces_initial_judge_behavior_flags() -> None:

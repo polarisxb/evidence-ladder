@@ -17,7 +17,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--out", type=Path, default=Path("experiment-output"))
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--run-id", type=str, default=None)
+    parser.add_argument("--collection-block-id", type=str, default="unspecified")
     parser.add_argument("--bootstrap-seed", type=int, default=0)
+    parser.add_argument("--execution-seed", type=int, default=0)
     parser.add_argument("--bootstrap-resamples", type=int, default=1000)
     return parser
 
@@ -31,7 +33,9 @@ def main(argv: Sequence[str] | None = None) -> None:
             out_dir=args.out,
             resume=args.resume,
             run_id=args.run_id,
+            collection_block_id=args.collection_block_id,
             bootstrap_seed=args.bootstrap_seed,
+            execution_seed=args.execution_seed,
             bootstrap_resamples=args.bootstrap_resamples,
         )
     )

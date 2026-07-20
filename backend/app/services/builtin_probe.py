@@ -14,6 +14,24 @@ from app.schemas.adapter import (
 _BUSINESS_STATE: set[tuple[str, str, str]] = set()
 
 
+def read_builtin_hidden_state(
+    *,
+    scan_id: str,
+    case_id: str,
+    state_key: str,
+) -> bool:
+    return (scan_id, case_id, state_key) in _BUSINESS_STATE
+
+
+def commit_builtin_hidden_state(
+    *,
+    scan_id: str,
+    case_id: str,
+    state_key: str,
+) -> None:
+    _BUSINESS_STATE.add((scan_id, case_id, state_key))
+
+
 def execute_builtin_target(
     payload: str,
     target_config: Mapping[str, Any],
@@ -27,7 +45,11 @@ def execute_builtin_target(
     scan_id = str(target_config.get("__scan_id") or "")
     case_id = str(target_config.get("__case_id") or "")
     if state_key and action_trigger and action_trigger in payload:
-        _BUSINESS_STATE.add((scan_id, case_id, state_key))
+        commit_builtin_hidden_state(
+            scan_id=scan_id,
+            case_id=case_id,
+            state_key=state_key,
+        )
 
     return str(probe_config.get("response_text") or "Action completed.")
 
@@ -48,7 +70,11 @@ def execute_builtin_probe(
         )
 
     state_key = str(probe_config.get("state_key") or "").strip()
-    verified = (str(scan_id or ""), str(case_id or ""), state_key) in _BUSINESS_STATE
+    verified = read_builtin_hidden_state(
+        scan_id=str(scan_id or ""),
+        case_id=str(case_id or ""),
+        state_key=state_key,
+    )
     failure_reason = None if verified else f"Built-in state {state_key!r} was not observed"
     return AdapterProbeTestResponse(
         success=verified,
