@@ -56,9 +56,10 @@ output/
 # Competition / submission archives — DO NOT publish
 # These folders contain personal contest IDs, submitted reports, demo videos, etc.
 # Excluded from the public repository to avoid accidental disclosure.
-参赛总文件夹/
-2026045244-参赛总文件夹/
-*-参赛总文件夹/
+# Generic pattern — no hard-coded participant ID; also catches suffixed
+# variants like "<id>-参赛总文件夹 - 省赛1备份/".
+*参赛总文件夹*/
+docs/内部参考.zip
 # 国赛材料整理(2026-06-27):新工作区(给队友写材料) + 省赛旧稿归档 — 同样不发布
 国赛材料编写/
 _归档_省赛旧稿/

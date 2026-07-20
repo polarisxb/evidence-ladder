@@ -26,7 +26,7 @@
 
 - ***A Coin Flip for Safety*** (arXiv:2603.06594, 2026)：6642 条人工标注证明 LLM-as-a-Judge 在对抗性分布下接近随机，许多"高 ASR"攻击实际利用的是 judge false positive。
 - ***When Scanners Lie*** (arXiv:2603.14633, 2026)：开源扫描器（garak）25 个攻击类别中 22 个评测器不稳定，ASR 漂移可达 ±33%。
-- ***Pipeline-stage Canary Kill-Chain*** (arXiv:2603.28013, 2026)：多 Agent 系统安全评测必须按攻击传播阶段（Exposed → Persisted → Relayed → Executed）分解。
+- ***Kill-Chain Canaries*** (arXiv:2603.28013, 2026)：多 Agent 系统安全评测必须按攻击传播阶段（Exposed → Persisted → Relayed → Executed）分解。
 
 上述工作主要关注基础模型层面的裁判可靠性，**尚未充分覆盖 LLM 应用层评测中的额外混淆因素**：prompt 拼装模板、检索内容、后处理、工具调用、业务状态变化。
 
@@ -107,7 +107,7 @@
 |---|---|---|
 | *A Coin Flip for Safety* (2026) | 基于裁判精度的统计后校正 | 按异质证据来源分层切分 |
 | *When Scanners Lie* (2026) | 单 verifier 二阶段验证 | 多类异质证据 + 冲突驱动状态机 |
-| *Pipeline-stage Canary Kill-Chain* (2026) | 单维度攻击传播阶段 | E-level × Kill-chain 二维矩阵 |
+| *Kill-Chain Canaries* (2026) | 单维度攻击传播阶段 | E-level × Kill-chain 二维矩阵 |
 | HarmBench / JailbreakBench | 基础模型 benchmark | 应用层评测 + 业务状态 probe |
 | AgentDojo / tau-bench / AgentHarm | Agent / 工具调用 benchmark | 与证据分层协议绑定的状态验证 |
 | garak / PyRIT / Promptfoo / DeepTeam | 红队工具框架 | 可信度感知的报告与补测闭环 |
@@ -211,7 +211,7 @@ docker-compose up --build
 
 [MIT 协议](./LICENSE)。
 
-本项目站在以下开源工作之上：HarmBench、JailbreakBench、AgentDojo、tau-bench、ToolEmu、AgentHarm、garak、PyRIT、Promptfoo、OWASP LLM Top 10 / Agentic Top 10。差异化分析另引用 2026 年裁判可靠性与攻击传播研究：*A Coin Flip for Safety*、*When Scanners Lie*、*Pipeline-stage Canary Kill-Chain*、*Noisy but Valid*、*Know Thy Judge*、*RobustJudge*。
+本项目站在以下开源工作之上：HarmBench、JailbreakBench、AgentDojo、tau-bench、ToolEmu、AgentHarm、garak、PyRIT、Promptfoo、OWASP LLM Top 10 / Agentic Top 10。差异化分析另引用 2026 年裁判可靠性与攻击传播研究：*A Coin Flip for Safety*、*When Scanners Lie*、*Kill-Chain Canaries*、*Noisy but Valid*、*Know Thy Judge*、*RobustJudge*。
 
 ---
 

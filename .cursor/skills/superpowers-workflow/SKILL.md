@@ -47,7 +47,7 @@ The agent must know these facts before acting:
 The repo has both engineering goals (a working LLM-application security testing
 platform) and **academic goals** (a paper around Evidence-Stratified ASR + the
 E-level × Kill-chain matrix, differentiated against *A Coin Flip for Safety*
-(2026), *When Scanners Lie* (2026), *Pipeline-stage Canary Kill-Chain* (2026)).
+(2026), *When Scanners Lie* (2026), *Kill-Chain Canaries* (2026)).
 
 Every change must respect both.
 
@@ -119,7 +119,7 @@ Tiny, low-risk tasks may compress phases, **but never skip `inspect`,
 ### 1.8 Publication safety (Evidence-Ladder specific — MUST)
 Before any `git push`, `git tag`, or release, verify:
 
-- [ ] No participant ID (`2026045244` or any pattern matching `\d{10}-参赛`) in tracked files
+- [ ] No participant ID (any pattern matching `\d{10}-参赛`) in tracked files
 - [ ] No raw `*.env` (only `*.env.example`)
 - [ ] No real API keys in attack templates, configs, or fixtures
 - [ ] No real customer data, real user secrets, or unredacted canary tokens
