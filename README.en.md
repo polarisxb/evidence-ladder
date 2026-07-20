@@ -24,7 +24,7 @@ Recent 2026 work has independently established that **single-source attack-succe
 
 - *A Coin Flip for Safety* (arXiv:2603.06594) — LLM-as-a-Judge can perform near-randomly under adversarial distribution shift; many "high-ASR" attacks exploit judge false positives rather than true model vulnerabilities.
 - *When Scanners Lie* (arXiv:2603.14633) — In open-source scanners (e.g., garak), 22 of 25 attack categories exhibit evaluator instability, with reported ASR drifting up to ±33% when the evaluator is swapped.
-- *Pipeline-stage Canary Kill-Chain* (arXiv:2603.28013) — In multi-agent systems, evaluation must decompose attacks across propagation stages (Exposed → Persisted → Relayed → Executed), not just inspect the final response.
+- *Kill-Chain Canaries* (arXiv:2603.28013) — In multi-agent systems, evaluation must decompose attacks across propagation stages (Exposed → Persisted → Relayed → Executed), not just inspect the final response.
 
 These works identify the problem; they do not jointly solve it for **LLM applications** (RAG, tool-using agents, business-prompt configurations), where evaluation faces additional confounders: prompt assembly templates, retrieval context, post-processing, and tool/state side effects.
 
@@ -105,7 +105,7 @@ This matrix differentiates *"where the attack propagated"* from *"on what eviden
 |---|---|---|
 | *A Coin Flip for Safety* (2026) | Statistical post-hoc ASR correction via judge precision | Source-partitioned evidence ladder; no scaling |
 | *When Scanners Lie* (2026) | Independent verifier as a second-stage check | Multi-class heterogeneous evidence + automated retest state machine |
-| *Pipeline-stage Canary Kill-Chain* (2026) | Single-axis attack-propagation decomposition | Two-axis E-level × Kill-chain matrix |
+| *Kill-Chain Canaries* (2026) | Single-axis attack-propagation decomposition | Two-axis E-level × Kill-chain matrix |
 | HarmBench / JailbreakBench | Base-model adversarial robustness benchmark | Application-layer evaluation with business probes |
 | AgentDojo / tau-bench / AgentHarm | Agent / tool-use benchmark | Evidence-stratified evaluation grounded in deployed-application surfaces |
 | garak / PyRIT / Promptfoo / DeepTeam | Open-source LLM red-team toolkit | Reliability-aware reporting (E-ASR, Quartet, conflict-driven retest) |
@@ -179,4 +179,4 @@ Roadmap:
 
 ## 9. Acknowledgments
 
-Builds upon the open-source ecosystem of LLM safety evaluation: HarmBench, JailbreakBench, AgentDojo, tau-bench, ToolEmu, garak, PyRIT, Promptfoo, and the OWASP LLM Top 10 / Agentic Top 10. Differentiation analysis additionally cites the 2026 reliability literature: *A Coin Flip for Safety*, *When Scanners Lie*, *Pipeline-stage Canary Kill-Chain*, *Noisy but Valid*, *Know Thy Judge*, and *RobustJudge*.
+Builds upon the open-source ecosystem of LLM safety evaluation: HarmBench, JailbreakBench, AgentDojo, tau-bench, ToolEmu, garak, PyRIT, Promptfoo, and the OWASP LLM Top 10 / Agentic Top 10. Differentiation analysis additionally cites the 2026 reliability literature: *A Coin Flip for Safety*, *When Scanners Lie*, *Kill-Chain Canaries*, *Noisy but Valid*, *Know Thy Judge*, and *RobustJudge*.
