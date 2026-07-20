@@ -18,6 +18,7 @@ Run from the backend/ directory:
 """
 from __future__ import annotations
 
+import argparse
 import asyncio
 from pathlib import Path
 
@@ -41,18 +42,18 @@ def _leaked(response_text: str, tokens: list[str]) -> bool:
     return any(token in response_text for token in tokens)
 
 
-async def main() -> None:
-    suite = load_frozen_suite(SUITE)
-    matrix = load_model_matrix(MATRIX)
+async def main(suite_path: Path, matrix_path: Path, out: Path) -> None:
+    suite = load_frozen_suite(suite_path)
+    matrix = load_model_matrix(matrix_path)
     await init_db()
     await init_scheduler()
-    OUT.mkdir(parents=True, exist_ok=True)
+    out.mkdir(parents=True, exist_ok=True)
 
     records = await populate_initial_pass_cache(
         suite,
         matrix,
         evaluator=ConfiguredModelEvaluator(),
-        cache_path=OUT / "initial-pass-cache.json",
+        cache_path=out / "initial-pass-cache.json",
         resume=False,
     )
     cases = {case.case_id: case for case in suite.cases}
@@ -121,4 +122,11 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(
+        description="Construct-validity calibration (initial pass only)."
+    )
+    parser.add_argument("--suite", type=Path, default=SUITE)
+    parser.add_argument("--models", type=Path, default=MATRIX)
+    parser.add_argument("--out", type=Path, default=OUT)
+    args = parser.parse_args()
+    asyncio.run(main(args.suite, args.models, args.out))

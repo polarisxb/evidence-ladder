@@ -1,0 +1,24 @@
+{
+  "matrix_version": "retest-model-matrix.v1",
+  "models": [
+    {
+      "model_id": "pilot-target",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.4-mini",
+      "role": "target"
+    },
+    {
+      "model_id": "pilot-judge",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.4-mini",
+      "role": "judge"
+    },
+    {
+      "model_id": "pilot-verifier",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.4-mini",
+      "role": "verifier"
+    }
+  ],
+  "allow_rolling_aliases": false
+}

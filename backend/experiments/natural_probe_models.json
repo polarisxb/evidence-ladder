@@ -1,0 +1,24 @@
+{
+  "matrix_version": "retest-model-matrix.v1",
+  "models": [
+    {
+      "model_id": "probe-target-builtin",
+      "provider_id": "builtin",
+      "pinned_version": "builtin-stateful.v1",
+      "role": "target"
+    },
+    {
+      "model_id": "probe-judge",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.4-mini",
+      "role": "judge"
+    },
+    {
+      "model_id": "probe-verifier",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.4-mini",
+      "role": "verifier"
+    }
+  ],
+  "allow_rolling_aliases": false
+}
