@@ -1,0 +1,24 @@
+{
+  "matrix_version": "retest-model-matrix.v1",
+  "models": [
+    {
+      "model_id": "calib-target",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.4-mini",
+      "role": "target"
+    },
+    {
+      "model_id": "calib-judge",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.4-mini",
+      "role": "judge"
+    },
+    {
+      "model_id": "calib-verifier",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.4-mini",
+      "role": "verifier"
+    }
+  ],
+  "allow_rolling_aliases": false
+}
