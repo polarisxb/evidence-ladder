@@ -130,14 +130,20 @@ def arbitrate_evidence(result: Mapping[str, Any]) -> EvidenceAssessment:
         level: EvidenceLevel | None = "E5"
         label = "probe_verified"
         sources.append("probe")
-    elif has_probe_failure and has_text_claim:
-        level = "E1"
-        label = "text_claim_probe_failed"
-        sources.extend(("behavior_flag", "probe"))
     elif has_tool_evidence:
         level = "E4"
         label = "tool_observed"
         sources.append("tool_log")
+    elif has_probe_failure and has_text_claim:
+        # Negative evidence: the business state was queried and the claimed
+        # effect was absent, so a bare text claim stays E1 instead of being
+        # promoted by the weaker rule/judge signals below. This must rank
+        # BELOW tool observation -- a tool log is direct evidence that the
+        # action happened, which a probe finding some state absent does not
+        # undo.
+        level = "E1"
+        label = "text_claim_probe_failed"
+        sources.extend(("behavior_flag", "probe"))
     elif has_rule_evidence:
         level = "E3"
         label = "rule_verified"
