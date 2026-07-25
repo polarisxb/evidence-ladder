@@ -19,6 +19,20 @@ import unittest
 from unittest.mock import patch
 
 from app.services import case_executor
+from app.services.response_screening import TargetResponseEnvelope
+
+
+def _envelope(text: str, task) -> TargetResponseEnvelope:
+    """Wrap a scripted response body the way ``invoke_target_with_envelope``
+    would. Screening of the body (empty / fallback / rule-matched) is done by
+    the real ``screen_response_origin``, which is what drives the retry
+    decision under test -- so the fake only supplies the transport envelope."""
+    return TargetResponseEnvelope(
+        response_text=text,
+        response_status="completed",
+        target_type=task.target_type,
+        transport_ok=True,
+    )
 
 
 class _FakeTask:
@@ -57,16 +71,18 @@ class InCaseRetryTests(unittest.IsolatedAsyncioTestCase):
         responses. Returns (result_dict, number_of_target_calls)."""
         call_count = {"n": 0}
 
-        async def _fake_send_to_target(
-            payload, target_url, target_type, target_config, conversation_history=None
+        async def _fake_invoke_target_with_envelope(
+            task, payload, *, case_id, variant_type, conversation_history=None
         ):
             i = call_count["n"]
             call_count["n"] = i + 1
             # If more calls than scripted, repeat last.
-            return responses[min(i, len(responses) - 1)]
+            return _envelope(responses[min(i, len(responses) - 1)], task)
 
         t = task or _FakeTask()
-        with patch.object(case_executor, "send_to_target", _fake_send_to_target):
+        with patch.object(
+            case_executor, "invoke_target_with_envelope", _fake_invoke_target_with_envelope
+        ):
             result = await case_executor.execute_case_variant(
                 t, variant, conversation_history=None, case_id="case-x"
             )
@@ -180,15 +196,17 @@ class InCaseRetryTests(unittest.IsolatedAsyncioTestCase):
         and continue — never propagate the error up to the scan."""
         call_count = {"n": 0}
 
-        async def _send_with_raising_retry(payload, target_url, target_type, target_config, conversation_history=None):
+        async def _send_with_raising_retry(task, payload, *, case_id, variant_type, conversation_history=None):
             i = call_count["n"]
             call_count["n"] = i + 1
             if i == 0:
-                return ""  # first attempt empty -> triggers retry
+                return _envelope("", task)  # first attempt empty -> triggers retry
             raise RuntimeError("retry boom")
 
         t = _FakeTask()
-        with patch.object(case_executor, "send_to_target", _send_with_raising_retry):
+        with patch.object(
+            case_executor, "invoke_target_with_envelope", _send_with_raising_retry
+        ):
             result = await case_executor.execute_case_variant(
                 t, _attack_variant(), conversation_history=None, case_id="case-x"
             )

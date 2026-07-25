@@ -27,10 +27,6 @@ def _safe_unlink(path: str) -> None:
         pass
 
 
-async def _fake_send_to_target(payload, target_url, target_type, target_config, conversation_history=None):
-    return f"mock-response::{payload}"
-
-
 async def _fake_invoke_target_with_envelope(task, payload, *, case_id, variant_type, conversation_history=None):
     return TargetResponseEnvelope(
         response_text=f"probe-response::{payload}",
@@ -87,7 +83,7 @@ class PilotSuiteExecutionTests(unittest.IsolatedAsyncioTestCase):
 
         self.patchers = [
             patch.object(scan_runner, "async_session", self.session_factory),
-            patch.object(case_executor, "send_to_target", _fake_send_to_target),
+            patch.object(case_executor, "invoke_target_with_envelope", _fake_invoke_target_with_envelope),
             patch.object(case_executor, "analyze_response", _fake_analyze_response),
             patch.object(case_executor, "classify_verdict", _fake_classify_verdict),
             patch.object(case_executor, "summarize_control_comparison", _fake_summarize_control_comparison),

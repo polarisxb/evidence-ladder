@@ -125,10 +125,6 @@ def _patched_get_all_templates(self, categories=None):
     return list(TEMPLATES_BY_CATEGORY.get(key, []))
 
 
-async def _fake_send_to_target(payload, target_url, target_type, target_config, conversation_history=None):
-    return f"mock-response::{payload[:40]}"
-
-
 async def _fake_send_to_target_with_result(task, payload, *, case_id, variant_type, conversation_history=None):
     return f"mock-response::{payload[:40]}", None
 
@@ -303,7 +299,7 @@ class Phase1RegressionTests(unittest.IsolatedAsyncioTestCase):
 
         self.patchers = [
             patch.object(scan_runner, "async_session", self.session_factory),
-            patch.object(case_executor, "send_to_target", _fake_send_to_target),
+            patch.object(case_executor, "invoke_target_with_envelope", _fake_invoke_target_with_envelope),
             patch.object(scan_runner, "_send_to_target_with_result", _fake_send_to_target_with_result),
             patch.object(scan_runner, "_invoke_target_with_envelope", _fake_invoke_target_with_envelope),
             patch.object(case_executor, "analyze_response", _fake_analyze_response),
@@ -681,8 +677,17 @@ class Phase1RegressionTests(unittest.IsolatedAsyncioTestCase):
     async def test_scan_runtime_health_marks_degraded_after_repeated_not_evaluable_cases(self):
         task = await self._create_task(name="runtime-degraded", categories=["degraded"])
 
-        async def _timeout_send(payload, target_url, target_type, target_config, conversation_history=None):
-            return "[ERROR] connect timeout"
+        async def _timeout_send(task, payload, *, case_id, variant_type, conversation_history=None):
+            # Target invocation now returns an envelope, and the "[ERROR] ..."
+            # classification that case_executor used to do inline lives in
+            # target_client, so the fake fills in what the real one would.
+            return TargetResponseEnvelope(
+                response_text="[ERROR] connect timeout",
+                response_error="[ERROR] connect timeout",
+                response_status="failed",
+                session_id=None,
+                target_type=task.target_type,
+            )
 
         await scan_runner.run_scan(task.id, {})
 
@@ -693,7 +698,7 @@ class Phase1RegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(healthy_task.health_probe_passed)
 
         retry_task = await self._create_task(name="runtime-degraded-retry", categories=["degraded"])
-        with patch.object(case_executor, "send_to_target", _timeout_send):
+        with patch.object(case_executor, "invoke_target_with_envelope", _timeout_send):
             await scan_runner.run_scan(retry_task.id, {})
 
         async with self.session_factory() as session:
@@ -722,8 +727,17 @@ class Phase1RegressionTests(unittest.IsolatedAsyncioTestCase):
         """
         task = await self._create_task(name="runtime-degraded-no-stop", categories=["degraded"])
 
-        async def _timeout_send(payload, target_url, target_type, target_config, conversation_history=None):
-            return "[ERROR] connect timeout"
+        async def _timeout_send(task, payload, *, case_id, variant_type, conversation_history=None):
+            # Target invocation now returns an envelope, and the "[ERROR] ..."
+            # classification that case_executor used to do inline lives in
+            # target_client, so the fake fills in what the real one would.
+            return TargetResponseEnvelope(
+                response_text="[ERROR] connect timeout",
+                response_error="[ERROR] connect timeout",
+                response_status="failed",
+                session_id=None,
+                target_type=task.target_type,
+            )
 
         stop_calls: list[str] = []
         original_signal = scan_runner.signal_scan_stop
@@ -732,7 +746,7 @@ class Phase1RegressionTests(unittest.IsolatedAsyncioTestCase):
             stop_calls.append(task_id)
             original_signal(task_id)
 
-        with patch.object(case_executor, "send_to_target", _timeout_send), \
+        with patch.object(case_executor, "invoke_target_with_envelope", _timeout_send), \
              patch.object(scan_runner, "signal_scan_stop", _tracking_signal):
             await scan_runner.run_scan(task.id, {})
 
@@ -769,8 +783,17 @@ class Phase1RegressionTests(unittest.IsolatedAsyncioTestCase):
             },
         )
 
-        async def _timeout_send(payload, target_url, target_type, target_config, conversation_history=None):
-            return "[ERROR] connect timeout"
+        async def _timeout_send(task, payload, *, case_id, variant_type, conversation_history=None):
+            # Target invocation now returns an envelope, and the "[ERROR] ..."
+            # classification that case_executor used to do inline lives in
+            # target_client, so the fake fills in what the real one would.
+            return TargetResponseEnvelope(
+                response_text="[ERROR] connect timeout",
+                response_error="[ERROR] connect timeout",
+                response_status="failed",
+                session_id=None,
+                target_type=task.target_type,
+            )
 
         stop_calls: list[str] = []
         original_signal = scan_runner.signal_scan_stop
@@ -779,7 +802,7 @@ class Phase1RegressionTests(unittest.IsolatedAsyncioTestCase):
             stop_calls.append(task_id)
             original_signal(task_id)
 
-        with patch.object(case_executor, "send_to_target", _timeout_send), \
+        with patch.object(case_executor, "invoke_target_with_envelope", _timeout_send), \
              patch.object(scan_runner, "signal_scan_stop", _tracking_signal):
             await scan_runner.run_scan(task.id, {})
 
