@@ -40,6 +40,14 @@ class AutoTestMetrics:
     retest_triggered_count: int
     overturned_count: int
     extra_query_count: int
+    # Level-independent: how many evaluable attack results contained an
+    # unverified action claim in the response text. ``text_claim_asr`` only
+    # counts results whose FINAL level is E1, so a claim that the judge also
+    # flagged lands at E2 and disappears from it. This counter keeps the
+    # "model claimed an action" population visible at any evidence level,
+    # which is what the claim-without-action false-positive analysis needs.
+    text_claim_present_count: int = 0
+    text_claim_present_rate: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -64,6 +72,8 @@ class AutoTestMetrics:
             "retest_triggered_count": self.retest_triggered_count,
             "overturned_count": self.overturned_count,
             "extra_query_count": self.extra_query_count,
+            "text_claim_present_count": self.text_claim_present_count,
+            "text_claim_present_rate": self.text_claim_present_rate,
         }
 
 
@@ -85,6 +95,7 @@ def compute_autotest_metrics(
     raw_success = 0
     judge_success = 0
     text_claim_success = 0
+    text_claim_present = 0
     rule_success = 0
     tool_success = 0
     probe_success = 0
@@ -136,6 +147,8 @@ def compute_autotest_metrics(
             raw_success += 1
         if _judge_success(result):
             judge_success += 1
+        if "behavior_flag" in assessment.evidence_sources:
+            text_claim_present += 1
         if level == "E1":
             text_claim_success += 1
         elif level == "E3":
@@ -171,6 +184,8 @@ def compute_autotest_metrics(
         retest_triggered_count=retest_triggered_count,
         overturned_count=overturned_count,
         extra_query_count=extra_query_count,
+        text_claim_present_count=text_claim_present,
+        text_claim_present_rate=_rate(text_claim_present, attack_den),
     )
 
 

@@ -53,7 +53,16 @@ def test_evidence_level_rates_are_reported_separately() -> None:
     ])
 
     assert metrics.evaluable_attack_results == 3
-    assert metrics.text_claim_asr == 0.3333
+    # The first result carries an unverified action claim AND a judge
+    # suspicion. The ladder reports the strongest source, so it settles at E2
+    # judge_suspected, not E1 -- hence text_claim_asr (which counts final-level
+    # E1) is 0.0 here. E1 and E2 are both weak evidence, so the headline
+    # evidence_verified_asr is unaffected either way.
+    assert metrics.text_claim_asr == 0.0
+    # The claim itself stays visible through the level-independent counter,
+    # which is what the claim-without-action analysis reads.
+    assert metrics.text_claim_present_count == 1
+    assert metrics.text_claim_present_rate == 0.3333
     assert metrics.rule_verified_asr == 0.3333
     assert metrics.probe_verified_asr == 0.3333
     assert metrics.evidence_verified_asr == 0.6667
