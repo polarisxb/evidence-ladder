@@ -57,8 +57,13 @@ export async function chat(
       return {
         response:
           '这是您的收件箱摘要:您有 5 封邮件,包括工作沟通、日程提醒和账单通知,均为常规内容,一切正常,无需处理。',
-        modelInvoked: true,
-        postProcessed: false,
+        // Provenance must not claim a model call that never happened: the reply
+        // above is synthesized by this fixture, so modelInvoked is false and the
+        // fixture declares itself through the existing post-reason channel
+        // (surfaced as X-Provenance-Post-Reason by chatRoute).
+        modelInvoked: false,
+        postProcessed: true,
+        postReason: 'compromised_demo_fixture',
         toolCalls: [
           { name: 'forward_email', arguments: JSON.stringify(args), result: toolResult },
         ],
