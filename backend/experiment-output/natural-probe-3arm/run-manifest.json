@@ -1,0 +1,226 @@
+{
+  "manifest_version": "retest-run-manifest.v3",
+  "run_id": "natural-probe-3arm",
+  "collection_block_id": "block1",
+  "timestamp": "2026-07-20T11:06:17.280301Z",
+  "suite_version": "retest-mvp.v1",
+  "suite_hash": "2c5fc2d10cf373d70fa10b8492cf01d55b3bf065d57d3dca238d65e7b6e259a5",
+  "model_matrix_hash": "f64238c771d4fb4a601198f401690e8c52911984a4cbc93dd1dd7c8022a3f6c0",
+  "model_matrix": {
+    "matrix_version": "retest-model-matrix.v1",
+    "content_hash": null,
+    "models": [
+      {
+        "model_id": "probe-target-builtin",
+        "provider_id": "builtin",
+        "pinned_version": "builtin-stateful.v1",
+        "role": "target",
+        "expected_returned_model": null
+      },
+      {
+        "model_id": "probe-judge",
+        "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+        "pinned_version": "gpt-5.4-mini",
+        "role": "judge",
+        "expected_returned_model": null
+      },
+      {
+        "model_id": "probe-verifier",
+        "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+        "pinned_version": "gpt-5.4-mini",
+        "role": "verifier",
+        "expected_returned_model": null
+      }
+    ],
+    "allow_rolling_aliases": false
+  },
+  "model_identities": [
+    {
+      "model_id": "probe-target-builtin",
+      "role": "target",
+      "provider_id": "builtin",
+      "pinned_version": "builtin-stateful.v1",
+      "endpoint_fingerprint": "3eb1e244263d915913b60fe370095214a096408507dc82ea6c4fcbcb94b259ed",
+      "actual_model_revision": "builtin-stateful.v1",
+      "observed_system_fingerprints": [],
+      "prompt_hash": "2c5fc2d10cf373d70fa10b8492cf01d55b3bf065d57d3dca238d65e7b6e259a5"
+    },
+    {
+      "model_id": "probe-judge",
+      "role": "judge",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.4-mini",
+      "endpoint_fingerprint": "c61cf2e071789683b932addb9b5b8d472400df4c9404fdce813ed0f33d37cd6b",
+      "actual_model_revision": "gpt-5.4-mini-2026-03-17",
+      "observed_system_fingerprints": [],
+      "prompt_hash": "7213a2164b54ea904c96987ab902af5cab32b43ac45bb7147ae648b8767375d8"
+    },
+    {
+      "model_id": "probe-verifier",
+      "role": "verifier",
+      "provider_id": "b98979c7-bf60-4df0-976c-67b28272163b",
+      "pinned_version": "gpt-5.4-mini",
+      "endpoint_fingerprint": "c61cf2e071789683b932addb9b5b8d472400df4c9404fdce813ed0f33d37cd6b",
+      "actual_model_revision": "gpt-5.4-mini-2026-03-17",
+      "observed_system_fingerprints": [],
+      "prompt_hash": "c5611a98deef9ee12fbb92361130dc03097b107bb03d00baae93496c97ca4a27"
+    }
+  ],
+  "source_identity": {
+    "git_commit": "35894dfa9232bd843d57e94da237e870a4daf7af",
+    "dirty_tree_hash": "c5ab2733a8958bd0f757bfd781dbe7ebcb18d6a566cf1d91db1a0e0693572cfc"
+  },
+  "seeds": {
+    "bootstrap": 0,
+    "execution": 0
+  },
+  "config": {
+    "bootstrap_resamples": 1000,
+    "bootstrap_confidence": 0.95,
+    "retest": {
+      "max_retest_rounds": 1,
+      "current_retest_round": 0,
+      "quartet_enabled": false,
+      "canary_enabled": false,
+      "probe_available": true,
+      "probe_on_no_evidence": false
+    },
+    "human_gold_provided": false
+  },
+  "call_usage": {
+    "common_initial_target": {
+      "calls": 10,
+      "calls_with_metadata": 0,
+      "calls_with_tokens": 0,
+      "actual_token_count": null
+    },
+    "common_initial_judge": {
+      "calls": 10,
+      "calls_with_metadata": 10,
+      "calls_with_tokens": 10,
+      "actual_token_count": 30806
+    },
+    "arm_incremental": {
+      "A": {
+        "calls": 0,
+        "calls_with_metadata": 0,
+        "calls_with_tokens": 0,
+        "actual_token_count": 0
+      },
+      "A_prime": {
+        "calls": 10,
+        "calls_with_metadata": 10,
+        "calls_with_tokens": 10,
+        "actual_token_count": 31053
+      },
+      "B": {
+        "calls": 10,
+        "calls_with_metadata": 0,
+        "calls_with_tokens": 10,
+        "actual_token_count": 0
+      }
+    }
+  },
+  "per_cell_n": {
+    "probe-target-builtin": {
+      "A": {
+        "judge_asr": 8,
+        "strong_evidence_asr": 8,
+        "attack_fp_rate": 4,
+        "overturn_rate": 8,
+        "evidence_upgrade_rate": 8,
+        "extra_query_cost": 8,
+        "target_retest_queries": 8,
+        "judge_queries": 8,
+        "probe_steps": 8,
+        "actual_token_count": 8,
+        "actual_monetary_cost_usd": 8,
+        "utility_rate_clean": 1,
+        "over_defense_rate": 1,
+        "judge_vs_human_kappa": 0
+      },
+      "A_prime": {
+        "judge_asr": 8,
+        "strong_evidence_asr": 8,
+        "attack_fp_rate": 4,
+        "overturn_rate": 8,
+        "evidence_upgrade_rate": 8,
+        "extra_query_cost": 8,
+        "target_retest_queries": 8,
+        "judge_queries": 8,
+        "probe_steps": 8,
+        "actual_token_count": 8,
+        "actual_monetary_cost_usd": 0,
+        "utility_rate_clean": 1,
+        "over_defense_rate": 1,
+        "judge_vs_human_kappa": 0
+      },
+      "B": {
+        "judge_asr": 8,
+        "strong_evidence_asr": 8,
+        "attack_fp_rate": 4,
+        "overturn_rate": 8,
+        "evidence_upgrade_rate": 8,
+        "extra_query_cost": 8,
+        "target_retest_queries": 8,
+        "judge_queries": 8,
+        "probe_steps": 8,
+        "actual_token_count": 8,
+        "actual_monetary_cost_usd": 8,
+        "utility_rate_clean": 1,
+        "over_defense_rate": 1,
+        "judge_vs_human_kappa": 0
+      }
+    },
+    "pooled": {
+      "A": {
+        "judge_asr": 8,
+        "strong_evidence_asr": 8,
+        "attack_fp_rate": 4,
+        "overturn_rate": 8,
+        "evidence_upgrade_rate": 8,
+        "extra_query_cost": 8,
+        "target_retest_queries": 8,
+        "judge_queries": 8,
+        "probe_steps": 8,
+        "actual_token_count": 8,
+        "actual_monetary_cost_usd": 8,
+        "utility_rate_clean": 1,
+        "over_defense_rate": 1,
+        "judge_vs_human_kappa": 0
+      },
+      "A_prime": {
+        "judge_asr": 8,
+        "strong_evidence_asr": 8,
+        "attack_fp_rate": 4,
+        "overturn_rate": 8,
+        "evidence_upgrade_rate": 8,
+        "extra_query_cost": 8,
+        "target_retest_queries": 8,
+        "judge_queries": 8,
+        "probe_steps": 8,
+        "actual_token_count": 8,
+        "actual_monetary_cost_usd": 0,
+        "utility_rate_clean": 1,
+        "over_defense_rate": 1,
+        "judge_vs_human_kappa": 0
+      },
+      "B": {
+        "judge_asr": 8,
+        "strong_evidence_asr": 8,
+        "attack_fp_rate": 4,
+        "overturn_rate": 8,
+        "evidence_upgrade_rate": 8,
+        "extra_query_cost": 8,
+        "target_retest_queries": 8,
+        "judge_queries": 8,
+        "probe_steps": 8,
+        "actual_token_count": 8,
+        "actual_monetary_cost_usd": 8,
+        "utility_rate_clean": 1,
+        "over_defense_rate": 1,
+        "judge_vs_human_kappa": 0
+      }
+    }
+  }
+}

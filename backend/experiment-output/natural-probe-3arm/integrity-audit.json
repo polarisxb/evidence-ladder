@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "publication_ready": false,
+  "suite_hash": "2c5fc2d10cf373d70fa10b8492cf01d55b3bf065d57d3dca238d65e7b6e259a5",
+  "expected_records": 10,
+  "cache_records": 10,
+  "lineage_records": 10,
+  "errors": [],
+  "warnings": [
+    "model matrix does not declare a frozen content hash",
+    "judge and verifier use the same provider/model",
+    "small suite: 10 cases",
+    "percentile bootstrap intervals are degenerate for all-zero/all-one cells"
+  ],
+  "checksums": {
+    "initial-pass-cache.json": "3694b910d1ccf13b6cee8506780fdad029a4955b95c9d12016cc512a8cd0728a",
+    "lineages.jsonl": "065697940ba1afef8c23019e5bd0a23e8a78c5e6064a7c22d28682e6bc289a91",
+    "results.csv": "b013043f2339e52cbdd8fad6c061f9af629f253112b8fe647e9e0fcc57f0d81b",
+    "results.json": "6c9436b2c32138fb60da4d65ceed4faf427c33b266f2fcdbdf8ece9464b96050",
+    "run-manifest.json": "77c5ae0f957c2abeb9213cd132dc919a5bc318769e352ead47eb0f665b570e00"
+  }
+}
