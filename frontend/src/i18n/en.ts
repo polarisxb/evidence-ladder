@@ -874,8 +874,8 @@ export const en = {
     databaseUrl: "Database URL",
   },
   about: {
-    title: "TianJian Libra (天鉴 · 衡)",
-    subtitle: "An LLM application black-box security evaluation and judge-calibration platform. It examines AI applications through automated red-team attacks (Jian, 鉴 — to scrutinize) and calibrates the AI judge itself against human Gold Labels (Heng, 衡 — to weigh), producing reproducible, comparable, and auditable verdicts against prompt injection, system prompt leakage, jailbreak, and unauthorized tool invocation risks.",
+    title: "Evidence-Ladder",
+    subtitle: "An LLM application black-box security evaluation and judge-calibration platform. It examines AI applications through automated red-team attacks, calibrates the AI judge itself against human Gold Labels, and grades whether an attack actually succeeded on a six-level evidence ladder (E0–E5) instead of trusting a single judge's verdict — producing reproducible, comparable, and auditable results against prompt injection, system prompt leakage, jailbreak, and unauthorized tool invocation risks.",
     features: "Features",
     securityFrameworks: "Security Frameworks",
     researchReferences: "Research References",

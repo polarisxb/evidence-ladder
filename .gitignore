@@ -47,7 +47,13 @@ output/
 .worktrees/
 
 # Cursor
-.cursor/projects/
+# AI coding-assistant configuration — local-only, never published.
+# .codex/ and .cursor/ hold agent skill definitions, rules and prompt design.
+# They are developer tooling, not part of the released artifact, and they were
+# also where the last hard-coded contest identifiers survived. Kept on disk so
+# local workflow is unaffected; simply untracked.
+.codex/
+.cursor/
 
 # Windsurf — local-only Superpowers skills (cloned from obra/superpowers)
 # Skills are downloaded per machine; not committed to repo.

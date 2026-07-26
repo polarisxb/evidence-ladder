@@ -18,7 +18,7 @@ class TestConfigLoading:
         assert settings is not None
 
     def test_app_name(self) -> None:
-        assert settings.app_name == "TianJian Libra"
+        assert settings.app_name == "Evidence-Ladder"
 
     @_requires_root_env
     def test_api_key_loaded(self) -> None:

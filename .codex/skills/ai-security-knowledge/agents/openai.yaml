@@ -1,7 +1,0 @@
-interface:
-  display_name: "AI Security Knowledge"
-  short_description: "Domain guidance for AI and LLM application security testing."
-  default_prompt: "Use $ai-security-knowledge to guide a change to the AI security testing engine or attack analysis flow."
-
-policy:
-  allow_implicit_invocation: true
