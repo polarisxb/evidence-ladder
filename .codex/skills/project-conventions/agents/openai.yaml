@@ -1,7 +1,0 @@
-interface:
-  display_name: "Project Conventions"
-  short_description: "Repository-wide architecture, compatibility, and workflow guidance."
-  default_prompt: "Use $project-conventions to align this change with the repository structure and compatibility rules."
-
-policy:
-  allow_implicit_invocation: true
