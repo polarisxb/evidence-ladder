@@ -61,6 +61,7 @@ from app.services.retest_orchestrator import (
     resolve_retest_arm as _resolve_retest_arm,
     run_case_retest as _run_case_retest,
     persist_case_retest_lineage as _persist_case_retest_lineage,
+    apply_retest_writeback as _apply_retest_writeback,
 )
 from app.services.finding_classifier import is_confirmed_finding
 from app.services.quartet_generator import load_suite
@@ -647,18 +648,28 @@ async def _maybe_persist_case_retest(task, tpl: dict, case_attempt: dict) -> Non
         )
         return
     reason = "; ".join(sorted(lineage.initial_conflict_types)) or None
+    case_id = str(case_attempt.get("case_id") or "")
     try:
         async with _get_db_write_lock():
             async with async_session() as local_db:
                 await _persist_case_retest_lineage(
                     local_db,
                     task=task,
-                    case_id=str(case_attempt.get("case_id") or ""),
+                    case_id=case_id,
                     arm=arm,
                     retest_reason=reason,
                     lineage=lineage,
-                    auto_commit=True,
+                    auto_commit=False,
                 )
+                await _apply_retest_writeback(
+                    local_db,
+                    task=task,
+                    case_id=case_id,
+                    arm=arm,
+                    lineage=lineage,
+                    auto_commit=False,
+                )
+                await local_db.commit()
     except Exception as exc:
         logger.warning(
             "Persisting retest lineage failed for case %s: %s",

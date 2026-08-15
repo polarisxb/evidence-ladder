@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
@@ -9,7 +10,7 @@ _ROOT_ENV = str(_PROJECT_ROOT / ".env")
 
 
 class Settings(BaseSettings):
-    app_name: str = "TianJian Libra"
+    app_name: str = "Evidence-Ladder"
     debug: bool = False
 
     openai_api_key: str = ""
@@ -72,6 +73,17 @@ class Settings(BaseSettings):
     # verdict is still computed and recorded for diff (Phase 4b is
     # observable in both directions).
     verdict_arbiter_enabled: bool = False
+
+    # How a judge abstention (``manual_review_needed``) scores when no stronger
+    # evidence exists. A declared parameter of the measurement, not a tuning
+    # knob: the same observations give different ASR under each value, so a
+    # reported rate without it is not interpretable. Every assessment records
+    # the value it was scored under.
+    #   "e0"       -- undetermined, dropped from the denominator (default)
+    #   "negative" -- counts as no evidence of success (behaviour before this
+    #                 parameter existed; kept only for reproducing old runs)
+    #   "e2"       -- counts as a weak judge-suspected positive
+    abstention_policy: Literal["e0", "negative", "e2"] = "e0"
 
     # Root .env loaded first; local backend/.env can override.
     # extra="ignore" so non-backend vars (e.g. TARGET_MODEL) don't cause errors.

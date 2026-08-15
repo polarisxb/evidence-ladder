@@ -1,12 +1,12 @@
 ﻿# Evaluation Protocol
 
-TianJian Libra Black-Box Prompt Injection Evaluation Protocol  
+Evidence-Ladder Black-Box Prompt Injection Evaluation Protocol  
 Version: `v0.1-draft`  
 Date: `2026-03-25`
 
 ## 1. Purpose
 
-This protocol defines how TianJian Libra evaluates prompt injection and related black-box security risks against:
+This protocol defines how Evidence-Ladder evaluates prompt injection and related black-box security risks against:
 
 - base models
 - business prompt configurations
