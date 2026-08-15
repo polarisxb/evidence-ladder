@@ -31,6 +31,7 @@ from app.schemas.model_provider import (
     ModelProviderResponse,
     ModelProviderUpdate,
 )
+from app.services.url_guard import validate_target_url
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -107,6 +108,10 @@ async def _fetch_openai_compatible_model_ids(
         raise AppException(400, "base_url is required for custom providers")
 
     models_url = f"{base_url}/models"
+    # SSRF guard: base_url may be user-supplied for custom providers. Honour the
+    # same allow_localhost / allow_private flags used for attack targets.
+    if models_url.lower().startswith(("http://", "https://")):
+        validate_target_url(models_url)
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.get(

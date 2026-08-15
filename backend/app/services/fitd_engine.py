@@ -30,7 +30,11 @@ import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 
-from app.services.engine_utils import should_stop_check as _should_stop_check
+from app.services.engine_utils import (
+    normalize_refusal_text,
+    scaled_timeout,
+    should_stop_check as _should_stop_check,
+)
 from app.services.llm_scheduler import schedule_generation_call
 
 logger = logging.getLogger(__name__)
@@ -193,9 +197,10 @@ def _is_refusal(text: str) -> bool:
     """Return True if the response looks like a refusal."""
     if not text or not text.strip():
         return True
+    normalized = normalize_refusal_text(text)
     return bool(
-        _REFUSAL_PATTERNS.match(text)
-        or _REFUSAL_INLINE.search(text[:120])
+        _REFUSAL_PATTERNS.match(normalized)
+        or _REFUSAL_INLINE.search(normalized[:120])
     )
 
 
@@ -235,7 +240,7 @@ async def _generate_escalation_ladder(
                 temperature=0.8,
                 max_tokens=800,
             ),
-            timeout=FITD_LADDER_TIMEOUT_S,
+            timeout=scaled_timeout(FITD_LADDER_TIMEOUT_S),
         )
         lines = [ln.strip() for ln in raw.strip().splitlines() if ln.strip()]
         # Ensure we have exactly num_levels entries
@@ -273,7 +278,7 @@ async def _generate_midpoint(
                     temperature=0.7,
                     max_tokens=200,
                 ),
-                timeout=FITD_MIDPOINT_TIMEOUT_S,
+                timeout=scaled_timeout(FITD_MIDPOINT_TIMEOUT_S),
             )
             if raw and not _is_refusal(raw):
                 return raw.strip()
@@ -295,7 +300,7 @@ async def _detect_is_aligned(
                 temperature=0.0,
                 max_tokens=5,
             ),
-            timeout=FITD_DETECT_TIMEOUT_S,
+            timeout=scaled_timeout(FITD_DETECT_TIMEOUT_S),
         )
         return raw.strip().lower().startswith("yes")
     except Exception:
@@ -318,7 +323,7 @@ async def _judge_more_harmful(
                 temperature=0.0,
                 max_tokens=5,
             ),
-            timeout=FITD_JUDGE_TIMEOUT_S,
+            timeout=scaled_timeout(FITD_JUDGE_TIMEOUT_S),
         )
         result = raw.strip()
         if result.startswith("2"):
@@ -471,7 +476,7 @@ async def run_fitd(
                     try:
                         align_response = await asyncio.wait_for(
                             send_to_target(align_msg, extended_history),
-                            timeout=FITD_ALIGN_TIMEOUT_S,
+                            timeout=scaled_timeout(FITD_ALIGN_TIMEOUT_S),
                         )
                         result.total_queries += 1
                     except asyncio.TimeoutError:

@@ -6,6 +6,7 @@ from collections.abc import Sequence
 
 from app.database import async_session, init_db
 from app.models import ScanTask
+from app.services.llm_scheduler import init_scheduler
 from app.services.scan_runner import run_scan
 
 
@@ -22,6 +23,10 @@ async def _load_scan_task(scan_task_id: str) -> ScanTask | None:
 
 async def _run(args: argparse.Namespace) -> ScanTask:
     await init_db()
+    # The scheduler singletons are normally created by the FastAPI lifespan; this
+    # standalone entrypoint must initialise them too, otherwise every LLM call
+    # fails with "Scheduler not initialized".
+    await init_scheduler()
     await run_scan(args.scan_task_id, {})
     task = await _load_scan_task(args.scan_task_id)
     if task is None:

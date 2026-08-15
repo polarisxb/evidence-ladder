@@ -15,7 +15,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from time import monotonic
 
-from app.services.engine_utils import should_stop_check as _should_stop
+from app.services.engine_utils import scaled_timeout, should_stop_check as _should_stop
 from app.services.llm_scheduler import schedule_generation_call
 
 logger = logging.getLogger(__name__)
@@ -113,7 +113,7 @@ async def _gen_json_call(
             messages,
             json_mode=True, temperature=temperature, max_tokens=max_tokens,
         ),
-        timeout=timeout_s,
+        timeout=scaled_timeout(timeout_s),
     )
 
 
@@ -141,6 +141,9 @@ async def run_tap(
         success_threshold: Judge score threshold for success (paper: 10)
     """
     result = TapResult(success=False)
+    # Scale the overall tree time budget with the same multiplier so slower
+    # models still get to explore the tree rather than being cut after one node.
+    max_duration_s = scaled_timeout(max_duration_s)
     started_at = monotonic()
 
     leaves: list[TapNode] = [TapNode(prompt=base_payload, depth=0)]
@@ -188,7 +191,7 @@ async def run_tap(
             try:
                 node.response = await asyncio.wait_for(
                     send_to_target(node.prompt),
-                    timeout=TAP_TARGET_TIMEOUT_S,
+                    timeout=scaled_timeout(TAP_TARGET_TIMEOUT_S),
                 )
                 result.total_queries += 1
             except asyncio.TimeoutError:

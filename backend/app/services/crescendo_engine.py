@@ -17,7 +17,11 @@ import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 
-from app.services.engine_utils import should_stop_check as _should_stop
+from app.services.engine_utils import (
+    normalize_refusal_text,
+    scaled_timeout,
+    should_stop_check as _should_stop,
+)
 from app.services.llm_scheduler import schedule_generation_call
 
 logger = logging.getLogger(__name__)
@@ -115,7 +119,7 @@ class CrescendoResult:
 
 
 def _is_refusal(response: str) -> bool:
-    lower = response.lower()
+    lower = normalize_refusal_text(response).lower()
     return any(p in lower for p in REFUSAL_PATTERNS)
 
 
@@ -166,7 +170,7 @@ async def run_crescendo(
                     attacker_history,
                     json_mode=True, temperature=0.8, max_tokens=300,
                 ),
-                timeout=CRESCENDO_ATTACKER_TIMEOUT_S,
+                timeout=scaled_timeout(CRESCENDO_ATTACKER_TIMEOUT_S),
             )
             attacker_raw = attacker_raw or "{}"
             attacker_data = json.loads(attacker_raw)
@@ -217,7 +221,7 @@ async def run_crescendo(
                         ],
                         json_mode=True, temperature=0.9, max_tokens=200,
                     ),
-                    timeout=CRESCENDO_REPHRASE_TIMEOUT_S,
+                    timeout=scaled_timeout(CRESCENDO_REPHRASE_TIMEOUT_S),
                 )
                 rephrase_data = json.loads(rephrase_raw or "{}")
                 next_question = rephrase_data.get("next_question", next_question)
@@ -243,7 +247,7 @@ async def run_crescendo(
                     ],
                     json_mode=True, temperature=0.1, max_tokens=150,
                 ),
-                timeout=CRESCENDO_JUDGE_TIMEOUT_S,
+                timeout=scaled_timeout(CRESCENDO_JUDGE_TIMEOUT_S),
             )
             judge_data = json.loads(judge_raw or "{}")
             turn.judge_success = judge_data.get("success", False)
