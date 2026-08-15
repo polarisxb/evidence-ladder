@@ -15,6 +15,7 @@ from app.schemas.adapter import AdapterResponse
 from app.services.adapter_extractors import extract_adapter_response
 from app.services.adapter_renderer import build_adapter_context, render_template_tree
 from app.services.error_utils import sanitize_error
+from app.services.url_guard import validate_target_url
 
 HTTP_TIMEOUT_S = 30.0
 CUSTOM_COMPAT_TIMEOUT_S = 60.0
@@ -93,34 +94,72 @@ def _adapter_payload(adapter: Adapter | Mapping[str, Any]) -> dict[str, Any]:
     return coerce_adapter_payload(adapter)
 
 
+def _platform_secret_names() -> frozenset[str]:
+    """Names an adapter must not reference: those that configure the platform.
+
+    Derived from ``Settings.model_fields`` rather than hand-listed, so it cannot
+    drift as configuration grows. A hand-maintained denylist was tried on
+    another branch and already missed ``database_url``.
+
+    ``Settings`` declares no ``env_prefix``, so every field name is also the
+    environment variable that populates it -- which is why removing the
+    ``settings:`` reflection alone does not close the hole: ``app_secret`` and
+    ``openai_api_key`` are readable through the environment path too.
+    """
+    return frozenset(name.lower() for name in type(settings).model_fields)
+
+
+_PLATFORM_SECRET_NAMES = _platform_secret_names()
+
+
 def _resolve_secret_ref(secret_ref: str) -> str:
+    """Resolve an adapter's auth secret reference from the environment.
+
+    The resolved value is attached as a credential to a request whose host the
+    adapter itself chooses (an absolute ``invoke_config.path`` replaces
+    ``base_url`` outright -- see ``_request_url``). So whatever this function is
+    willing to return, an adapter can ship to a host of its choosing.
+
+    Two things are therefore refused:
+
+    * **Platform settings.** Previously reachable twice over -- explicitly via a
+      ``settings:`` prefix, and implicitly via a reflective fallback that
+      lowercased a bare reference and read it off ``settings``. Both are gone,
+      *and* the environment lookup below rejects the same names, because
+      pydantic-settings populates ``Settings`` from those very variables.
+    * Nothing else. Any other environment variable is fair game; that is the
+      intended mechanism.
+
+    Every reference in the repository is a bare environment-variable name, so
+    this is behaviour-preserving for real configurations.
+    """
     ref = secret_ref.strip()
     if not ref:
         raise AppException(400, "auth_config.secret_ref cannot be empty")
 
-    if ref.startswith("env:"):
-        env_name = ref.split(":", 1)[1].strip()
-        secret = os.getenv(env_name, "")
-        if secret:
-            return secret
-        raise AppException(400, f"Secret reference env:{env_name} is not configured")
-
     if ref.startswith("settings:"):
-        attr_name = ref.split(":", 1)[1].strip()
-        secret = getattr(settings, attr_name, "")
-        if secret:
-            return str(secret)
-        raise AppException(400, f"Secret reference settings:{attr_name} is not configured")
+        raise AppException(
+            400,
+            "auth_config.secret_ref may not read platform settings. Store the adapter's "
+            "own credential in a dedicated environment variable (for example "
+            "'ADAPTER_TARGET_TOKEN') and reference that.",
+        )
 
-    env_secret = os.getenv(ref, "")
-    if env_secret:
-        return env_secret
+    env_name = ref.split(":", 1)[1].strip() if ref.startswith("env:") else ref
+    if not env_name:
+        raise AppException(400, "auth_config.secret_ref cannot be empty")
 
-    normalized_attr = ref.lower().replace("-", "_")
-    attr_secret = getattr(settings, normalized_attr, "")
-    if attr_secret:
-        return str(attr_secret)
+    if env_name.lower().replace("-", "_") in _PLATFORM_SECRET_NAMES:
+        raise AppException(
+            400,
+            f"auth_config.secret_ref '{env_name}' names a platform setting and cannot be "
+            "used as an adapter credential. Copy the value into a dedicated environment "
+            "variable (for example 'ADAPTER_TARGET_TOKEN') and reference that instead.",
+        )
 
+    secret = os.getenv(env_name, "")
+    if secret:
+        return secret
     raise AppException(400, f"Secret reference {ref} is not configured")
 
 
@@ -187,11 +226,24 @@ def _build_invoke_body(
     }
 
 
+def _is_absolute_http_url(value: str) -> bool:
+    """True when ``urljoin`` would treat ``value`` as an absolute http(s) URL.
+
+    RFC 3986 schemes are case-insensitive and ``urljoin`` honours that, so a
+    plain ``startswith("http://")`` test disagrees with what actually happens
+    downstream: ``HTTP://host/x`` fails the test, is therefore handled as a
+    relative path, and is then resolved by ``urljoin`` as absolute anyway --
+    escaping ``base_url`` through a branch the code believes cannot escape it.
+    Matching case-insensitively keeps the check and the resolution in step.
+    """
+    return value.lower().startswith(("http://", "https://"))
+
+
 def _request_path(default_path: str, configured_path: Any) -> str:
     raw = str(configured_path or default_path).strip()
     if not raw:
         raw = default_path
-    if raw.startswith("http://") or raw.startswith("https://"):
+    if _is_absolute_http_url(raw):
         return raw
     if not raw.startswith("/"):
         return f"/{raw}"
@@ -199,7 +251,7 @@ def _request_path(default_path: str, configured_path: Any) -> str:
 
 
 def _request_url(base_url: str, path: str) -> str:
-    if path.startswith("http://") or path.startswith("https://"):
+    if _is_absolute_http_url(path):
         return path
     return urljoin(f"{base_url.rstrip('/')}/", path.lstrip("/"))
 
@@ -235,6 +287,15 @@ async def _request_json(
     _apply_auth(auth_config=adapter.get("auth_config"), headers=headers, query=query)
 
     url = _request_url(str(adapter.get("base_url") or ""), path)
+    # SSRF guard on the *resolved* URL, not on base_url. Unlike the target path
+    # (api/scans.py, api/targets.py, target_client.py) the adapter path has no
+    # ingress validation at all, so this is the primary guard rather than
+    # defence in depth. It must run after _request_url because an absolute
+    # invoke_config.path replaces base_url outright, and because that path is
+    # rendered from the runtime context by render_template_tree -- validating
+    # base_url alone would check a host the request never reaches.
+    # UnsafeTargetURL is an AppException, so it surfaces as HTTP 400.
+    validate_target_url(url)
     kwargs: dict[str, Any] = {"headers": headers, "params": query}
     if method not in {"GET", "DELETE"} and body is not None:
         kwargs["json"] = body

@@ -1,0 +1,6 @@
+# Shell scripts must stay LF. sh fails on CRLF ("bad interpreter", "$'\r':
+# command not found"), and core.autocrlf=true — the Git for Windows default —
+# would otherwise rewrite them on checkout, silently disabling the pre-push
+# guard on every Windows clone.
+*.sh text eol=lf
+scripts/hooks/* text eol=lf
