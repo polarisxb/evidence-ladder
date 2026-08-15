@@ -69,3 +69,15 @@ npm run build             # tsc + vite build
 - 运行期产物：`backend/data/`、构建产物 `frontend/dist/`
 - 临时脚本/笔记：`.tmp_*`、`*_tmp.md`
 - 参赛/私有材料（见 `.gitignore` 中相关条目）
+
+### 安装发布防护钩子 / Install the publish guard
+
+有一部分分支与路径是**本地专用**的（未发表草稿、参赛材料、内部工作文档）。`.gitignore` 挡不住它们——那些文件在专门用于版本化它们的分支上是**被跟踪的**，而 `.gitignore` 对已跟踪文件无效。所以闸门是一个 `pre-push` 钩子。
+
+**每个 clone 装一次**（钩子目录不受版本控制，clone 不会带过来）：
+
+```bash
+sh scripts/install-hooks.sh
+```
+
+它会拒绝推送私有分支，以及任何触碰不可发布路径的推送。确有需要时用 `git push --no-verify` 绕过。
