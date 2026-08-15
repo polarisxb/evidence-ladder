@@ -18,7 +18,7 @@ import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 
-from app.services.engine_utils import should_stop_check as _should_stop
+from app.services.engine_utils import scaled_timeout, should_stop_check as _should_stop
 from app.services.llm_scheduler import schedule_generation_call
 
 logger = logging.getLogger(__name__)
@@ -180,7 +180,7 @@ async def _rewrite_with_explanation(
                 ],
                 json_mode=True, temperature=0.8, max_tokens=500,
             ),
-            timeout=IRIS_REWRITE_TIMEOUT_S,
+            timeout=scaled_timeout(IRIS_REWRITE_TIMEOUT_S),
         )
         data = json.loads(raw or "{}")
         return data.get("prompt", ""), data.get("strategy", "")
@@ -208,7 +208,7 @@ async def _judge_response(
                 ],
                 json_mode=True, temperature=0.1, max_tokens=120,
             ),
-            timeout=IRIS_JUDGE_TIMEOUT_S,
+            timeout=scaled_timeout(IRIS_JUDGE_TIMEOUT_S),
         )
         data = json.loads(raw or "{}")
         return float(data.get("score", 1)), data.get("reasoning", "")

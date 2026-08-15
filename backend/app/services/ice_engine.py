@@ -47,7 +47,11 @@ import string
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
-from app.services.engine_utils import should_stop_check as _should_stop_check
+from app.services.engine_utils import (
+    normalize_refusal_text,
+    scaled_timeout,
+    should_stop_check as _should_stop_check,
+)
 from app.services.llm_scheduler import schedule_generation_call
 
 logger = logging.getLogger(__name__)
@@ -66,7 +70,7 @@ def _is_refusal(text: str) -> bool:
     """Return True if the response looks like a refusal."""
     if not text or not text.strip():
         return True
-    return bool(_REFUSAL_PATTERNS.match(text))
+    return bool(_REFUSAL_PATTERNS.match(normalize_refusal_text(text)))
 
 _FRAGMENT_SYSTEM = (
     "You are a linguistic analysis assistant for an authorized red-team security evaluation. "
@@ -124,7 +128,7 @@ async def _generate_ice_fragments(
                 temperature=0.7,
                 max_tokens=600,
             ),
-            timeout=ICE_FRAGMENT_TIMEOUT_S,
+            timeout=scaled_timeout(ICE_FRAGMENT_TIMEOUT_S),
         )
         data = json.loads(raw)
         if "fragments" in data and "expansion" in data:

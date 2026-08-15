@@ -8,6 +8,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from app.schemas.report import AnalysisResult
+from app.services.engine_utils import normalize_refusal_text
 
 ResponseOrigin = Literal[
     "model",
@@ -413,7 +414,10 @@ def screen_response_origin(
     response_text = _normalized_string(envelope.response_text)
     response_error = _normalized_string(envelope.response_error)
     combined_text = "\n".join(part for part in (response_error, response_text) if part)
-    lowered_text = response_text.lower()
+    # Fold typographic apostrophes/quotes (U+2019 etc.) so a known fallback
+    # template rendered with smart quotes still matches its ASCII signature
+    # and is marked not_evaluable instead of judged as a real model response.
+    lowered_text = normalize_refusal_text(response_text).lower()
     default_origin, default_confidence = _default_origin(envelope.target_type)
 
     # ---- Level 1: Provenance protocol (header or body) ----

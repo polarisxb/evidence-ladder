@@ -7,6 +7,7 @@ from collections import Counter
 
 from app.schemas.report import AnalysisResult
 from app.services.canary_utils import collect_canary_tokens, contains_canary
+from app.services.engine_utils import normalize_refusal_text
 
 
 CONTROL_VARIANT_VERSION = "quartet_v1"
@@ -320,5 +321,8 @@ def _text_similarity(a: str, b: str) -> float:
 
 
 def _looks_like_refusal(text: str) -> bool:
-    lowered = text.lower()
+    # Fold typographic apostrophes (U+2019 etc.) so ASCII markers like
+    # "i can't" still match real model output, matching the engines'
+    # refusal detection.
+    lowered = normalize_refusal_text(text).lower()
     return any(marker in lowered for marker in _REFUSAL_MARKERS)

@@ -24,6 +24,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from app.services.engine_utils import normalize_refusal_text
+
 
 @dataclass(frozen=True)
 class RefusalSignatureMatch:
@@ -93,7 +95,12 @@ def match_refusal_signature(
     if not response_text:
         return None
 
-    lowered = response_text.strip().lower()
+    # Fold typographic apostrophes/quotes (U+2019 etc.) so signatures authored
+    # with ASCII quotes (e.g. "i'm here to help...") still match real model
+    # output. This is a corroborating defense signal; without normalization a
+    # smart-quote refusal would silently miss it.
+    normalized_text = normalize_refusal_text(response_text)
+    lowered = normalized_text.strip().lower()
     if not lowered:
         return None
 
@@ -121,7 +128,7 @@ def match_refusal_signature(
             continue
         # regex
         try:
-            if re.search(pattern_raw, response_text, re.IGNORECASE):
+            if re.search(pattern_raw, normalized_text, re.IGNORECASE):
                 return RefusalSignatureMatch(signature_id, rationale)
         except re.error:
             # Malformed patterns must not break the judgement pipeline;

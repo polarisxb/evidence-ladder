@@ -17,6 +17,7 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+from app.services.latency_tracker import record_latency
 from app.services.llm_client import (
     ChatCallResult,
     LLMAPIError,
@@ -195,6 +196,10 @@ class AIMDController:
         """Signal a successful call. Adjusts concurrency window upward."""
         bucket = self._get(key)
         rtt = time.monotonic() - start_time
+
+        # Feed the global latency estimate so attack-engine timeouts can adapt
+        # to the target/relay model's real speed (see engine_utils.scaled_timeout).
+        record_latency(rtt)
 
         async with bucket._lock:
             bucket.in_flight -= 1
@@ -751,6 +756,7 @@ async def schedule_fixed_call(
     json_mode: bool = False,
     max_tokens: int = 1024,
     capture_metadata: bool = False,
+    seed: int | None = None,
 ) -> str | ChatCallResult:
     global _retry_bucket
 
@@ -788,6 +794,7 @@ async def schedule_fixed_call(
                     max_tokens=max_tokens,
                     temperature=temperature,
                     json_mode=json_mode,
+                    seed=seed,
                 )
                 response_content = result.content
             else:
@@ -798,6 +805,7 @@ async def schedule_fixed_call(
                     max_tokens=max_tokens,
                     temperature=temperature,
                     json_mode=json_mode,
+                    seed=seed,
                 )
                 response_content = result
 

@@ -270,6 +270,7 @@ async def call_chat(
     max_tokens: int = _DEFAULT_MAX_TOKENS,
     temperature: float = 0.7,
     json_mode: bool = False,
+    seed: int | None = None,
 ) -> str:
     """Send a chat request to the given provider and return the response text.
 
@@ -285,6 +286,8 @@ async def call_chat(
         json_mode: If True, instruct the model to respond with valid JSON.
                    For OpenAI-compatible providers this sets response_format.
                    For Anthropic this injects a JSON instruction + pre-fill.
+        seed: Best-effort determinism for OpenAI-compatible providers; ignored
+              by Anthropic, which has no such parameter.
 
     Returns:
         The assistant's response as a plain string.
@@ -294,6 +297,7 @@ async def call_chat(
         max_tokens=max_tokens,
         temperature=temperature,
         json_mode=json_mode,
+        seed=seed,
     )
     return result.content
 
@@ -306,8 +310,10 @@ async def call_chat_with_metadata(
     max_tokens: int = _DEFAULT_MAX_TOKENS,
     temperature: float = 0.7,
     json_mode: bool = False,
+    seed: int | None = None,
 ) -> ChatCallResult:
     if info.provider_type == "claude":
+        # Anthropic has no ``seed`` parameter; it is silently ignored there.
         return await _call_anthropic(
             info,
             model,
@@ -323,6 +329,7 @@ async def call_chat_with_metadata(
         max_tokens=max_tokens,
         temperature=temperature,
         json_mode=json_mode,
+        seed=seed,
     )
 
 
@@ -338,6 +345,7 @@ async def _call_openai_compatible(
     max_tokens: int,
     temperature: float,
     json_mode: bool,
+    seed: int | None = None,
 ) -> ChatCallResult:
     from openai import AsyncOpenAI, RateLimitError, APIError
 
@@ -352,6 +360,10 @@ async def _call_openai_compatible(
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
+    # Best-effort determinism: only sent when explicitly requested. Providers
+    # that don't support ``seed`` (e.g. most non-OpenAI backends) ignore it.
+    if seed is not None:
+        kwargs["seed"] = seed
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
 
