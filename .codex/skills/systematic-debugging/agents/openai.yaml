@@ -1,7 +1,0 @@
-interface:
-  display_name: "Systematic Debugging"
-  short_description: "Root-cause-first debugging workflow for bugs and regressions."
-  default_prompt: "Use $systematic-debugging to investigate this bug before proposing or applying a fix."
-
-policy:
-  allow_implicit_invocation: true

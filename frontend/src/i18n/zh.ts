@@ -873,8 +873,8 @@ export const zh = {
     databaseUrl: "数据库地址",
   },
   about: {
-    title: "天鉴 · 衡（TianJian Libra）",
-    subtitle: "大模型应用黑盒安全评测与裁判校准平台。以自动化红队攻击对 AI 应用进行审视（**鉴**），再以人工 Gold Label 对 AI 裁判本身进行校准（**衡**），形成可复现、可比较、可审计的评测闭环，识别提示词注入、系统提示词泄露、越狱和工具越权调用等风险。",
+    title: "Evidence-Ladder",
+    subtitle: "大模型应用黑盒安全评测与裁判校准平台。以自动化红队攻击对 AI 应用进行**审视**，再以人工 Gold Label 对 AI 裁判本身进行**校准**，并把「攻击是否成功」按证据强度分层（**E0–E5**）而非交给单一裁判判定，形成可复现、可比较、可审计的评测闭环，识别提示词注入、系统提示词泄露、越狱和工具越权调用等风险。",
     features: "核心功能",
     securityFrameworks: "安全框架",
     researchReferences: "研究参考",

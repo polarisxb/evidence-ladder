@@ -9,7 +9,7 @@ _ROOT_ENV = str(_PROJECT_ROOT / ".env")
 
 
 class Settings(BaseSettings):
-    app_name: str = "TianJian Libra"
+    app_name: str = "Evidence-Ladder"
     debug: bool = False
 
     openai_api_key: str = ""

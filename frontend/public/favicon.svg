@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <title>天鉴·衡 · TianJian Libra</title>
-  <!-- 深墨夜空底（LLM 黑盒意象） -->
+  <title>Evidence-Ladder</title>
+  <!-- 深墨夜空底：被审视的 LLM 黑盒 -->
   <rect width="64" height="64" rx="12" fill="#0f172a"/>
-  <!-- 金色弧线：Libra ♎ 上半 = "天"的穹顶 -->
+  <!-- 金色弧线：天平横梁，证据被称量 -->
   <path d="M 14 28 Q 32 18 50 28"
     stroke="#d97706" stroke-width="5" stroke-linecap="round" fill="none"/>
-  <!-- 白色横线：Libra ♎ 下半 = "衡"的天平杆 -->
+  <!-- 白色横线：基准线，E0–E5 的判定阈 -->
   <line x1="14" y1="42" x2="50" y2="42"
     stroke="#f8fafc" stroke-width="5" stroke-linecap="round"/>
 </svg>

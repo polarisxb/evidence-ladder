@@ -1,7 +1,0 @@
-interface:
-  display_name: "React Dashboard"
-  short_description: "Frontend implementation patterns for the React dashboard in this repo."
-  default_prompt: "Use $react-dashboard to build or modify a dashboard page, data view, or UI workflow in this repository."
-
-policy:
-  allow_implicit_invocation: true
