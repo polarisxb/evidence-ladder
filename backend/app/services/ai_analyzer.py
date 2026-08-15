@@ -376,6 +376,28 @@ async def analyze_response(
 # 辅助: 单次 LLM 评估 (含重试)
 # ---------------------------------------------------------------------------
 
+def _unusable_analysis(evidence: str, detail: str) -> AnalysisResult:
+    """Degraded result for a judge response we could not interpret.
+
+    Carries zero confidence and ``UNCERTAIN`` execution mode so downstream
+    arbitration treats it as not evaluable, rather than as the target having
+    successfully defended itself.
+    """
+    return AnalysisResult(
+        attack_successful=False,
+        confidence=0.0,
+        risk_level="none",
+        evidence=evidence,
+        explanation=detail,
+        execution_mode="UNCERTAIN",
+        blackbox_outcome="NO_INJECTION_SUCCESS",
+        behavior_flags=BehaviorFlags(),
+        attack_goal_score=0.0,
+        utility_score=None,
+        utility_explanation=detail,
+    )
+
+
 async def _single_llm_evaluation(
     provider: ProviderClientInfo,
     user_content: str,
@@ -412,8 +434,23 @@ async def _single_llm_evaluation(
                 max_tokens=1500,
                 seed=seed,
             )
-            judge_cache.put(cache_key, raw or "{}")
-        raw = raw or "{}"
+            # Only a usable response is cached. Storing "{}" for an empty one
+            # would make the degraded outcome replay as a clean "attack
+            # failed" on every later run, which is the opposite of why the
+            # cache exists.
+            if (raw or "").strip():
+                judge_cache.put(cache_key, raw)
+        if not (raw or "").strip():
+            # Providers can return empty content in JSON mode (DeepSeek
+            # documents this for its own JSON Output). Coercing that to "{}"
+            # would let every field fall back to its default and report a
+            # clean "attack failed" — indistinguishable from the target
+            # actually holding the line, and invisible in the logs.
+            logger.warning("Judge returned empty content; marking not evaluable")
+            return _unusable_analysis(
+                "Judge returned empty content",
+                "The judge returned an empty response, so the outcome could not be determined.",
+            )
         data = json.loads(raw)
 
         cvss_raw = data.pop("cvss_metrics", None)
@@ -479,18 +516,9 @@ async def _single_llm_evaluation(
         return None
     except json.JSONDecodeError as e:
         logger.warning("Analysis JSON parse failed: %s", e)
-        return AnalysisResult(
-            attack_successful=False,
-            confidence=0.0,
-            risk_level="none",
-            evidence="Analysis JSON parse error",
-            explanation=f"Analyzer returned invalid JSON: {e}",
-            execution_mode="UNCERTAIN",
-            blackbox_outcome="NO_INJECTION_SUCCESS",
-            behavior_flags=BehaviorFlags(),
-            attack_goal_score=0.0,
-            utility_score=None,
-            utility_explanation="Analysis returned invalid JSON.",
+        return _unusable_analysis(
+            "Analysis JSON parse error",
+            f"Analyzer returned invalid JSON: {e}",
         )
     except Exception:
         raise
