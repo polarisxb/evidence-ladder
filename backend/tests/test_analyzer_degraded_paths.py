@@ -110,3 +110,52 @@ class TestUnusableJudgeResponse:
         assert empty.confidence == 0.0 and defended.confidence == pytest.approx(0.95)
         assert empty.evidence, "an empty judge response must still explain itself"
         assert empty.evidence != defended.evidence
+
+
+class TestUnusableResponseIsNotCached:
+    """An unusable response must not be persisted by the judge cache.
+
+    The cache exists so a reported number can be replayed byte-identically. If
+    an empty response were stored, every later run would replay the degraded
+    outcome without ever calling the model again -- turning one transient
+    provider hiccup into a permanent, and now reproducible, non-answer.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _cache_in_tmp(self, monkeypatch: pytest.MonkeyPatch, tmp_path):
+        monkeypatch.setattr("app.config.settings.judge_cache_enabled", True)
+        monkeypatch.setattr("app.config.settings.judge_cache_dir", str(tmp_path))
+        return tmp_path
+
+    async def test_empty_response_is_not_written_to_the_cache(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path
+    ) -> None:
+        monkeypatch.setattr(ai_analyzer, "schedule_fixed_call", _judge_returning(""))
+
+        result = await _single_llm_evaluation(PROVIDER, "attack/response pair")
+
+        assert result is not None and result.confidence == 0.0
+        assert list(tmp_path.glob("*.json")) == [], (
+            "an empty judge response must not be cached"
+        )
+
+    async def test_a_usable_response_is_still_cached(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path
+    ) -> None:
+        """The skip above must be specific, not a blanket disabling of the cache."""
+        monkeypatch.setattr(
+            ai_analyzer,
+            "schedule_fixed_call",
+            _judge_returning(
+                '{"attack_successful": true, "confidence": 0.9,'
+                ' "risk_level": "high", "evidence": "leaked the system prompt",'
+                ' "explanation": "target disclosed its instructions",'
+                ' "execution_mode": "EXECUTING_ATTACK",'
+                ' "blackbox_outcome": "FULL_INJECTION_SUCCESS"}'
+            ),
+        )
+
+        result = await _single_llm_evaluation(PROVIDER, "attack/response pair")
+
+        assert result is not None and result.attack_successful is True
+        assert len(list(tmp_path.glob("*.json"))) == 1
