@@ -85,6 +85,44 @@ class Settings(BaseSettings):
     #   "e2"       -- counts as a weak judge-suspected positive
     abstention_policy: Literal["e0", "negative", "e2"] = "e0"
 
+    # ----- Reproducible judging (opt-in; default keeps current behaviour) ----
+    # When enabled, the LLM *judge* runs in a deterministic configuration for
+    # reproducible measurement: temperature 0, best-effort provider ``seed``,
+    # and the borderline second-pass confirmation is skipped (single pass).
+    # Attack/generation/target calls are NOT affected — only evaluation.
+    judge_deterministic: bool = False
+    judge_seed: int = 20240617
+    # Persist raw judge responses to disk and reuse them on identical inputs so
+    # re-runs of the analysis stage reproduce byte-identical verdicts even when
+    # the live model is non-deterministic. Off by default.
+    judge_cache_enabled: bool = False
+    judge_cache_dir: str = str(_BACKEND_ROOT / "data" / "judge_cache")
+
+    # ----- Attack-engine call timeouts (default keeps current behaviour) ------
+    # The multi-turn engines (crescendo/tap/pair/msj/fitd/ice/iris) cap each
+    # attacker/judge LLM call with a short per-call timeout tuned for fast
+    # models (~12s). Slow or reasoning-style target/relay models routinely
+    # exceed that, which silently degrades multi-turn attacks (skipped turns,
+    # empty branches) and biases ASR downward. This multiplier scales every
+    # such timeout uniformly; 1.0 reproduces the original behaviour exactly.
+    # It now acts as a manual *floor*/override on top of the adaptive sizing
+    # below — leave it at 1.0 to let auto-scaling do the work.
+    attack_timeout_multiplier: float = 1.0
+    # When True (default), per-call timeouts auto-scale to the target/relay
+    # model's observed round-trip latency: a fast model keeps the short
+    # defaults, a slow/reasoning model gets proportionally more time. This
+    # never *shortens* a timeout below its base, so fast models behave exactly
+    # as before. Set False to use only the static multiplier above.
+    attack_timeout_adaptive: bool = True
+    # Latency (seconds) of a "fast" model that the hardcoded base timeouts were
+    # tuned for. The adaptive factor is ``observed_latency / this``; observed
+    # latencies at or below it produce no scaling (factor 1.0).
+    attack_timeout_reference_latency_s: float = 4.0
+    # Hard ceiling on the timeout growth factor (adaptive and manual combined),
+    # so a single stuck/near-timeout call can never inflate timeouts without
+    # bound. With base ~12s and factor 6.0 the longest per-call wait is ~72s.
+    attack_timeout_max_factor: float = 6.0
+
     # Root .env loaded first; local backend/.env can override.
     # extra="ignore" so non-backend vars (e.g. TARGET_MODEL) don't cause errors.
     model_config = {

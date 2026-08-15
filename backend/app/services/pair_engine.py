@@ -18,7 +18,7 @@ import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 
-from app.services.engine_utils import should_stop_check as _should_stop
+from app.services.engine_utils import scaled_timeout, should_stop_check as _should_stop
 from app.services.llm_scheduler import schedule_generation_call
 
 logger = logging.getLogger(__name__)
@@ -171,7 +171,7 @@ async def _refine_prompt(
                 ],
                 json_mode=True, temperature=0.9, max_tokens=500,
             ),
-            timeout=PAIR_REFINE_TIMEOUT_S,
+            timeout=scaled_timeout(PAIR_REFINE_TIMEOUT_S),
         )
         data = json.loads(raw or "{}")
         return (
@@ -203,7 +203,7 @@ async def _judge_response(
                 ],
                 json_mode=True, temperature=0.1, max_tokens=120,
             ),
-            timeout=PAIR_JUDGE_TIMEOUT_S,
+            timeout=scaled_timeout(PAIR_JUDGE_TIMEOUT_S),
         )
         data = json.loads(raw or "{}")
         return float(data.get("score", 1)), data.get("reasoning", "")
