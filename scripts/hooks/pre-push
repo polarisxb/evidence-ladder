@@ -1,0 +1,78 @@
+#!/bin/sh
+#
+# Refuse to publish the private paper line, contest archives and internal docs.
+#
+# Some branches and paths in this repository are local-only: unpublished paper
+# drafts, contest submission material and internal working docs. .gitignore
+# cannot hold that line, because those files are deliberately TRACKED on the
+# branch that exists to version them -- .gitignore has no effect on tracked
+# files. So the gate has to be a hook.
+#
+# Install with scripts/install-hooks.sh. It is copied into the repository's
+# hooks directory rather than wired up through core.hooksPath on purpose: the
+# hook must stay active no matter which branch a worktree has checked out, and a
+# tracked hooks path disappears the moment you check out a branch that predates
+# this file.
+#
+# Bypassable with --no-verify by design: this stops accidents, not decisions.
+
+remote_name="$1"
+remote_url="$2"
+zero=$(git hash-object --stdin </dev/null | tr '[0-9a-f]' '0')
+
+# Branches that must never be pushed anywhere, whatever the refspec says.
+private_branches="paper-workspace"
+
+# Paths that must never appear in a pushed commit -- the backstop for a private
+# doc reaching a public branch by cherry-pick. Extended regex over every changed
+# path in the pushed range. docs/papers/ is deliberately absent: main tracks the
+# citation index there, so only the paper line's own additions are private.
+forbidden_paths='(参赛总文件夹|docs/内部参考|docs/对外成稿/|docs/_archive/|docs/paper_direction|docs/must_cite|docs/exploration_findings|docs/first_order_experiment_redesign|docs/formal_pilot_readiness_review|docs/canary_provenance_plan|docs/ppt-materials/|docs/dachuang|\.env$)'
+
+blocked=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+	# Last field keeps a CR when stdin is fed CRLF (hand-testing from PowerShell).
+	remote_sha=$(printf '%s' "$remote_sha" | tr -d '\r')
+
+	# Deleting a remote ref pushes the zero sha; nothing to inspect.
+	[ "$local_sha" = "$zero" ] && continue
+
+	local_branch=${local_ref#refs/heads/}
+	for private in $private_branches; do
+		if [ "$local_branch" = "$private" ]; then
+			echo "pre-push: refusing to push '$private' to $remote_name ($remote_url)." >&2
+			echo "  It carries unpublished paper material and is local-only by design." >&2
+			blocked=1
+		fi
+	done
+
+	if [ "$remote_sha" = "$zero" ]; then
+		range=$(git rev-list "$local_sha" --not --remotes="$remote_name")
+	else
+		range=$(git rev-list "$remote_sha..$local_sha")
+	fi
+	[ -z "$range" ] && continue
+
+	# quotePath=false: git otherwise octal-escapes non-ASCII paths, and every
+	# private directory here is Chinese-named -- the patterns would never match.
+	hits=$(
+		echo "$range" \
+			| git -c core.quotePath=false diff-tree --stdin --no-commit-id --name-only -r \
+			| sort -u \
+			| grep -E "$forbidden_paths"
+	)
+	if [ -n "$hits" ]; then
+		echo "pre-push: refusing to push $local_ref -- it touches never-publish paths:" >&2
+		echo "$hits" | sed 's/^/  /' >&2
+		blocked=1
+	fi
+done
+
+if [ "$blocked" -ne 0 ]; then
+	echo "" >&2
+	echo "Nothing was pushed. See the \"Do not commit\" section of CONTRIBUTING.md." >&2
+	exit 1
+fi
+
+exit 0
