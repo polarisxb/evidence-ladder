@@ -155,16 +155,59 @@ fixture 用 `temperature=0` 且**指示模型回显 canary**,导致 ground truth
 
 ---
 
-## 3. 与 bug 的关系(2026-07-26 澄清)
+## 3. 与 bug 的关系(2026-08-15 重做,原论证有误)
 
-产品扫描管线在此期间修复了若干评测器 bug(`b82186e` concealment provenance、`fc49380` evidence arbiter
-E4 降级、`5d00e82` text_claim 计数、以及拒绝识别的弯排版撇号问题)。**这些 bug 不影响本目录下的任何数据。**
+> ### ⛔ 原论证被证伪,但结论经实测后依然成立
+>
+> 本节原先声称「这些 bug 不影响本目录下的任何数据」,依据是「`experiment_driver.py` **没有 import**
+> `evidence_arbiter`」。**该依据是错的。** 实际打分链路为:
+>
+> ```
+> experiment_driver → retest_experiment.run_experiment_case
+>                   → _loop_arm("A", ...) → arbitrate_evidence   ← evidence_arbiter
+> ```
+>
+> `retest_experiment.py` 第 24 行 import 了 `arbitrate_evidence`,第 120 行调用它。**每个臂的证据等级都出自
+> 这个函数**,所以采集之后落地的 arbiter 修复(如 `fc49380`)原则上**可能**改变重算结果。此前从未有人检查过它
+> 到底有没有改变。
+>
+> `concealment_detector` 与 `autotest_metrics` 确实不在实验台的 import 闭包内,该部分原论证成立。
 
-`experiment_driver.py` 是自成一体的实验台,其判定只经过两条链路:oracle 精确匹配与 LLM 裁判。它**没有 import**
-`evidence_arbiter`、`concealment_detector`、`autotest_metrics`,其目标调用 `invoke_target_with_envelope`
-**不经过** `screen_response_origin`。上述 bug 全部位于产品扫描管线。
+**现在这个问题由实测回答,不再靠推理。** `backend/scripts/rescore_archived_runs.py` 用缓存的初测结果离线重放
+Arm A(空执行器、零补测轮次,**不产生任何模型调用与费用**),再与记录的 `lineages.jsonl` 逐用例逐字段比对。
+以那批 run 当时实际使用的弃权策略(`negative`)重算:
 
-**所以本目录的问题是构造效度,不是 bug 污染。** 两者的处置不同:bug 污染要重算,构造无效要重新设计。
+```
+python -m scripts.rescore_archived_runs --root experiment-output --abstention-policy negative --all
+```
+
+| 结果 | 数量 | 说明 |
+|---|---|---|
+| **精确复现** | **17 个 run** | 含 `natural-3arm-block1` **40/40**——本目录唯一有论文价值的产物 |
+| 存在差异 | 1 个 run | 仅 `relay-gpt55-exploratory-20260712T1307Z`,见下 |
+| 无法重放 | 6 个 | 2 个套件已丢失、2 个非三臂无 `lineages.jsonl`、1 个缓存早于当前溯源 schema、1 个非 run |
+
+**唯一的差异已完全定位,且原因不是 bug。** 该 run 的 7 条 `ai_suspected` + `unauthorized_action_claim` 用例
+记录为 E1,今天重算为 E2。它与 33 分钟后的 `rigor-j54-v55-r1` 出自**同一提交** `dbff1b1`,但脏树哈希不同:
+
+```
+relay  13:08  git_commit dbff1b1da9   dirty_tree_hash 81702bdfccd7fc8f3d28c4368f
+rigor  13:41  git_commit dbff1b1da9   dirty_tree_hash 90a852fab7e9d3d935a97ea35b
+```
+
+即那 33 分钟内工作区被修改但未提交——**relay 那次是被一份至今不存在于任何 git 历史中的中间代码打的分**,
+因此无法用任何已提交版本复现。这正是 manifest 记录 `dirty_tree_hash` 所要抓的情况。该目录本就封存为
+🟠「中转站探路」,不构成论文依据。
+
+> **注意**:本目录的 run 普遍是在脏树状态下跑的(`natural-3arm-block1` 的脏树哈希是 `0cfb2cb8…`)。
+> 脏树本身不等于数据不可用——**block1 在脏树状态下依然 40/40 精确复现**。可用与否由重算实测决定,
+> 不由「当时干净与否」推定。
+
+**结论(修正后)**:除已封存的 relay 探路目录外,本目录记录的 Arm A 数值**与当前代码在同一弃权策略下的输出完全一致**。
+所以这些产物的限制**是构造效度,不是 bug 污染**——原结论成立,但现在有证据而非推理支撑。两者处置不同:
+bug 污染要重算,构造无效要重新设计。
+
+⚠️ Arm A′ 与 B 无法离线重放:它们发出过真实的再判与探针调用,原始响应从未入缓存。
 
 ---
 
