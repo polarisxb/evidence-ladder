@@ -37,6 +37,10 @@ from app.services.target_client import invoke_target_with_envelope
 FROZEN_SUITE_VERSION = "retest-mvp.v1"
 MODEL_MATRIX_VERSION = "retest-model-matrix.v1"
 INITIAL_PASS_CACHE_VERSION = "retest-initial-pass-cache.v3"
+
+#: Paths whose uncommitted state makes a run unreproducible. Both the dirty-tree
+#: hash and the pre-run gate read this, so they can never disagree about scope.
+_SOURCE_PATHS = ("backend/app", "backend/scripts", "backend/experiments")
 RUN_MANIFEST_VERSION = "retest-run-manifest.v3"
 _EVALUATOR_SYSTEM_PROMPT = "Return only the requested JSON object."
 _EVALUATOR_PROMPT_TEMPLATE = (
@@ -978,6 +982,37 @@ async def resolve_manifest_model_identities(
     return tuple(identities)
 
 
+def describe_dirty_source(repo_root: Path) -> str | None:
+    """Describe uncommitted source changes, or None when the tree is clean.
+
+    A run collected from a dirty tree cannot be reproduced from any commit: the
+    code that scored it exists nowhere in history. That is not hypothetical --
+    ``relay-gpt55-exploratory`` and ``rigor-j54-v55-r1`` share commit ``dbff1b1``,
+    were collected 33 minutes apart with different ``dirty_tree_hash`` values, and
+    only the second one still re-scores to what it recorded. The manifest already
+    records the hash; this turns that record into a gate.
+    """
+    root = Path(repo_root)
+    diff = _run_git_bytes(root, "diff", "--binary", "HEAD", "--", *_SOURCE_PATHS)
+    untracked = [
+        line
+        for line in _run_git(
+            root, "ls-files", "--others", "--exclude-standard", "--", *_SOURCE_PATHS
+        ).splitlines()
+        if line
+    ]
+    if not diff and not untracked:
+        return None
+    parts = []
+    if diff:
+        changed = _run_git(root, "diff", "--name-only", "HEAD", "--", *_SOURCE_PATHS)
+        names = [line for line in changed.splitlines() if line]
+        parts.append(f"{len(names)} modified ({', '.join(names[:4])}...)")
+    if untracked:
+        parts.append(f"{len(untracked)} untracked ({', '.join(untracked[:4])}...)")
+    return "; ".join(parts)
+
+
 def capture_source_identity(repo_root: Path) -> SourceIdentity:
     root = Path(repo_root)
     commit = _run_git(root, "rev-parse", "HEAD").strip().lower()
@@ -986,7 +1021,7 @@ def capture_source_identity(repo_root: Path) -> SourceIdentity:
     ):
         raise RuntimeError("unable to resolve an immutable git commit")
 
-    source_paths = ("backend/app", "backend/scripts", "backend/experiments")
+    source_paths = _SOURCE_PATHS
     dirty_hasher = hashlib.sha256()
     dirty_hasher.update(
         _run_git_bytes(root, "diff", "--binary", "HEAD", "--", *source_paths)

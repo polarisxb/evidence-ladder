@@ -115,6 +115,15 @@ class RetestRound:
     evidence_before: str | None
     evidence_after: str | None
     delta_summary: str
+    #: What each action actually observed, in the order it was merged.
+    #:
+    #: ``delta_summary`` is prose and cannot be re-scored. These entries can:
+    #: replaying a round means merging each ``evidence_updates`` into the initial
+    #: result in this order and re-arbitrating, which is exactly what the loop
+    #: did. Without them an arm that issued live re-judge or probe calls is
+    #: unreproducible, because those responses are never cached -- the gap that
+    #: left Arm A the only replayable arm.
+    observations: tuple[dict[str, Any], ...] = ()
     extra_queries: int = 0
     extra_cost_ms: float = 0.0
     target_retest_queries: int = 0
@@ -343,6 +352,14 @@ async def run_retest_loop_async(
                 evidence_before=level_before,
                 evidence_after=assessment.evidence_level,
                 delta_summary="; ".join(d.summary for d in deltas if d.summary),
+                observations=tuple(
+                    {
+                        "action_type": d.action_type,
+                        "evidence_updates": dict(d.evidence_updates),
+                        "contradiction": d.contradiction,
+                    }
+                    for d in deltas
+                ),
                 extra_queries=total_queries,
                 extra_cost_ms=sum(d.extra_cost_ms for d in deltas),
                 target_retest_queries=sum(d.target_retest_queries for d in deltas),

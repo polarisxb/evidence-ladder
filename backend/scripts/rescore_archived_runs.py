@@ -59,7 +59,12 @@ from app.services.experiment_driver import (
     compute_frozen_suite_hash,
     load_frozen_suite,
 )
-from app.services.retest_experiment import ARM_A_CONFIG, _loop_arm, _NullExecutor
+from app.services.retest_experiment import (
+    ARM_A_CONFIG,
+    _loop_arm,
+    _NullExecutor,
+    run_rejudge_baseline,
+)
 
 REQUIRED_FILES = ("initial-pass-cache.json", "lineages.jsonl")
 
@@ -121,7 +126,7 @@ def load_records(run_dir: Path) -> tuple[InitialPassRecord, ...]:
         raise UnreplayableCache(detail) from exc
 
 
-def load_recorded_arm_a(run_dir: Path) -> dict[str, dict[str, Any]]:
+def load_recorded_arm(run_dir: Path, arm: str) -> dict[str, dict[str, Any]]:
     recorded: dict[str, dict[str, Any]] = {}
     with (run_dir / "lineages.jsonl").open(encoding="utf-8") as handle:
         for line in handle:
@@ -129,31 +134,59 @@ def load_recorded_arm_a(run_dir: Path) -> dict[str, dict[str, Any]]:
             if not line:
                 continue
             entry = json.loads(line)
-            outcome = (entry.get("outcomes") or {}).get("A")
+            outcome = (entry.get("outcomes") or {}).get(arm)
             if outcome is not None:
                 recorded[entry["case_id"]] = outcome
     return recorded
 
 
-async def replay_arm_a(
+class _RecordedVerifier:
+    """Replays the re-judge signal the run recorded instead of calling a model.
+
+    Arm A' merges this signal over the initial result, re-arbitrates and caps the
+    outcome, so recording the signal is sufficient to reproduce the arm's score --
+    the raw completion text is provenance, not an input to the decision.
+    """
+
+    def __init__(self, signal: Any) -> None:
+        self._signal = signal
+
+    def rejudge(self, result: Any) -> Any:
+        return self._signal
+
+
+def _outcome_fields(outcome: Any) -> dict[str, Any]:
+    return {
+        "initial_evidence_level": outcome.initial_evidence_level,
+        "final_evidence_level": outcome.final_evidence_level,
+        "final_verdict": outcome.final_verdict,
+    }
+
+
+async def replay_arms(
     records: tuple[InitialPassRecord, ...],
     suite_path: Path,
-) -> dict[str, dict[str, Any]]:
+    recorded_prime: dict[str, dict[str, Any]],
+) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    """Replay Arm A and Arm A' offline. Returns (arm_a, arm_a_prime)."""
     suite = load_frozen_suite(suite_path)
     cases = {case.case_id: case for case in suite.cases}
-    replayed: dict[str, dict[str, Any]] = {}
+    arm_a: dict[str, dict[str, Any]] = {}
+    arm_prime: dict[str, dict[str, Any]] = {}
     for record in records:
         case = cases.get(record.case_id)
         if case is None:
             continue
         result = _build_cached_result(case, record)
-        outcome = await _loop_arm("A", result, _NullExecutor(), ARM_A_CONFIG)
-        replayed[record.case_id] = {
-            "initial_evidence_level": outcome.initial_evidence_level,
-            "final_evidence_level": outcome.final_evidence_level,
-            "final_verdict": outcome.final_verdict,
-        }
-    return replayed
+        arm_a[record.case_id] = _outcome_fields(
+            await _loop_arm("A", result, _NullExecutor(), ARM_A_CONFIG)
+        )
+        prime = recorded_prime.get(record.case_id)
+        if prime is not None and "judge_signal" in prime:
+            arm_prime[record.case_id] = _outcome_fields(
+                run_rejudge_baseline(result, _RecordedVerifier(prime["judge_signal"]))
+            )
+    return arm_a, arm_prime
 
 
 def compare(
@@ -196,19 +229,38 @@ async def audit_run(run_dir: Path, suite_index: dict[str, Path]) -> bool:
         return True
     print(f"  suite {suite_hash[:10]} -> {suite_path.name}  ({len(records)} cached cases)")
 
-    recorded = load_recorded_arm_a(run_dir)
-    replayed = await replay_arm_a(records, suite_path)
-    diffs, missing = compare(recorded, replayed)
+    recorded_a = load_recorded_arm(run_dir, "A")
+    recorded_prime = load_recorded_arm(run_dir, "A_prime")
+    replayed_a, replayed_prime = await replay_arms(records, suite_path, recorded_prime)
 
-    if missing:
-        print(f"  {len(missing)} recorded case(s) absent from the replay: {', '.join(missing[:5])}")
-    if not diffs:
-        print(f"  MATCH: {len(recorded)} cases reproduce exactly")
-        return not missing
-    print(f"  {len(diffs)} field mismatch(es) over {len(recorded)} cases:")
-    for diff in diffs:
-        print(f"    {diff.case_id:<26} {diff.field:<24} recorded={diff.recorded!r} replayed={diff.replayed!r}")
-    return False
+    ok = True
+    for arm, recorded, replayed in (
+        ("A", recorded_a, replayed_a),
+        ("A'", recorded_prime, replayed_prime),
+    ):
+        if not recorded:
+            continue
+        if not replayed:
+            print(f"  arm {arm}: no recorded judge signal, cannot replay")
+            continue
+        diffs, missing = compare(recorded, replayed)
+        if missing:
+            print(
+                f"  arm {arm}: {len(missing)} recorded case(s) absent from the replay: "
+                f"{', '.join(missing[:5])}"
+            )
+            ok = False
+        if not diffs:
+            print(f"  arm {arm}: MATCH -- {len(replayed)} cases reproduce exactly")
+            continue
+        ok = False
+        print(f"  arm {arm}: {len(diffs)} field mismatch(es) over {len(recorded)} cases:")
+        for diff in diffs:
+            print(
+                f"    {diff.case_id:<26} {diff.field:<24} "
+                f"recorded={diff.recorded!r} replayed={diff.replayed!r}"
+            )
+    return ok
 
 
 async def main_async() -> int:
