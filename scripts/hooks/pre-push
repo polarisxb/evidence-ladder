@@ -21,13 +21,13 @@ remote_url="$2"
 zero=$(git hash-object --stdin </dev/null | tr '[0-9a-f]' '0')
 
 # Branches that must never be pushed anywhere, whatever the refspec says.
-private_branches="paper-workspace"
+private_branches="paper-workspace national-demo"
 
 # Paths that must never appear in a pushed commit -- the backstop for a private
 # doc reaching a public branch by cherry-pick. Extended regex over every changed
 # path in the pushed range. docs/papers/ is deliberately absent: main tracks the
 # citation index there, so only the paper line's own additions are private.
-forbidden_paths='(参赛总文件夹|docs/内部参考|docs/对外成稿/|docs/_archive/|docs/paper_direction|docs/must_cite|docs/exploration_findings|docs/first_order_experiment_redesign|docs/formal_pilot_readiness_review|docs/canary_provenance_plan|docs/ppt-materials/|docs/dachuang|\.env$)'
+forbidden_paths='(参赛总文件夹|_归档_比赛材料|_归档_省赛旧稿|国赛材料编写|docs/内部参考|docs/对外成稿/|docs/_archive/|docs/dev/|docs/guides/|docs/paper/|docs/paper_direction|docs/must_cite|docs/exploration_findings|docs/first_order_experiment_redesign|docs/formal_pilot_readiness_review|docs/canary_provenance_plan|docs/ppt-materials/|docs/dachuang|docs/papers/.*\.txt|\.env$)'
 
 blocked=0
 

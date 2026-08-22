@@ -84,20 +84,9 @@ Weak evidence findings automatically trigger retests via a `conflict-type → re
 
 Each finding maintains an auditable retest history (`initial → retest_1 → ... → final`) and is finalized as `confirmed`, `overturned`, or `manual_review_needed`.
 
-### 2.5 E-level × Kill-chain matrix
+### 2.5 Canary channel provenance
 
-Evidence strength (E0–E5) is combined orthogonally with attack-propagation stage (Exposed / Persisted / Relayed / Executed) into a 5×4 evaluation matrix:
-
-```
-                Exposed     Persisted    Relayed     Executed
-E1 Text-Claim    repeat       —          forward     claim
-E2 Judge         judge        —          judge       judge
-E3 Rule          canary-in    canary-mem canary-rel  canary-arg
-E4 Tool          —            tool-write tool-read   tool-invoke
-E5 Probe         —            state-snap state-diff  state-change
-```
-
-This matrix differentiates *"where the attack propagated"* from *"on what evidence we confirm it"*. A finding at (E5, Persisted) and another at (E1, Executed) carry very different operational risk, but a single-axis evaluation collapses them.
+Canary hits record evidence strength plus a coarse propagation label. The current implementation distinguishes **exposed** (in the response text) from **executed** (tool call or business state). A full Exposed / Persisted / Relayed / Executed stage matrix is not implemented; it is listed under v0.4.
 
 ## 3. Differentiation from prior work
 
@@ -105,7 +94,7 @@ This matrix differentiates *"where the attack propagated"* from *"on what eviden
 |---|---|---|
 | *A Coin Flip for Safety* (2026) | Statistical post-hoc ASR correction via judge precision | Source-partitioned evidence ladder; no scaling |
 | *When Scanners Lie* (2026) | Independent verifier as a second-stage check | Multi-class heterogeneous evidence + automated retest state machine |
-| *Kill-Chain Canaries* (2026) | Single-axis attack-propagation decomposition | Two-axis E-level × Kill-chain matrix |
+| *Kill-Chain Canaries* (2026) | Single-axis attack-propagation decomposition | Application-layer canary channel provenance (exposed / executed); full stage matrix is future work |
 | HarmBench / JailbreakBench | Base-model adversarial robustness benchmark | Application-layer evaluation with business probes |
 | AgentDojo / tau-bench / AgentHarm | Agent / tool-use benchmark | Evidence-stratified evaluation grounded in deployed-application surfaces |
 | garak / PyRIT / Promptfoo / DeepTeam | Open-source LLM red-team toolkit | Reliability-aware reporting (E-ASR, Quartet, conflict-driven retest) |
@@ -139,10 +128,10 @@ This repository ships:
 - Black-box adjudication services (`backend/app/services/verdict_*`, `evidence_arbiter.py`)
 - AutoTest planning, retest policy, summary services (`backend/app/services/autotest_*`)
 - Frontend dashboard (`frontend/`)
-- Test suite (`backend/tests/`) — at least 35 tests covering planner, evidence arbiter, retest policy, AutoTest API, summary API
+- Test suite (`backend/app/tests/`, `backend/tests/`)
 - Evaluation protocol (`docs/evaluation_protocol.md`)
 
-The published experimental results, human-annotated calibration set, and per-model statistics tables (planned in the opening report §9) are **work in progress** and will be added as `docs/papers/` artifacts in subsequent releases.
+The published experimental results, human-annotated calibration set, and per-model statistics tables are **work in progress** and will be added in subsequent releases.
 
 ## 6. Citation
 
@@ -170,7 +159,7 @@ Roadmap:
 - v0.1 (current) — Framework, evaluation protocol, AutoTest agent v1, Quartet retest loop, summary API.
 - v0.2 — Pilot experiment data (30 cases × 4 variants × 2 models), human-annotated calibration subset.
 - v0.3 — Cross-model formal experiment (100+ cases × 3–5 models), Cohen's κ analysis, comparison against Corrected ASR / Verification-layer ASR baselines.
-- v0.4 — E-level × Kill-chain matrix experiments on multi-agent sandboxes (mail / e-commerce).
+- v0.4 — Mail / e-commerce agent sandboxes; extend canary propagation stages if implemented.
 - v0.5 — Public dataset release + paper preprint.
 
 ## 8. License

@@ -32,7 +32,7 @@ services:
       backend:
         condition: service_healthy
 
-  # ── Mock Targets (demo / defense presentation) ──────────────
+  # ── Local mock targets ──────────────
 
   financebot:
     build: ./mock_targets/financebot

@@ -11,8 +11,7 @@ abstract: >-
   protocol (E0 not-evaluable, E1 text-claim, E2 judge-suspected,
   E3 rule-verified, E4 tool-observed, E5 probe-verified), a Quartet
   four-way control design (Clean / Attack / Quoted Attack /
-  Benign Distractor), a conflict-driven retesting loop, and an
-  E-level x Kill-chain two-dimensional evaluation matrix. The framework
+  Benign Distractor), and a conflict-driven retesting loop. The framework
   targets trustworthy attack-success measurement that goes beyond
   LLM-as-a-Judge, and is intended for prompt injection, system prompt
   extraction, and agent over-privilege evaluation in deployed LLM
