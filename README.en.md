@@ -5,14 +5,14 @@
 
 ### Multi-Source Evidence-Stratified Evaluation for LLM Application Security
 
-*Trustworthy attack-success measurement for LLM applications via multi-source evidence stratification (E0–E5) and conflict-driven retesting. **Beyond LLM-as-a-Judge.***
+*Multi-source evidence stratification (E0–E5) and conflict-driven retesting: the judge is one evidence channel, not the verdict.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Status: research-preview](https://img.shields.io/badge/status-research--preview-orange.svg)](#project-status)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Made for LLM Apps](https://img.shields.io/badge/scope-LLM%20applications-7c3aed.svg)](#scope)
 
-[中文 README](./README.md) · [Evaluation Protocol](./docs/evaluation_protocol.md)
+[中文 README](./README.md) · [Evaluation Protocol](./docs/evaluation_protocol.md) · [Documentation](./docs/README.md)
 
 </div>
 
@@ -26,9 +26,13 @@ Recent 2026 work has independently established that **single-source attack-succe
 - *When Scanners Lie* (arXiv:2603.14633) — In open-source scanners (e.g., garak), 22 of 25 attack categories exhibit evaluator instability, with reported ASR drifting up to ±33% when the evaluator is swapped.
 - *Kill-Chain Canaries* (arXiv:2603.28013) — In multi-agent systems, evaluation must decompose attacks across propagation stages (Exposed → Persisted → Relayed → Executed), not just inspect the final response.
 
-These works identify the problem; they do not jointly solve it for **LLM applications** (RAG, tool-using agents, business-prompt configurations), where evaluation faces additional confounders: prompt assembly templates, retrieval context, post-processing, and tool/state side effects.
+The application layer is not empty either. *GroundEval* replaces the LLM judge with a deterministic state contract. *SafeClawBench* reports semantic acceptance, audit-visible evidence, and sandbox state harm as separate endpoints. *False Success* shows that "claimed done ≠ environment updated" is common even on non-adversarial tasks. *ASSERT* binds every reported rate to a written measurement specification. Commercial DAST (Invicti Proof-Based Scanning) and 2026 *RECEIPT* still treat a successful deterministic exploit as the way to eliminate false positives.
 
-**Evidence-Ladder** addresses this gap with a black-box evaluation framework for the application layer.
+**Evidence-Ladder** does not claim to be first to stratify evidence or first to confirm findings. It is a black-box evaluation framework for deployed LLM applications that treats "did the attack succeed?" as an auditable, multi-channel question:
+
+> *Under which evidence channel, and at what strength, was success confirmed? When channels conflict, what independent observation is taken next?*
+
+The judge is one layer (E2), not the supreme verdict. Deterministic "exploit once, therefore true" is not an incidence rate on targets with temperature > 0.
 
 ## 2. Method overview
 
@@ -90,16 +94,24 @@ Canary hits record evidence strength plus a coarse propagation label. The curren
 
 ## 3. Differentiation from prior work
 
-| Prior work | Their contribution | Our orthogonal contribution |
-|---|---|---|
-| *A Coin Flip for Safety* (2026) | Statistical post-hoc ASR correction via judge precision | Source-partitioned evidence ladder; no scaling |
-| *When Scanners Lie* (2026) | Independent verifier as a second-stage check | Multi-class heterogeneous evidence + automated retest state machine |
-| *Kill-Chain Canaries* (2026) | Single-axis attack-propagation decomposition | Application-layer canary channel provenance (exposed / executed); full stage matrix is future work |
-| HarmBench / JailbreakBench | Base-model adversarial robustness benchmark | Application-layer evaluation with business probes |
-| AgentDojo / tau-bench / AgentHarm | Agent / tool-use benchmark | Evidence-stratified evaluation grounded in deployed-application surfaces |
-| garak / PyRIT / Promptfoo / DeepTeam | Open-source LLM red-team toolkit | Reliability-aware reporting (E-ASR, Quartet, conflict-driven retest) |
+No first-to claims. The table only locates this repository relative to work a reader will already know.
 
-Full literature analysis will be released with the paper.
+| Prior work | What they do | Where this repo sits |
+|---|---|---|
+| *A Coin Flip for Safety* (2026) | Scales a scalar ASR by judge precision | Partitions by evidence source; no scaling |
+| *When Scanners Lie* (2026) | Holds outputs fixed and swaps the evaluator; ASR can move ±33% | On conflict, retest with a **different channel**, not another text judge |
+| *Kill-Chain Canaries* (2026) | Four-stage propagation | Currently labels exposed / executed only; the full stage matrix is not implemented |
+| *GroundEval* (2026) | **Replaces** the LLM judge with a state contract | Keeps the judge as E2; retests with an independent channel on conflict |
+| *SafeClawBench* (2026) | Three rates from three separate protocols (semantic / audit / sandbox) | Stratifies channels on **one** evaluation run, not three independent calls |
+| *Action-Graded* (2026) | Ordinal **harm** scale L0–L6 of executed actions | Evidence strength is not harm severity |
+| *False Success* (2026) | Natural false completion; text judges have low AUROC | Treats "claimed ≠ state" as an evidence conflict, not a new taxonomy |
+| *ASSERT* (2026) | Binds every reported rate to a written spec | The spec here is evidence channels and retest arms, not a general GenAI audit |
+| AgentDojo / tau-bench | State checks **are** the score | Uses state to audit the text judge, not only as the grade |
+| Invicti / *RECEIPT* (2026) | Deterministic exploit-once for ~0 false positives | That premise is not an incidence rate on stochastic LLM apps |
+| HarmBench / JailbreakBench | Base-model benchmarks | Application-layer evaluation with business-state probes |
+| garak / PyRIT / Promptfoo / DeepTeam | Red-team toolkits | Reliability-aware reporting and a retest loop |
+
+Full literature analysis will ship with the paper. Citation index: [`docs/papers/README.md`](./docs/papers/README.md).
 
 ## 4. Quick start
 
@@ -168,4 +180,4 @@ Roadmap:
 
 ## 9. Acknowledgments
 
-Builds upon the open-source ecosystem of LLM safety evaluation: HarmBench, JailbreakBench, AgentDojo, tau-bench, ToolEmu, garak, PyRIT, Promptfoo, and the OWASP LLM Top 10 / Agentic Top 10. Differentiation analysis additionally cites the 2026 reliability literature: *A Coin Flip for Safety*, *When Scanners Lie*, *Kill-Chain Canaries*, *Noisy but Valid*, *Know Thy Judge*, and *RobustJudge*.
+Builds upon HarmBench, JailbreakBench, AgentDojo, tau-bench, ToolEmu, garak, PyRIT, Promptfoo, and the OWASP LLM Top 10 / Agentic Top 10. Closest 2026 work that must be distinguished in the open: *GroundEval*, *SafeClawBench*, *Action-Graded*, *False Success*, *ASSERT*, *RECEIPT*, plus the judge-reliability line *A Coin Flip for Safety*, *When Scanners Lie*, *Kill-Chain Canaries*, *Noisy but Valid*, *Know Thy Judge*, and *RobustJudge*.

@@ -6,15 +6,15 @@
 ### 面向大模型应用的多源证据分层安全评测框架
 ### Multi-Source Evidence-Stratified Evaluation for LLM Application Security
 
-*基于多源证据分层（E0–E5）与冲突驱动闭环补测的可信攻击成功率度量框架。*  
-***Beyond LLM-as-a-Judge.***
+*多源证据分层（E0–E5）与冲突驱动补测：把 judge 降为一层证据，而不是唯一裁判。*  
+***Judge is one channel, not the verdict.***
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Status: research-preview](https://img.shields.io/badge/status-research--preview-orange.svg)](#七项目状态)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![LLM Application Security](https://img.shields.io/badge/scope-LLM%20applications-7c3aed.svg)](#一项目动机)
 
-[English README](./README.en.md) · [评测协议](./docs/evaluation_protocol.md)
+[English README](./README.en.md) · [评测协议](./docs/evaluation_protocol.md) · [Documentation](./docs/README.md)
 
 </div>
 
@@ -24,15 +24,17 @@
 
 近一年内，多项研究从不同角度指出：在 LLM 安全评测中，**单一来源的攻击成功率不可靠**——
 
-- ***A Coin Flip for Safety*** (arXiv:2603.06594, 2026)：6642 条人工标注证明 LLM-as-a-Judge 在对抗性分布下接近随机，许多"高 ASR"攻击实际利用的是 judge false positive。
+- ***A Coin Flip for Safety*** (arXiv:2603.06594, 2026)：6642 条人工标注证明 LLM-as-a-Judge 在对抗性分布下接近随机，许多「高 ASR」攻击实际利用的是 judge false positive。
 - ***When Scanners Lie*** (arXiv:2603.14633, 2026)：开源扫描器（garak）25 个攻击类别中 22 个评测器不稳定，ASR 漂移可达 ±33%。
 - ***Kill-Chain Canaries*** (arXiv:2603.28013, 2026)：多 Agent 系统安全评测必须按攻击传播阶段（Exposed → Persisted → Relayed → Executed）分解。
 
-上述工作主要关注基础模型层面的裁判可靠性，**尚未充分覆盖 LLM 应用层评测中的额外混淆因素**：prompt 拼装模板、检索内容、后处理、工具调用、业务状态变化。
+应用层也不是空白。*GroundEval* 用确定性状态合同替换 LLM judge；*SafeClawBench* 分开报告语义接受、审计可见证据和沙箱状态伤害；*False Success* 表明「声称完成 ≠ 环境状态已变」在非对抗任务上大量出现；*ASSERT* 把每个报告率绑到书面测量规范。商用 DAST（Invicti Proof-Based Scanning）和 2026 年的 *RECEIPT* 仍把「确定性利用一次」当作消除误报的标准做法。
 
-**Evidence-Ladder** 面向真实部署的 LLM 应用提供一种黑盒安全评测框架，把"攻击是否成功"问题转化为：
+**Evidence-Ladder** 不声称首次分层或首次确证。它面向真实部署的 LLM 应用，把「攻击是否成功」写成可审计的多通道问题：
 
-> *在何种证据强度下、在攻击传播链的哪个阶段被确认？*
+> *在何种证据通道、何种强度下被确认？通道冲突时如何补测？*
+
+Judge 只是一层证据（E2），不是至上裁判。确定性「利用一次即确认」在 temperature > 0 的目标上不能当作发生率。
 
 ---
 
@@ -101,16 +103,24 @@ Canary 命中按通道记录证据强度与一个粗粒度传播标签：当前�
 
 ## 三、与现有工作的差异
 
-| 现有工作 | 他们的角度 | 本工作的正交角度 |
+不抢「首次」。下表只标明本仓库实现站在哪一侧。
+
+| 现有工作 | 他们做了什么 | 本仓库怎么用、哪里停住 |
 |---|---|---|
-| *A Coin Flip for Safety* (2026) | 基于裁判精度的统计后校正 | 按异质证据来源分层切分 |
-| *When Scanners Lie* (2026) | 单 verifier 二阶段验证 | 多类异质证据 + 冲突驱动状态机 |
-| *Kill-Chain Canaries* (2026) | 单维度攻击传播阶段 | 应用层 canary 通道溯源（exposed / executed）；完整阶段矩阵列入后续工作 |
+| *A Coin Flip for Safety* (2026) | 用裁判 precision 缩放一个标量 ASR | 按证据源切开报告，不倍乘 |
+| *When Scanners Lie* (2026) | 冻结输出、换 evaluator，ASR 可差 ±33% | 冲突后换**通道**补测，不是再换一个文本裁判 |
+| *Kill-Chain Canaries* (2026) | 四阶段传播 | 当前只标 exposed / executed；完整阶段矩阵未实现 |
+| *GroundEval* (2026) | 用状态合同**替换** LLM judge | judge 留下当 E2；冲突时用独立通道重测 |
+| *SafeClawBench* (2026) | 语义 / 审计证据 / 沙箱伤害三个独立协议的率 | 同一轮评测上多通道分层，不是三次独立调用 |
+| *Action-Graded* (2026) | 已执行动作的危害序数尺 L0–L6 | 证据强度 ≠ 危害严重度 |
+| *False Success* (2026) | 自然任务假成功；文本裁判 AUROC 低 | 把「声称 ≠ 状态」当作证据冲突，而不是新的失败分类法 |
+| *ASSERT* (2026) | 书面规范绑死每个报告率 | 规范绑的是证据通道与补测臂，不是通用 GenAI 审计 |
+| AgentDojo / tau-bench | 状态检查就是评分真值 | 用状态去审计文本裁判，而不是只当分数 |
+| Invicti / *RECEIPT* (2026) | 确定性利用一次以求 0 假阳性 | 该前提在随机 LLM 应用上不能当发生率 |
 | HarmBench / JailbreakBench | 基础模型 benchmark | 应用层评测 + 业务状态 probe |
-| AgentDojo / tau-bench / AgentHarm | Agent / 工具调用 benchmark | 与证据分层协议绑定的状态验证 |
 | garak / PyRIT / Promptfoo / DeepTeam | 红队工具框架 | 可信度感知的报告与补测闭环 |
 
-完整文献分析与差异化论证将随论文一并发布。
+完整文献分析随论文发布。引用索引见 [`docs/papers/README.md`](./docs/papers/README.md)。
 
 ---
 
@@ -209,7 +219,7 @@ docker compose up --build
 
 [MIT 协议](./LICENSE)。
 
-本项目站在以下开源工作之上：HarmBench、JailbreakBench、AgentDojo、tau-bench、ToolEmu、AgentHarm、garak、PyRIT、Promptfoo、OWASP LLM Top 10 / Agentic Top 10。差异化分析另引用 2026 年裁判可靠性与攻击传播研究：*A Coin Flip for Safety*、*When Scanners Lie*、*Kill-Chain Canaries*、*Noisy but Valid*、*Know Thy Judge*、*RobustJudge*。
+本项目站在以下开源工作之上：HarmBench、JailbreakBench、AgentDojo、tau-bench、ToolEmu、AgentHarm、garak、PyRIT、Promptfoo、OWASP LLM Top 10 / Agentic Top 10。2026 年必须正面区分的工作还包括 *GroundEval*、*SafeClawBench*、*Action-Graded*、*False Success*、*ASSERT*、*RECEIPT*，以及裁判可靠性文献 *A Coin Flip for Safety*、*When Scanners Lie*、*Kill-Chain Canaries*、*Noisy but Valid*、*Know Thy Judge*、*RobustJudge*。
 
 ---
 
