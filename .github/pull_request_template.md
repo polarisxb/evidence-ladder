@@ -12,8 +12,8 @@
 
 <!-- 本地怎么验的；CI 会自动跑 backend pytest + ruff + frontend vitest/build。 -->
 
-- [ ] `cd backend && pytest app/tests` 通过
-- [ ] `cd backend && ruff check app` 通过
+- [ ] `cd backend && pytest app/tests tests` 通过
+- [ ] `cd backend && ruff check app tests conftest.py` 通过
 - [ ] `cd frontend && npm run test` 通过
 - [ ] `cd frontend && npm run build` 通过
 

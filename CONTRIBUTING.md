@@ -39,8 +39,8 @@ CI 会跑这四项，提前在本地过一遍能省一轮往返：
 ```bash
 # 后端
 cd backend
-pytest app/tests          # 全套测试（CI 设了 AUTH_REQUIRED=false 等 3 个测试 env）
-ruff check app            # lint
+pytest app/tests tests    # 与 CI 相同；需 AUTH_REQUIRED=false 等测试 env
+ruff check app tests conftest.py
 
 # 前端
 cd frontend
@@ -69,6 +69,7 @@ npm run build             # tsc + vite build
 - 运行期产物：`backend/data/`、构建产物 `frontend/dist/`
 - 临时脚本/笔记：`.tmp_*`、`*_tmp.md`
 - 参赛/私有材料（见 `.gitignore` 中相关条目）
+- 未发表论文稿与本地工程笔记：`docs/paper/`、`docs/dev/`、`docs/guides/`、`_归档_比赛材料/`
 
 ### 安装发布防护钩子 / Install the publish guard
 

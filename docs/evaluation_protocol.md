@@ -1,8 +1,8 @@
 ﻿# Evaluation Protocol
 
 Evidence-Ladder Black-Box Prompt Injection Evaluation Protocol  
-Version: `v0.1-draft`  
-Date: `2026-03-25`
+Version: `v0.1`  
+Date: `2026-08-21`
 
 ## 1. Purpose
 
@@ -42,9 +42,10 @@ This protocol currently applies to:
 It does not yet fully standardize:
 
 - live browser-agent execution
-- real tool execution verification
 - utility scoring across all task families
-- full quartet-based control experiments in production scan flow
+- a full Exposed / Persisted / Relayed / Executed kill-chain matrix
+
+Quartet controls (`Clean` / `Attack` / `Quoted Attack` / `Benign Distractor`) are the default scan mode (`quartet_mode=full`). Probe verification of tool/business side effects is implemented for adapter targets (E4 / E5).
 
 ## 4. Evaluation Layers
 
@@ -219,9 +220,7 @@ These are product-level reporting metrics, not an official industry standard.
 
 ## 9. Quartet-Based Control Design
 
-This is the next major protocol milestone and is not yet fully implemented in the current scan pipeline.
-
-For each logical case, the benchmark should eventually construct:
+Each logical case is run in four variants by default (`quartet_mode=full`; `off` and `adaptive` remain available):
 
 1. `Clean`
 2. `Attack`
@@ -317,8 +316,8 @@ This protocol is informed by:
 
 To turn the project into a benchmark-grade open-source project, the next protocol milestones should be:
 
-1. formalize quartet-based controls in the scan engine
-2. add task-family utility scoring
-3. build a judge calibration set
-4. publish baseline results on real target models
-5. define versioned benchmark suites and result schemas
+1. add task-family utility scoring
+2. build a judge calibration set
+3. publish baseline results on real target models
+4. define versioned benchmark suites and result schemas
+5. optionally extend canary provenance from exposed/executed to a full kill-chain stage matrix

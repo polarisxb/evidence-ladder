@@ -40,6 +40,7 @@ Thumbs.db
 output/
 .runtime-logs/
 .pytest_cache/
+.ruff_cache/
 
 # Tools
 .playwright-cli/
@@ -69,8 +70,10 @@ output/
 *参赛总文件夹*
 docs/内部参考.zip
 # 国赛材料整理(2026-06-27):新工作区(给队友写材料) + 省赛旧稿归档 — 同样不发布
+# 比赛结束后整体迁入 `_归档_比赛材料/`；旧路径规则保留，防止解压回根目录后误提交。
 国赛材料编写/
 _归档_省赛旧稿/
+_归档_比赛材料/
 
 # Personal / private working notes
 docs/private/
@@ -86,6 +89,9 @@ docs/opening_report.zh-CN.md
 docs/research/
 docs/dev-notes/
 docs/superpowers/
+docs/dev/
+docs/guides/
+docs/paper/
 
 # Local agent transcripts and cached tool outputs
 agent-tools/
@@ -101,6 +107,7 @@ agent-tools/
 .cursor/mcp.json.*
 # Personal Cursor agent rules (local-only behavior tuning).
 .cursor/rules/bajie-mcp.mdc
+.cursor/rules/git-workflow.mdc
 
 # Personal grant / 大创 application drafts — contain student ID / advisor info.
 # Keep locally only; do not publish.
@@ -110,6 +117,9 @@ docs/dachuang_report*.md
 # Kept locally; do not publish to GitHub.
 docs/ppt-materials/
 docs/assets/tech-route-figure-prompt.md
+*.pptx
+*.ppt
+*.docx
 
 # LaTeX build artifacts (paper preview compiles in docs/ppt-materials).
 *.aux
@@ -117,8 +127,8 @@ docs/assets/tech-route-figure-prompt.md
 *.toc
 *.synctex.gz
 
-# Academic paper PDFs — keep locally only; cite via BibTeX/links instead
-# (PDFs from USENIX/NeurIPS/ICML/etc. typically retain copyright;
-#  the .txt extracts under docs/papers/ are kept for in-repo citation.)
+# Academic paper PDFs and third-party full-text extracts — local only.
+# Cite via BibTeX/links. The public tree tracks docs/papers/README.md only.
 docs/papers/**/*.pdf
+docs/papers/**/*.txt
 *.pdf

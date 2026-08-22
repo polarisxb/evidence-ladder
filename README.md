@@ -93,11 +93,9 @@
 
 每个 finding 保留可审计的补测历史（`initial → retest_1 → ... → final`），最终标记为 `confirmed` / `overturned` / `manual_review_needed`。
 
-### 2.5 E-level × Kill-chain 二维评测矩阵
+### 2.5 Canary 通道溯源
 
-将证据强度（E0–E5）与攻击传播阶段（Exposed / Persisted / Relayed / Executed）**正交组合**，区分"攻击传播到哪里"与"凭什么确认它发生"。E≥E3 + Stage=Executed 的格子优先级最高，E≤E2 + Stage=Exposed 服务于早期发现。
-
-详见开题报告 §5.6(随论文一并发布)。
+Canary 命中按通道记录证据强度与一个粗粒度传播标签：当前实现区分 **exposed**（出现在响应文本）与 **executed**（工具调用或业务状态）。完整的 Exposed / Persisted / Relayed / Executed 阶段矩阵尚未实现，列入路线图 v0.4。
 
 ---
 
@@ -107,7 +105,7 @@
 |---|---|---|
 | *A Coin Flip for Safety* (2026) | 基于裁判精度的统计后校正 | 按异质证据来源分层切分 |
 | *When Scanners Lie* (2026) | 单 verifier 二阶段验证 | 多类异质证据 + 冲突驱动状态机 |
-| *Kill-Chain Canaries* (2026) | 单维度攻击传播阶段 | E-level × Kill-chain 二维矩阵 |
+| *Kill-Chain Canaries* (2026) | 单维度攻击传播阶段 | 应用层 canary 通道溯源（exposed / executed）；完整阶段矩阵列入后续工作 |
 | HarmBench / JailbreakBench | 基础模型 benchmark | 应用层评测 + 业务状态 probe |
 | AgentDojo / tau-bench / AgentHarm | Agent / 工具调用 benchmark | 与证据分层协议绑定的状态验证 |
 | garak / PyRIT / Promptfoo / DeepTeam | 红队工具框架 | 可信度感知的报告与补测闭环 |
@@ -149,8 +147,8 @@ npm run dev
 ### Docker
 
 ```bash
-cp backend/.env.example backend/.env
-docker-compose up --build
+cp .env.example .env
+docker compose up --build
 ```
 
 ---
@@ -166,7 +164,7 @@ docker-compose up --build
 | AutoTest Agent v1 | `backend/app/services/autotest_*` |
 | AutoTest API | `backend/app/api/autotest.py` |
 | 前端可视化 | `frontend/src/pages/AutoTest.tsx`、`Report.tsx` |
-| 测试套件（35+ tests） | `backend/tests/` |
+| 测试套件 | `backend/app/tests/`、`backend/tests/` |
 | 评测协议 | [`docs/evaluation_protocol.md`](./docs/evaluation_protocol.md) |
 
 实验数据、人工标注校准集、跨模型对比表正在准备中，将在后续版本陆续发布。
@@ -202,7 +200,7 @@ docker-compose up --build
 | **v0.1**（当前） | 方法框架 + 平台实现 + 评测协议 + AutoTest agent v1 |
 | **v0.2** | Pilot 实验（30 用例 × 4 变体 × 2 模型） + 小规模人工标注 |
 | **v0.3** | 跨模型正式实验（100+ 用例 × 3–5 模型） + Cohen's κ + 与 Corrected / Verification-layer ASR baseline 对比 |
-| **v0.4** | 邮件 / 电商 Agent 沙箱上的 E×K 矩阵实验 |
+| **v0.4** | 邮件 / 电商 Agent 沙箱；扩展 canary 传播阶段（若实现） |
 | **v0.5** | 公开数据集发布 + arXiv preprint |
 
 ---
