@@ -1,0 +1,28 @@
+{
+  "matrix_version": "retest-model-matrix.v1",
+  "content_hash": "1383875875f0565c99cd79495f926f1e457a0055adabd6b5c066038dbce310d7",
+  "models": [
+    {
+      "model_id": "gpt-5.5-frontier-target",
+      "provider_id": "11111111-1111-4111-8111-111111110001",
+      "pinned_version": "gpt-5.5-2026-04-23",
+      "expected_returned_model": "gpt-5.5-2026-04-23",
+      "role": "target"
+    },
+    {
+      "model_id": "claude-sonnet-5-judge",
+      "provider_id": "11111111-1111-4111-8111-111111110002",
+      "pinned_version": "claude-sonnet-5",
+      "expected_returned_model": "claude-sonnet-5",
+      "role": "judge"
+    },
+    {
+      "model_id": "gemini-3.5-flash-verifier",
+      "provider_id": "11111111-1111-4111-8111-111111110003",
+      "pinned_version": "gemini-3.5-flash",
+      "expected_returned_model": "gemini-3.5-flash",
+      "role": "verifier"
+    }
+  ],
+  "allow_rolling_aliases": false
+}

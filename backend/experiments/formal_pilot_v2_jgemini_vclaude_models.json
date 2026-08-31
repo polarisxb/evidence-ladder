@@ -1,0 +1,42 @@
+{
+  "matrix_version": "retest-model-matrix.v1",
+  "content_hash": "9626a522099e22c6927d82affdbd44ef3f64c11d21bfc04f9667aa2fe3962d9b",
+  "models": [
+    {
+      "model_id": "qwen3-32b-anchor-target",
+      "provider_id": "11111111-1111-4111-8111-111111110004",
+      "pinned_version": "Qwen/Qwen3-32B",
+      "expected_returned_model": "Qwen/Qwen3-32B",
+      "role": "target"
+    },
+    {
+      "model_id": "gpt-5.5-frontier-target",
+      "provider_id": "11111111-1111-4111-8111-111111110001",
+      "pinned_version": "gpt-5.5-2026-04-23",
+      "expected_returned_model": "gpt-5.5-2026-04-23",
+      "role": "target"
+    },
+    {
+      "model_id": "gpt-5.4-mini-economy-target",
+      "provider_id": "11111111-1111-4111-8111-111111110001",
+      "pinned_version": "gpt-5.4-mini-2026-03-17",
+      "expected_returned_model": "gpt-5.4-mini-2026-03-17",
+      "role": "target"
+    },
+    {
+      "model_id": "gemini-3.5-flash-judge",
+      "provider_id": "11111111-1111-4111-8111-111111110003",
+      "pinned_version": "gemini-3.5-flash",
+      "expected_returned_model": "gemini-3.5-flash",
+      "role": "judge"
+    },
+    {
+      "model_id": "claude-sonnet-5-verifier",
+      "provider_id": "11111111-1111-4111-8111-111111110002",
+      "pinned_version": "claude-sonnet-5",
+      "expected_returned_model": "claude-sonnet-5",
+      "role": "verifier"
+    }
+  ],
+  "allow_rolling_aliases": false
+}

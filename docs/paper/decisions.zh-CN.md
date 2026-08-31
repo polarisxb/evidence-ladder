@@ -50,15 +50,22 @@
 
 ## D4 — 模型矩阵与 κ
 
-**决定**:
+**决定**（roster v2.1，2026-08-31 冻结）:
 
-| 项 | 选择 |
-|---|---|
-| 开源锚点 | **必须** — 推荐 Qwen2.5-72B-Instruct 或 Llama-3.1-70B-Instruct，pin 权重哈希 + 固定解码参数 |
-| 目标矩阵 | 3 目标: 1 开源锚点 + 1 前沿闭源 API + 1 低成本档 |
-| Judge / A′ verifier | **不同模型家族**；沿用 j55/v54 与 j54/v55 角色互换矩阵 |
-| 人-人 κ 门槛 | **≥0.8**（Landis-Koch almost perfect 下界）作为金标可用门槛 |
-| Judge-人 κ | **只报告，不设通过门槛**（低 κ 是 finding） |
+| 角色 | 模型 | pinned ID |
+|------|------|-----------|
+| Target-1 开源锚点 | Qwen3-32B-Instruct | `Qwen/Qwen3-32B`（vLLM 自托管，HF revision TBD） |
+| Target-2 前沿闭源 | GPT-5.5 dated snapshot | `gpt-5.5-2026-04-23` |
+| Target-3 低成本 | GPT-5.4-mini dated snapshot | `gpt-5.4-mini-2026-03-17` |
+| Judge（矩阵 A） | Claude Sonnet 5 | `claude-sonnet-5` |
+| Verifier（矩阵 A） | Gemini 3.5 Flash | `gemini-3.5-flash` |
+| 矩阵 B | Judge ↔ Verifier 互换 | 同上两 ID |
+
+- 矩阵文件: `formal_pilot_v2_jclaude_vgemini_models.json` / `jgemini_vclaude`
+- Paid gate: `stateful_paid_gate_v2_models.json`（单 target GPT-5.5）
+- **弃用**: relay `b98979c7-…`、v1 `formal_pilot_j54/j55_*`、GPT-5.6、gemini-2.5-pro
+- 人-人 κ 门槛 **≥0.8**；Judge-人 κ 只报告
+- 详情: [`model-roster.v2.md`](./model-roster.v2.md)
 
 ---
 
@@ -110,5 +117,5 @@
 |---|---|
 | 决策内容 | 按上表默认值锁定 |
 | 套件 hash | `[TBD — 首次付费调用前归档]` |
-| API 预算上限 | `[TBD — owner 填写]` |
+| API 预算上限 | 无硬上限（owner 确认）；预注册软顶 **$3,000** 可审计 |
 | 第二标注人 | `[TBD — owner 填写]` |

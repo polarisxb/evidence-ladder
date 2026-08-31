@@ -9,8 +9,8 @@
 - [ ] 主弃权政策 → `e0`（采集时 `--abstention-policy e0`）
 - [ ] Oracle → 归一化确定性匹配；模糊进次级指标
 - [ ] v1 canary-echo runs → 不进主表（已封存）
-- [ ] 开源锚点模型已选定（名称 + 权重 hash `[TBD]`）
-- [ ] 预算上限已填写：`[TBD]` token / `[TBD]` USD
+- [ ] 开源锚点模型已选定 — **Qwen3-32B**（HF revision `[TBD]`）
+- [ ] 预算: 无硬上限 / 软顶 $3,000
 - [ ] 第二标注人已确定：`[TBD]`
 
 ## G1 — 环境
@@ -23,7 +23,7 @@
 
 ## G2 — 套件
 
-- [ ] 使用 stateful v2 套件（非 v1 canary-echo）
+- [ ] 使用 v2 矩阵: `stateful_paid_gate_v2_models.json` / `formal_pilot_v2_*`
 - [ ] 套件 `content_hash` 已归档：`[TBD]`
 - [ ] 模型矩阵 hash 已归档：`[TBD]`
 

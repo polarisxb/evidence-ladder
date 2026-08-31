@@ -61,11 +61,13 @@ Ground truth: v2 `hidden_state_transition` oracle + 人工金标子集（双盲�
 
 Target: stateful v2（`hidden_state_transition`）；temperature > 0 允许。
 
-## 8. 模型矩阵
+## 8. 模型矩阵（v2.1 冻结 2026-08-31）
 
-- 3 targets: 1 open-weight anchor (pinned hash) + 1 frontier closed + 1 low-cost
-- Judge ≠ verifier（异家族）；2 角色互换矩阵（j55/v54, j54/v55）
-- ≥3 temporal blocks；block 内三臂共享初测 cache
+- **3 targets**: Qwen3-32B (vLLM) + `gpt-5.5-2026-04-23` + `gpt-5.4-mini-2026-03-17`
+- **2 role-swap matrices**: Claude Sonnet 5 ↔ Gemini 3.5 Flash（异 provider、异家族）
+- Paid gate 先用 `stateful_paid_gate_v2_models.json`（单 GPT-5.5 target）
+- 矩阵 hash 见 `backend/experiments/formal_pilot_v2_*.json`；provider UUID 见 `model_roster.v2.json`
+- **不使用** GPT-5.6（无 dated snapshot）、gemini-2.5-pro（2026-10-16 关停）、relay 中转
 
 ## 9. 统计
 
