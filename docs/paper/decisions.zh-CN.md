@@ -48,24 +48,34 @@
 
 ---
 
-## D4 — 模型矩阵与 κ
+## D4 — 模型矩阵与 κ（v2.2 domestic-first，2026-08-31 修订冻结）
 
-**决定**（roster v2.1，2026-08-31 冻结）:
+**决定**: 采用 **Domestic-first 分期路径**。Phase-1 全部使用国产可充值 API 完成 paid gate → pilot v2 → formal；Claude/Gemini/GPT 移入 `expansion_roster`（Phase-2，可选，不阻塞 Phase-1 任何环节）。
 
-| 角色 | 模型 | pinned ID |
-|------|------|-----------|
-| Target-1 开源锚点 | Qwen3-32B-Instruct | `Qwen/Qwen3-32B`（vLLM 自托管，HF revision TBD） |
-| Target-2 前沿闭源 | GPT-5.5 dated snapshot | `gpt-5.5-2026-04-23` |
-| Target-3 低成本 | GPT-5.4-mini dated snapshot | `gpt-5.4-mini-2026-03-17` |
-| Judge（矩阵 A） | Claude Sonnet 5 | `claude-sonnet-5` |
-| Verifier（矩阵 A） | Gemini 3.5 Flash | `gemini-3.5-flash` |
-| 矩阵 B | Judge ↔ Verifier 互换 | 同上两 ID |
+**背景**: 业主无法方便给 OpenAI/Anthropic/Google 官方充值。方法学贡献（Re-Test, Don't Re-Judge；三臂 A/A′/B；McNemar 主估计）不依赖任何特定模型家族——estimand 是测量协议的性质，不是模型排行榜。外部效度可分期补足。
 
-- 矩阵文件: `formal_pilot_v2_jclaude_vgemini_models.json` / `jgemini_vclaude`
-- Paid gate: `stateful_paid_gate_v2_models.json`（单 target GPT-5.5）
-- **弃用**: relay `b98979c7-…`、v1 `formal_pilot_j54/j55_*`、GPT-5.6、gemini-2.5-pro
+**Roster v2.2**（冻结于 `backend/experiments/model_roster.v2.json`）:
+
+| 角色 | 模型 | pinned ID | Provider |
+|------|------|-----------|----------|
+| Target-1 开源锚点 | Qwen3-32B | `Qwen/Qwen3-32B` | SiliconFlow |
+| Target-2 国产前沿（dated） | Kimi K2 0905 | `kimi-k2-0905-preview` | Moonshot 官方 |
+| Target-3 低成本 | MiniMax-M1-80k | `MiniMaxAI/MiniMax-M1-80k` | SiliconFlow |
+| Judge（矩阵 A）/ Verifier（矩阵 B） | DeepSeek-V3.1 | `deepseek-ai/DeepSeek-V3.1` | SiliconFlow |
+| Verifier（矩阵 A）/ Judge（矩阵 B） | GLM-4.5 | `glm-4.5` | 智谱官方 |
+
+- **家族覆盖**: 5 个互相独立的国产家族（Qwen / Moonshot / MiniMax / DeepSeek / GLM）；Judge 与 Verifier 跨家族、跨 provider 角色对调；J/V 家族与全部 target 家族不重叠（无自评偏置）
+- **为何 DeepSeek 不走官方 API**: 官方仅暴露滚动别名 `deepseek-chat`，被 driver 的 `allow_rolling_aliases=false` 守卫拒绝；改用 SiliconFlow 精确开源权重 id，可复现性更强
+- **SiliconFlow 披露**: 第三方推理平台（非各厂官方 serving stack），但所服务的是 pinned 开源权重 checkpoint——写入 Limitations，并以 returned_model 逐调用校验 + 固定 decode 参数缓解
+- 矩阵文件: `formal_pilot_v2_jdeepseek_vglm_models.json` / `jglm_vdeepseek`
+- Paid gate: `stateful_paid_gate_v2_models.json`（单 target Kimi K2；一次 gate 触达全部 3 个 key）
+- **Phase-2（expansion_roster，非阻塞）**: `claude-sonnet-5` ↔ `gemini-3.5-flash` J/V 对 + GPT dated targets；激活条件 = Phase-1 formal 归档完成 + 官方充值可用（或接受 AnyRouter 等第三方通道并在 Limitations 显式披露）；激活时冻结为 v2.3+，不改动 Phase-1 任何 hash
+- **审稿风险与应对**: 「缺 frontier-US coverage」→ Limitations 一段声明分期设计 + 预注册 Phase-2 扩展承诺；主张仅限「协议在跨 5 家族国产矩阵上成立」，不外推
+- **弃用**: relay `b98979c7-…`、v1 `formal_pilot_j54/j55_*`、`deepseek-chat` 滚动别名、GPT-5.6、gemini-2.5-pro
 - 人-人 κ 门槛 **≥0.8**；Judge-人 κ 只报告
 - 详情: [`model-roster.v2.md`](./model-roster.v2.md)
+
+**版本说明**: v2.1（Claude/Gemini J/V + GPT targets，2026-08-31 上午冻结）从未用于任何付费采集，按同一预注册流程当日升级为 v2.2；v3 保留给正式采集开始后的协议级变更。
 
 ---
 

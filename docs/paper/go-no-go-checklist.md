@@ -9,7 +9,8 @@
 - [ ] 主弃权政策 → `e0`（采集时 `--abstention-policy e0`）
 - [ ] Oracle → 归一化确定性匹配；模糊进次级指标
 - [ ] v1 canary-echo runs → 不进主表（已封存）
-- [ ] 开源锚点模型已选定 — **Qwen3-32B**（HF revision `[TBD]`）
+- [ ] 模型矩阵 → **v2.2 domestic-first**（5 国产家族；Claude/Gemini/GPT 在 expansion_roster 不阻塞）
+- [ ] 开源锚点模型已选定 — **Qwen3-32B**（SiliconFlow；HF revision `[TBD]`）
 - [ ] 预算: 无硬上限 / 软顶 $3,000
 - [ ] 第二标注人已确定：`[TBD]`
 
@@ -19,7 +20,7 @@
 - [ ] `git status` clean
 - [ ] Tag 已打：`[TBD]`
 - [ ] `pytest` 全绿
-- [ ] API key 已配置（不在仓库内）
+- [ ] 3 个国产 provider key 已配置（SiliconFlow / Moonshot / 智谱；不在仓库内）
 
 ## G2 — 套件
 
