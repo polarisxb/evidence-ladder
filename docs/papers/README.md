@@ -42,6 +42,10 @@ docstring 为准。
 | When Scanners Lie | arXiv:2603.14633 |
 | Kill-Chain Canaries | arXiv:2603.28013 |
 
-## 三、引用本项目
+## 三、论文工作区
+
+预注册决策、协议 v2 修订与英文初稿见 [`docs/paper/`](../paper/README.md)。
+
+## 四、引用本项目
 
 见仓库根目录的 [`CITATION.cff`](../../CITATION.cff)。
