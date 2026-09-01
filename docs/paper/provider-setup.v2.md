@@ -66,11 +66,16 @@
 **本机脚本（不要把 key 写在命令行里）：**
 
 ```bash
-# 只在你自己的终端
+# 只在你自己的终端；先 pull 再跑（--probe-only 只用标准库，不必 pip）
+git pull
 export DASHSCOPE_API_KEY='sk-…'   # 不要贴到聊天
 cd backend
 python3 -m scripts.register_qwen_provider --probe-only   # 先看目录
-python3 -m scripts.register_qwen_provider                # 写入本地 DB
+
+# 写入本地 DB 才需要依赖
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python3 -m scripts.register_qwen_provider
 ```
 
 脚本用固定槽位 UUID `22222222-2222-4222-8222-222222220004`。跑通后把打印的 `provider_id` 和几个 model id 发过来即可。

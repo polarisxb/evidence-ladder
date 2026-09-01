@@ -2,34 +2,24 @@
 
 Never pass the key on the command line (it lands in shell history).
 Never print the key. Safe to reply with the printed UUID and model ids.
+
+``--probe-only`` uses the stdlib only, so a bare ``python3`` works.
+Writing the local DB still needs ``pip install -r requirements.txt``.
 """
 from __future__ import annotations
 
 import argparse
-import asyncio
+import json
 import os
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
-
-import httpx
-from sqlalchemy import select
-
-from app.database import async_session, init_db
-from app.models.model_provider import (
-    PROVIDER_TYPES,
-    ModelProvider,
-    serialize_api_keys,
-)
-from scripts.provider_local_ids import (
-    QWEN_DASHSCOPE_PROVIDER_ID,
-    QWEN_DASHSCOPE_SLOT,
-    write_local_provider_id,
-)
 
 ENV_KEY = "DASHSCOPE_API_KEY"
 PROVIDER_TYPE = "qwen"
 PROVIDER_NAME = "qwen-dashscope"
-DEFAULT_BASE_URL = PROVIDER_TYPES[PROVIDER_TYPE]
+DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 INTERESTING_MARKERS = ("qwen", "deepseek", "kimi", "glm", "minimax", "moonshot")
 
 
@@ -52,18 +42,7 @@ def interesting_model_ids(model_ids: list[str], *, limit: int = 40) -> list[str]
     return interesting[:limit]
 
 
-async def probe_models(api_key: str, base_url: str) -> list[str]:
-    models_url = f"{base_url.rstrip('/')}/models"
-    async with httpx.AsyncClient(timeout=20.0) as client:
-        resp = await client.get(
-            models_url,
-            headers={"Authorization": f"Bearer {api_key}"},
-        )
-    if resp.status_code == 401:
-        raise SystemExit("DashScope rejected the key (HTTP 401). Rotate it in the console; do not paste it here.")
-    if resp.status_code >= 400:
-        raise SystemExit(f"DashScope /models failed: HTTP {resp.status_code}")
-    payload = resp.json()
+def parse_models_payload(payload: object) -> list[str]:
     data = payload.get("data") if isinstance(payload, dict) else None
     if not isinstance(data, list):
         raise SystemExit("DashScope /models returned an unexpected payload")
@@ -73,7 +52,52 @@ async def probe_models(api_key: str, base_url: str) -> list[str]:
     return ids
 
 
-async def upsert_provider(*, api_key: str, base_url: str) -> ModelProvider:
+def probe_models(api_key: str, base_url: str) -> list[str]:
+    models_url = f"{base_url.rstrip('/')}/models"
+    request = urllib.request.Request(
+        models_url,
+        headers={"Authorization": f"Bearer {api_key}"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=20) as resp:
+            status = getattr(resp, "status", 200)
+            raw = resp.read()
+    except urllib.error.HTTPError as exc:
+        if exc.code == 401:
+            raise SystemExit(
+                "DashScope rejected the key (HTTP 401). Rotate it in the console; "
+                "do not paste it here."
+            ) from exc
+        raise SystemExit(f"DashScope /models failed: HTTP {exc.code}") from exc
+    except urllib.error.URLError as exc:
+        raise SystemExit(f"DashScope /models network error: {exc.reason}") from exc
+    if status >= 400:
+        raise SystemExit(f"DashScope /models failed: HTTP {status}")
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise SystemExit("DashScope /models returned non-JSON") from exc
+    return parse_models_payload(payload)
+
+
+def _print_probe(model_ids: list[str]) -> None:
+    shown = interesting_model_ids(model_ids)
+    print(f"models_total={len(model_ids)}")
+    print("interesting_ids:")
+    for mid in shown:
+        print(f"  {mid}")
+    if len(model_ids) > len(shown):
+        print(f"  … {len(model_ids) - len(shown)} more not listed")
+
+
+async def upsert_provider(*, api_key: str, base_url: str):
+    from sqlalchemy import select
+
+    from app.database import async_session, init_db
+    from app.models.model_provider import ModelProvider, serialize_api_keys
+    from scripts.provider_local_ids import QWEN_DASHSCOPE_PROVIDER_ID
+
     await init_db()
     raw = serialize_api_keys([{"label": "dashscope", "key": api_key}])
     async with async_session() as session:
@@ -108,28 +132,21 @@ async def upsert_provider(*, api_key: str, base_url: str) -> ModelProvider:
         return provider
 
 
-def _print_probe(model_ids: list[str]) -> None:
-    shown = interesting_model_ids(model_ids)
-    print(f"models_total={len(model_ids)}")
-    print("interesting_ids:")
-    for mid in shown:
-        print(f"  {mid}")
-    if len(model_ids) > len(shown):
-        print(f"  … {len(model_ids) - len(shown)} more not listed")
-
-
-async def _run(args: argparse.Namespace) -> None:
+def _run(args: argparse.Namespace) -> None:
     api_key = _require_api_key()
     base_url = (os.environ.get("DASHSCOPE_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
 
     if not args.no_probe:
-        model_ids = await probe_models(api_key, base_url)
-        _print_probe(model_ids)
+        _print_probe(probe_models(api_key, base_url))
 
     if args.probe_only:
         return
 
-    provider = await upsert_provider(api_key=api_key, base_url=base_url)
+    import asyncio
+
+    from scripts.provider_local_ids import QWEN_DASHSCOPE_SLOT, write_local_provider_id
+
+    provider = asyncio.run(upsert_provider(api_key=api_key, base_url=base_url))
     experiments_dir = Path(__file__).resolve().parents[1] / "experiments"
     write_local_provider_id(experiments_dir, QWEN_DASHSCOPE_SLOT, provider.id)
     print(f"slot={QWEN_DASHSCOPE_SLOT}")
@@ -154,7 +171,7 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
     if args.probe_only and args.no_probe:
         raise SystemExit("choose one of --probe-only or --no-probe")
-    asyncio.run(_run(args))
+    _run(args)
 
 
 if __name__ == "__main__":
