@@ -66,7 +66,7 @@
 
 | 角色 | 模型 | pinned ID | 为什么这样选 |
 |------|------|-----------|--------------|
-| Target-1 开源锚点 | Qwen3-32B | `Qwen/Qwen3-32B` | 可复托管的 ~32B 档，不是追旗舰 |
+| Target-1 开源锚点 | Qwen3.8-27B | `qwen3.8-27b` | 千问云一厂；HF `Qwen/Qwen3.8-27B`；现行 ~27B 档，不追 max/2.4T |
 | Target-2 现行闭源 | Kimi K3 | `kimi-k3` | Moonshot **当前默认**生产 SKU |
 | Target-3 现行低成本 | MiniMax-M2.5 | `MiniMaxAI/MiniMax-M2.5` | SiliconFlow 上现行 MiniMax |
 | Judge A / Verifier B | DeepSeek-V3.1 | `deepseek-ai/DeepSeek-V3.1` | 开源权重裁判（可复现）；裁判不必是最新旗舰 |

@@ -21,6 +21,32 @@ PROVIDER_TYPE = "qwen"
 PROVIDER_NAME = "qwen-dashscope"
 DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 INTERESTING_MARKERS = ("qwen", "deepseek", "kimi", "glm", "minimax", "moonshot")
+NON_CHAT_MARKERS = (
+    "embedding",
+    "rerank",
+    "image",
+    "audio",
+    "ocr",
+    "asr",
+    "realtime",
+    "livetranslate",
+    "tts",
+    "whisper",
+)
+CATALOG_WATCHLIST = (
+    "qwen3.8-27b",
+    "qwen3-32b",
+    "Qwen/Qwen3-32B",
+    "qwen3.7-plus-2026-05-26",
+    "qwen3.7-flash-2026-07-15",
+    "kimi-k3",
+    "ZHIPU/GLM-5.3",
+    "deepseek-v4-pro-0813",
+    "deepseek-ai/DeepSeek-V3.1",
+    "MiniMaxAI/MiniMax-M2.5",
+    "MiniMax/MiniMax-M3",
+)
+HOSTED_THIRD_PARTY_PREFIXES = ("ZHIPU/", "vanchin/", "kimi/", "MiniMax/", "moonshot")
 
 
 def _require_api_key() -> str:
@@ -33,13 +59,24 @@ def _require_api_key() -> str:
     return key
 
 
+def is_non_chat_model_id(model_id: str) -> bool:
+    lowered = model_id.lower()
+    return any(marker in lowered for marker in NON_CHAT_MARKERS)
+
+
 def interesting_model_ids(model_ids: list[str], *, limit: int = 40) -> list[str]:
     interesting = [
         mid
         for mid in model_ids
         if any(marker in mid.lower() for marker in INTERESTING_MARKERS)
+        and not is_non_chat_model_id(mid)
     ]
     return interesting[:limit]
+
+
+def catalog_watch_hits(model_ids: list[str]) -> list[tuple[str, bool]]:
+    present = set(model_ids)
+    return [(mid, mid in present) for mid in CATALOG_WATCHLIST]
 
 
 def parse_models_payload(payload: object) -> list[str]:
@@ -82,13 +119,26 @@ def probe_models(api_key: str, base_url: str) -> list[str]:
 
 
 def _print_probe(model_ids: list[str]) -> None:
-    shown = interesting_model_ids(model_ids)
     print(f"models_total={len(model_ids)}")
-    print("interesting_ids:")
+    print("watchlist:")
+    for mid, hit in catalog_watch_hits(model_ids):
+        print(f"  {'HIT' if hit else 'MISS'} {mid}")
+    shown = interesting_model_ids(model_ids)
+    print("chat_ids:")
     for mid in shown:
         print(f"  {mid}")
-    if len(model_ids) > len(shown):
-        print(f"  … {len(model_ids) - len(shown)} more not listed")
+    remaining = max(0, len([m for m in model_ids if not is_non_chat_model_id(m)]) - len(shown))
+    if remaining:
+        print(f"  … {remaining} more chat ids not listed")
+    hosted = [
+        mid
+        for mid in model_ids
+        if mid.startswith(HOSTED_THIRD_PARTY_PREFIXES) or mid in {"kimi-k3", "glm-5.2", "glm-5.3"}
+    ]
+    print("hosted_third_party_seen (do not pin Phase-1 roles here):")
+    for mid in hosted[:12]:
+        print(f"  {mid}")
+    print("do_not_pin_on_this_key: hosted Kimi/GLM/DeepSeek/MiniMax (keep official vendors)")
 
 
 async def upsert_provider(*, api_key: str, base_url: str):

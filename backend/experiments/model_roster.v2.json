@@ -15,19 +15,19 @@
   "notes": [
     "v2.4 applies the current-catalog policy to v2.3. Protocol (Re-Test / three-arm / McNemar / e0) is unchanged. Still no paid collection.",
     "Closed current SKUs: Moonshot official default kimi-k3; Zhipu official default glm-5.3. Both are product aliases — pin by collection date + returned_model.",
-    "Open pins kept for reproducibility: Qwen/Qwen3-32B (size-class open anchor, not a flagship chase) and deepseek-ai/DeepSeek-V3.1 (exact weights id; official DeepSeek API only exposes rolling deepseek-chat).",
+    "Open pins kept for reproducibility: qwen3.8-27b on 千问云 / DashScope (HF Qwen/Qwen3.8-27B, current ~27B dense size-class; not qwen3.8-max / 2.4T) and deepseek-ai/DeepSeek-V3.1 on SiliconFlow (exact weights id; official DeepSeek API only exposes rolling deepseek-chat).",
     "Economy target MiniMaxAI/MiniMax-M2.5 is the current MiniMax id on SiliconFlow after M1-80k / M2.1 retirement.",
     "SiliconFlow billing: use the China site (.cn) because .com does not accept Alipay. Default API is https://api.siliconflow.cn/v1. Console: https://cloud.siliconflow.cn or https://siliconflow.cn. The .com catalog is fuller (Kimi-K3 / GLM-5.3) but is not required — those SKUs stay on official Moonshot/Zhipu.",
-    "On .cn confirm Qwen/Qwen3-32B, MiniMaxAI/MiniMax-M2.5, and deepseek-ai/DeepSeek-V3.1 (or DeepSeek-V3.1-Terminus if V3.1 is gone — re-freeze if swapped).",
+    "On SiliconFlow .cn confirm MiniMaxAI/MiniMax-M2.5 and deepseek-ai/DeepSeek-V3.1 (or DeepSeek-V3.1-Terminus if V3.1 is gone — re-freeze if swapped). T1 no longer needs SiliconFlow Qwen.",
     "Phase-1 uses domestic providers only; Claude/Gemini/GPT remain in expansion_roster (Phase-2, freeze as v2.5+).",
     "Provider UUIDs are placeholders until keys are registered. Re-run build_formal_pilot_v2_matrices.py after changing provider_id values.",
-    "qwen-dashscope is registered locally (Settings UI or python -m scripts.register_qwen_provider). Do not paste the DashScope key into chat. Phase-1 targets still use siliconflow-cn until T1 is rematrixed."
+    "qwen-dashscope is registered locally (Settings UI or python -m scripts.register_qwen_provider). Do not paste the DashScope key into chat. Live 2026-09-01 catalog: T1 = qwen3.8-27b. Do not pin Phase-1 Kimi/GLM/DeepSeek/MiniMax on this Aliyun key."
   ],
   "provider_slots": {
     "siliconflow-cn": {
       "provider_id": "22222222-2222-4222-8222-222222220001",
       "provider_type": "siliconflow",
-      "description": "SiliconFlow China (api.siliconflow.cn, Alipay) — Qwen3-32B, MiniMax-M2.5, DeepSeek-V3.1. Do not use .com for billing."
+      "description": "SiliconFlow China (api.siliconflow.cn, Alipay) — MiniMax-M2.5 and DeepSeek-V3.1. Do not use .com for billing."
     },
     "moonshot-official": {
       "provider_id": "22222222-2222-4222-8222-222222220002",
@@ -48,13 +48,13 @@
   "targets": [
     {
       "slot": "target-open-anchor",
-      "model_id": "qwen3-32b-anchor-target",
-      "provider_slot": "siliconflow-cn",
-      "pinned_version": "Qwen/Qwen3-32B",
-      "expected_returned_model": "Qwen/Qwen3-32B",
+      "model_id": "qwen3.8-27b-anchor-target",
+      "provider_slot": "qwen-dashscope",
+      "pinned_version": "qwen3.8-27b",
+      "expected_returned_model": "qwen3.8-27b",
       "family": "qwen",
-      "role_rationale": "Open-weight size-class anchor (~32B dense), not a flagship chase. Reviewers can re-host the same weights.",
-      "weights_reference": "HF Qwen/Qwen3-32B — revision [TBD — pin before first paid call]",
+      "role_rationale": "Current first-party Qwen size-class open anchor (~27B dense) on 千问云. Not qwen3.8-max / qwen3.8-2.4t-a95b (flagship chase). Thinking is vendor-default-on; disable per request if the protocol needs a non-thinking decode.",
+      "weights_reference": "HF Qwen/Qwen3.8-27B — revision [TBD — pin before first paid call]",
       "decode": {"temperature": 0.7, "top_p": 0.95, "seed": 42}
     },
     {

@@ -64,7 +64,7 @@ Target: stateful v2（`hidden_state_transition`）；temperature > 0 允许。
 ## 8. 模型矩阵（v2.4 current-catalog，冻结 2026-09-01）
 
 - **选型规则**: 现行在售目录 + 采集日冻结 + 付费前可换、付费后不换。闭源位用厂商当前默认 SKU；开源位可复托管。
-- **3 targets**: `Qwen/Qwen3-32B` + `kimi-k3` + `MiniMaxAI/MiniMax-M2.5`
+- **3 targets**: `qwen3.8-27b`（千问云） + `kimi-k3` + `MiniMaxAI/MiniMax-M2.5`
 - **J/V 对调**: `deepseek-ai/DeepSeek-V3.1` ↔ `glm-5.3`
 - Paid gate: `stateful_paid_gate_v2_models.json`（单 `kimi-k3`；3 key）
 - Phase-2（Claude/Gemini/GPT）冻 v2.5+，不动 Phase-1 hash

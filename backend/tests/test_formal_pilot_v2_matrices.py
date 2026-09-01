@@ -49,6 +49,12 @@ def test_v2_phase1_matrices_are_domestic_only() -> None:
             )
 
 
+def test_v2_t1_is_first_party_qwen38_27b() -> None:
+    matrix = _load(_FULL_MATRICES[0])
+    assert matrix.target_models[0].pinned_version == "qwen3.8-27b"
+    assert matrix.target_models[0].provider_id != matrix.target_models[1].provider_id
+
+
 def test_v2_paid_gate_matrix_single_target() -> None:
     matrix = _load("stateful_paid_gate_v2_models.json")
     assert len(matrix.target_models) == 1

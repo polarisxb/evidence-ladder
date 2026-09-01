@@ -1,12 +1,12 @@
 {
   "matrix_version": "retest-model-matrix.v1",
-  "content_hash": "e4e72c768c6a0b3baf872940a3d4d11deac69e56c357bd9ec3c8aef1b87fcf77",
+  "content_hash": "20433ca1bbd2ec263e0dd4e97f7e46bd157bd9f793fa5c1bebdebfd8b964a74e",
   "models": [
     {
-      "model_id": "qwen3-32b-anchor-target",
-      "provider_id": "22222222-2222-4222-8222-222222220001",
-      "pinned_version": "Qwen/Qwen3-32B",
-      "expected_returned_model": "Qwen/Qwen3-32B",
+      "model_id": "qwen3.8-27b-anchor-target",
+      "provider_id": "22222222-2222-4222-8222-222222220004",
+      "pinned_version": "qwen3.8-27b",
+      "expected_returned_model": "qwen3.8-27b",
       "role": "target"
     },
     {

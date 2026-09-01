@@ -14,7 +14,7 @@
 | 控制台 | https://cloud.siliconflow.cn 或 https://siliconflow.cn | cloud.siliconflow.com |
 | API | `https://api.siliconflow.cn/v1` | api.siliconflow.com |
 | 付款 | 支付宝 / 微信 | 通常要外卡 |
-| 我们要用的 | `Qwen/Qwen3-32B`、`MiniMaxAI/MiniMax-M2.5`、`deepseek-ai/DeepSeek-V3.1` | 多出来的 K3/GLM 用不上 |
+| 我们要用的 | `MiniMaxAI/MiniMax-M2.5`、`deepseek-ai/DeepSeek-V3.1`（T1 已改走千问云 `qwen3.8-27b`） | 多出来的 K3/GLM 用不上 |
 
 后端 `siliconflow` 默认 base_url 是 **`.cn`**。
 
@@ -22,7 +22,8 @@
 
 | # | 平台 | 链接 | 控制台必须能看到 | 建议首充 |
 |---|------|------|------------------|----------|
-| 1 | 硅基流动 **.cn** | https://cloud.siliconflow.cn | `Qwen/Qwen3-32B`、`MiniMaxAI/MiniMax-M2.5`、`deepseek-ai/DeepSeek-V3.1` | ≥ ¥200 |
+| 0 | 千问云 / 百炼 | https://www.qianwenai.com/models | **`qwen3.8-27b`** | ¥100–200 |
+| 1 | 硅基流动 **.cn** | https://cloud.siliconflow.cn | `MiniMaxAI/MiniMax-M2.5`、`deepseek-ai/DeepSeek-V3.1` | ≥ ¥150 |
 | 2 | 月之暗面 / Kimi **官方** | https://platform.kimi.com | **`kimi-k3`** | ¥50–100 |
 | 3 | 智谱 **官方** | https://open.bigmodel.cn | **`glm-5.3`** | ¥100–200 |
 
@@ -35,7 +36,7 @@
 能支付宝。模型很多（Qwen + 托管的 DeepSeek / Kimi / GLM）。
 
 **可以当：**
-- Target-1 的**一厂 Qwen**（比硅基托管的 `Qwen/Qwen3-32B` 更「官方」）
+- Target-1 的**一厂 Qwen**（已冻 `qwen3.8-27b`；不要用 `qwen3.8-max` / `qwen3.8-2.4t-a95b`）
 - 硅基某个 ID 没了时的备用通道
 - 以后想钉带日期的 DashScope SKU（如 `deepseek-v4-pro-0813`）的 Phase-2
 
@@ -52,7 +53,7 @@
 密钥只进**你自己的** Settings 或本机环境变量。聊天里只回这三样：
 1. `provider_id`（UUID，可以发）
 2. 测试是绿还是红（红的话只说 HTTP 状态 / 「未开通」，不要贴响应全文）
-3. 目录里看到的几个模型 ID（例如 `qwen3-32b`、`qwen-plus`）
+3. 目录里看到的几个模型 ID（T1 已冻 `qwen3.8-27b`）
 
 **界面：** 设置 → 模型供应商 → 新建
 

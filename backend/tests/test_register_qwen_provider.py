@@ -13,19 +13,31 @@ from scripts.provider_local_ids import (
     load_local_provider_ids,
     write_local_provider_id,
 )
-from scripts.register_qwen_provider import interesting_model_ids, main, parse_models_payload
+from scripts.register_qwen_provider import (
+    catalog_watch_hits,
+    interesting_model_ids,
+    main,
+    parse_models_payload,
+)
 
 
 def test_interesting_model_ids_keeps_qwen_and_hosted_families() -> None:
     ids = interesting_model_ids(
         [
             "qwen3-32b",
-            "text-embedding-v3",
+            "qwen3.7-text-embedding-flash",
             "deepseek-v4-pro-0813",
             "whisper-1",
         ]
     )
     assert ids == ["qwen3-32b", "deepseek-v4-pro-0813"]
+
+
+def test_catalog_watch_hits_marks_t1_pin() -> None:
+    hits = dict(catalog_watch_hits(["qwen3.8-27b", "kimi-k3", "qwen3.8-max"]))
+    assert hits["qwen3.8-27b"] is True
+    assert hits["qwen3-32b"] is False
+    assert hits["kimi-k3"] is True
 
 
 def test_parse_models_payload_reads_openai_compatible_list() -> None:
@@ -83,4 +95,6 @@ def test_roster_declares_qwen_dashscope_slot() -> None:
     slot = roster["provider_slots"][QWEN_DASHSCOPE_SLOT]
     assert slot["provider_type"] == "qwen"
     assert slot["provider_id"] == QWEN_DASHSCOPE_PROVIDER_ID
-    assert all(target["provider_slot"] != QWEN_DASHSCOPE_SLOT for target in roster["targets"])
+    t1 = next(target for target in roster["targets"] if target["slot"] == "target-open-anchor")
+    assert t1["provider_slot"] == QWEN_DASHSCOPE_SLOT
+    assert t1["pinned_version"] == "qwen3.8-27b"
