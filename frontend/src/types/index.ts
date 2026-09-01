@@ -897,7 +897,7 @@ export const PROVIDER_BASE_URLS: Record<ProviderType, string> = {
   yi:          "https://api.lingyiwanwu.com/v1",
   baichuan:    "https://api.baichuan-ai.com/v1",
   stepfun:     "https://api.stepfun.com/v1",
-  siliconflow: "https://api.siliconflow.cn/v1",
+  siliconflow: "https://api.siliconflow.com/v1",
   xai:         "https://api.x.ai/v1",
   together:    "https://api.together.xyz/v1",
   custom:      "",
