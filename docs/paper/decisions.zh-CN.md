@@ -76,6 +76,7 @@
 - DeepSeek 不走官方 `deepseek-chat`（滚动别名会被拒）
 - `kimi-k3` / `glm-5.3` 是产品别名：采集日 + `returned_model` 写入附录
 - Paid gate: 单 target `kimi-k3`，一次打到 3 个 key
+- **千问云**（qianwenai.com / 百炼）是阿里正门，可支付宝；可当 T1 一厂 Qwen 或硅基备用。**不要**用一把阿里云 key 打完整张 5 家族矩阵（serving 不独立）。见 `provider-setup.v2.md` §1b
 - Phase-2 激活冻 v2.5+，不动 Phase-1 hash
 - 人-人 κ ≥ 0.8
 - 详情: [`model-roster.v2.md`](./model-roster.v2.md)
