@@ -20,15 +20,15 @@
 
 | 角色 | API ID | 平台 | 档位 |
 |------|--------|------|------|
-| Target-1 | `Qwen/Qwen3-32B` | 硅基流动 **.com** | 开源锚点（~32B 档，不追旗舰） |
+| Target-1 | `Qwen/Qwen3-32B` | 硅基流动 **.cn（支付宝）** | 开源锚点（~32B 档，不追旗舰） |
 | Target-2 | `kimi-k3` | Moonshot / Kimi 官方 | **现行**闭源默认 |
-| Target-3 | `MiniMaxAI/MiniMax-M2.5` | 硅基流动 **.com** | **现行**低成本 |
-| Judge A / Verifier B | `deepseek-ai/DeepSeek-V3.1` | 硅基流动 **.com** | 开源权重裁判 |
+| Target-3 | `MiniMaxAI/MiniMax-M2.5` | 硅基流动 **.cn（支付宝）** | **现行**低成本 |
+| Judge A / Verifier B | `deepseek-ai/DeepSeek-V3.1` | 硅基流动 **.cn（支付宝）** | 开源权重裁判 |
 | Verifier A / Judge B | `glm-5.3` | 智谱官方 | **现行**闭源裁判 |
 
 矩阵：`formal_pilot_v2_jdeepseek_vglm_models.json` / `jglm_vdeepseek`；paid gate 单 target `kimi-k3`。
 
-硅基流动办 **https://cloud.siliconflow.com**（`.com` 目录更全）。不要办 `.cn`。Kimi K3 / GLM-5.3 主表仍走官方；硅基 .com 上的 `moonshotai/Kimi-K3`、`zai-org/GLM-5.3` 只当官方办不下来的备选。
+硅基流动办 **https://cloud.siliconflow.cn**（支付宝）。不要为目录更全去办 `.com`——`.com` 不支持支付宝，且主表不需要硅基上的 K3/GLM（那两个走官方）。
 
 ---
 
