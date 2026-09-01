@@ -28,7 +28,8 @@
 
 矩阵：`formal_pilot_v2_jdeepseek_vglm_models.json` / `jglm_vdeepseek`；paid gate 单 target `kimi-k3`。
 
-**千问云**（qianwenai.com / 百炼）是正门，可当 T1 一厂 Qwen 或硅基备用；**不要**用一把阿里云 key 替换整张 3 厂矩阵。见 `provider-setup.v2.md` §1b。
+**千问云**（qianwenai.com / 百炼）是正门，可当 T1 一厂 Qwen 或硅基备用；**不要**用一把阿里云 key 替换整张 3 厂矩阵。见 `provider-setup.v2.md` §1b。  
+密钥只在本机 Settings 或 `DASHSCOPE_API_KEY` 里登记（`python3 -m scripts.register_qwen_provider`）。**不要把 key 发到聊天**；UUID 和模型 ID 可以发。
 
 硅基流动办 **https://cloud.siliconflow.cn**（支付宝）。不要为目录更全去办 `.com`——`.com` 不支持支付宝，且主表不需要硅基上的 K3/GLM（那两个走官方）。
 

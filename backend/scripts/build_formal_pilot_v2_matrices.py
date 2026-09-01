@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 from typing import Any
 
 from app.services.experiment_driver import compute_model_matrix_hash
+from scripts.provider_local_ids import apply_local_provider_ids
 
 
 def _load_roster(path: Path) -> dict[str, Any]:
@@ -74,11 +76,26 @@ def _build_matrix(
     }
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Rebuild formal-pilot v2 matrices from the roster.")
+    parser.add_argument(
+        "--apply-local-ids",
+        action="store_true",
+        help=(
+            "overlay experiments/.provider_ids.local.json onto provider_slots. "
+            "Do not commit the resulting hashes unless those UUIDs are meant to be public."
+        ),
+    )
+    args = parser.parse_args(argv)
+
     roster_path = Path("experiments/model_roster.v2.json")
     roster = _load_roster(roster_path)
     targets_by_slot = {target["slot"]: target for target in roster["targets"]}
     experiments_dir = Path("experiments")
+    if args.apply_local_ids:
+        applied = apply_local_provider_ids(roster, experiments_dir)
+        if applied:
+            print(f"applied local provider ids for: {', '.join(applied)}")
 
     for matrix_spec in roster["matrices"]:
         payload = _build_matrix(

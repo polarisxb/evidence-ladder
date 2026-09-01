@@ -9,6 +9,7 @@ venv/
 .env
 backend/.env
 mock_targets/*/.env
+backend/experiments/.provider_ids.local.json
 
 # Database / runtime data (sqlite db + WAL/SHM, pilot-run artifacts).
 # CI recreates the directory via `mkdir -p data`, so nothing here is tracked.

@@ -20,7 +20,8 @@
     "SiliconFlow billing: use the China site (.cn) because .com does not accept Alipay. Default API is https://api.siliconflow.cn/v1. Console: https://cloud.siliconflow.cn or https://siliconflow.cn. The .com catalog is fuller (Kimi-K3 / GLM-5.3) but is not required — those SKUs stay on official Moonshot/Zhipu.",
     "On .cn confirm Qwen/Qwen3-32B, MiniMaxAI/MiniMax-M2.5, and deepseek-ai/DeepSeek-V3.1 (or DeepSeek-V3.1-Terminus if V3.1 is gone — re-freeze if swapped).",
     "Phase-1 uses domestic providers only; Claude/Gemini/GPT remain in expansion_roster (Phase-2, freeze as v2.5+).",
-    "Provider UUIDs are placeholders until keys are registered. Re-run build_formal_pilot_v2_matrices.py after changing provider_id values."
+    "Provider UUIDs are placeholders until keys are registered. Re-run build_formal_pilot_v2_matrices.py after changing provider_id values.",
+    "qwen-dashscope is registered locally (Settings UI or python -m scripts.register_qwen_provider). Do not paste the DashScope key into chat. Phase-1 targets still use siliconflow-cn until T1 is rematrixed."
   ],
   "provider_slots": {
     "siliconflow-cn": {
@@ -37,6 +38,11 @@
       "provider_id": "22222222-2222-4222-8222-222222220003",
       "provider_type": "glm",
       "description": "Zhipu official API (open.bigmodel.cn) — current production judge/verifier glm-5.3"
+    },
+    "qwen-dashscope": {
+      "provider_id": "22222222-2222-4222-8222-222222220004",
+      "provider_type": "qwen",
+      "description": "千问云 / 百炼 DashScope compatible-mode. First-party Qwen or SiliconFlow backup. Do not collapse the 3-vendor matrix onto this key. Register locally; never commit the API key."
     }
   },
   "targets": [

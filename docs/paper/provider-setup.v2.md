@@ -47,6 +47,34 @@
 若只办了千问云一个号，也能先跑 paid gate，但 Limitations 必须写「第三方家族是阿里云托管」。  
 **先别自己改矩阵。** 开通后说一声，再冻 T1 的具体 DashScope ID。
 
+### 登记千问（密钥不要发到聊天）
+
+密钥只进**你自己的** Settings 或本机环境变量。聊天里只回这三样：
+1. `provider_id`（UUID，可以发）
+2. 测试是绿还是红（红的话只说 HTTP 状态 / 「未开通」，不要贴响应全文）
+3. 目录里看到的几个模型 ID（例如 `qwen3-32b`、`qwen-plus`）
+
+**界面：** 设置 → 模型供应商 → 新建
+
+| 字段 | 填这个 |
+|------|--------|
+| 名称 | `qwen-dashscope` |
+| 类型 | Qwen（通义千问） |
+| Base URL | 自动：`https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| API Key | 百炼 / 千问云控制台自己贴，保存后点「测试」和「获取模型」 |
+
+**本机脚本（不要把 key 写在命令行里）：**
+
+```bash
+# 只在你自己的终端
+export DASHSCOPE_API_KEY='sk-…'   # 不要贴到聊天
+cd backend
+python3 -m scripts.register_qwen_provider --probe-only   # 先看目录
+python3 -m scripts.register_qwen_provider                # 写入本地 DB
+```
+
+脚本用固定槽位 UUID `22222222-2222-4222-8222-222222220004`。跑通后把打印的 `provider_id` 和几个 model id 发过来即可。
+
 ## 2. Provider 槽位
 
 | 槽位 | type | 角色 |
