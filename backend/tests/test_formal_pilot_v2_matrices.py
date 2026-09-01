@@ -1,4 +1,4 @@
-"""Smoke tests for formal-pilot v2.2 (domestic-first) model roster matrices."""
+"""Smoke tests for formal-pilot v2.3 (domestic-first, live-id refresh) matrices."""
 
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ def test_v2_phase1_matrices_are_domestic_only() -> None:
 def test_v2_paid_gate_matrix_single_target() -> None:
     matrix = _load("stateful_paid_gate_v2_models.json")
     assert len(matrix.target_models) == 1
-    assert matrix.target_models[0].pinned_version == "kimi-k2-0905-preview"
+    assert matrix.target_models[0].pinned_version == "kimi-k2.6"
     # The single gate run must exercise all three provider keys.
     provider_ids = {
         matrix.target_models[0].provider_id,

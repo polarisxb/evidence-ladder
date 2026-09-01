@@ -11,7 +11,7 @@ manuscript material for the Evidence-Ladder paper (*Re-Test, Don't Re-Judge*).
 | [`decisions.zh-CN.md`](./decisions.zh-CN.md) | Locked human decisions with reviewer rationale (2026-08-31) |
 | [`annotator-guide.zh-CN.md`](./annotator-guide.zh-CN.md) | Dual-blind human labeling rubric for Cohen's κ |
 | [`draft-en.md`](./draft-en.md) | English manuscript draft (Abstract + Intro + Method) |
-| [`model-roster.v2.md`](./model-roster.v2.md) | Frozen model roster v2.2 — domestic-first (2026-08-31) |
+| [`model-roster.v2.md`](./model-roster.v2.md) | Frozen model roster v2.3 — domestic-first live ids (2026-09-01) |
 | [`provider-setup.v2.md`](./provider-setup.v2.md) | Domestic provider registration (3 keys) + paid gate command |
 | [`../../backend/experiments/formal_pilot_protocol.v2.md`](../../backend/experiments/formal_pilot_protocol.v2.md) | Formal pilot protocol v2 |
 

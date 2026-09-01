@@ -1,12 +1,15 @@
 {
-  "roster_version": "formal-pilot.v2.2",
+  "roster_version": "formal-pilot.v2.3",
   "strategy": "domestic-first",
-  "frozen_date": "2026-08-31",
+  "frozen_date": "2026-09-01",
   "notes": [
-    "v2.2 supersedes v2.1 BEFORE any paid collection: Phase-1 uses domestic (CN) providers only; Claude/Gemini/GPT move to expansion_roster (Phase-2, non-blocking).",
-    "Rationale: owner cannot conveniently fund OpenAI/Anthropic/Google official billing; the method contribution (Re-Test, Don't Re-Judge) does not depend on frontier-US models; external validity is staged.",
+    "v2.3 is a live-id refresh of v2.2 BEFORE any paid collection. Protocol (Re-Test / three-arm / McNemar / e0) is unchanged.",
+    "v2.2 ids retired by vendors: kimi-k2-0905-preview (Moonshot, offline 2026-05-25 / listed retired 2026-08-31), MiniMaxAI/MiniMax-M1-80k (SiliconFlow, offline 2026-02-08).",
+    "Phase-1 uses domestic (CN) providers only; Claude/Gemini/GPT remain in expansion_roster (Phase-2, non-blocking).",
     "DeepSeek official API only exposes rolling aliases (deepseek-chat) which the driver rejects when allow_rolling_aliases=false; the DeepSeek judge/verifier therefore runs on SiliconFlow with the exact open-weights id deepseek-ai/DeepSeek-V3.1.",
-    "SiliconFlow is a third-party inference platform serving pinned open-weights checkpoints; this is disclosed in Limitations (serving stack not vendor-official) and mitigated by exact model ids, fixed decode params, and per-call returned_model checks.",
+    "SiliconFlow is a third-party inference platform serving pinned open-weights checkpoints; disclose in Limitations (serving stack not vendor-official) and mitigate with exact model ids, fixed decode params, and per-call returned_model checks.",
+    "kimi-k2.6 is a named generation on the official Moonshot API (api.moonshot.cn), not a dated snapshot. Record collection date + returned_model. Do not use kimi-k3 (flagship / faster drift) for Phase-1.",
+    "glm-4.7 is the current Zhipu official pin below the GLM-5.x line. Do not put glm-5.3 on the Phase-1 matrix.",
     "Provider UUIDs are placeholders until official API keys are registered in model_providers.",
     "Replace provider_slots.*.provider_id after creating providers (see docs/paper/provider-setup.v2.md).",
     "Re-run backend/scripts/build_formal_pilot_v2_matrices.py after changing provider_id values."
@@ -15,17 +18,17 @@
     "siliconflow-cn": {
       "provider_id": "22222222-2222-4222-8222-222222220001",
       "provider_type": "siliconflow",
-      "description": "SiliconFlow (siliconflow.cn) — pinned open-weights ids: Qwen3-32B anchor target, MiniMax-M1 economy target, DeepSeek-V3.1 judge/verifier"
+      "description": "SiliconFlow (siliconflow.cn) — Qwen3-32B anchor, MiniMax-M2.5 economy target, DeepSeek-V3.1 judge/verifier"
     },
     "moonshot-official": {
       "provider_id": "22222222-2222-4222-8222-222222220002",
       "provider_type": "moonshot",
-      "description": "Moonshot official API (platform.moonshot.cn) — dated Kimi K2 snapshot target"
+      "description": "Moonshot / Kimi official API (api.moonshot.cn) — kimi-k2.6 target"
     },
     "glm-official": {
       "provider_id": "22222222-2222-4222-8222-222222220003",
       "provider_type": "glm",
-      "description": "Zhipu official API (open.bigmodel.cn) — GLM-4.5 judge/verifier"
+      "description": "Zhipu official API (open.bigmodel.cn) — GLM-4.7 judge/verifier"
     }
   },
   "targets": [
@@ -41,21 +44,21 @@
     },
     {
       "slot": "target-domestic-frontier",
-      "model_id": "kimi-k2-0905-frontier-target",
+      "model_id": "kimi-k2.6-frontier-target",
       "provider_slot": "moonshot-official",
-      "pinned_version": "kimi-k2-0905-preview",
-      "expected_returned_model": "kimi-k2-0905-preview",
+      "pinned_version": "kimi-k2.6",
+      "expected_returned_model": "kimi-k2.6",
       "family": "moonshot",
-      "weights_reference": "HF moonshotai/Kimi-K2-Instruct-0905 (dated snapshot; open weights auditable)"
+      "weights_reference": "Moonshot official named generation (not dated). Record collection-date served id. Do not use retired kimi-k2-0905-preview or flagship kimi-k3 on Phase-1."
     },
     {
       "slot": "target-low-cost",
-      "model_id": "minimax-m1-economy-target",
+      "model_id": "minimax-m2.5-economy-target",
       "provider_slot": "siliconflow-cn",
-      "pinned_version": "MiniMaxAI/MiniMax-M1-80k",
-      "expected_returned_model": "MiniMaxAI/MiniMax-M1-80k",
+      "pinned_version": "MiniMaxAI/MiniMax-M2.5",
+      "expected_returned_model": "MiniMaxAI/MiniMax-M2.5",
       "family": "minimax",
-      "weights_reference": "HF MiniMaxAI/MiniMax-M1-80k (open weights; verify SiliconFlow id at registration time — equivalent swap requires hash re-freeze)"
+      "weights_reference": "SiliconFlow id MiniMaxAI/MiniMax-M2.5 (M1-80k and M2.1 already retired). Equivalent swap requires hash re-freeze."
     }
   ],
   "judges": {
@@ -65,11 +68,11 @@
       "pinned_version": "deepseek-ai/DeepSeek-V3.1",
       "expected_returned_model": "deepseek-ai/DeepSeek-V3.1"
     },
-    "glm_4_5": {
-      "model_id": "glm-4.5-judge",
+    "glm_4_7": {
+      "model_id": "glm-4.7-judge",
       "provider_slot": "glm-official",
-      "pinned_version": "glm-4.5",
-      "expected_returned_model": "glm-4.5"
+      "pinned_version": "glm-4.7",
+      "expected_returned_model": "glm-4.7"
     }
   },
   "verifiers": {
@@ -79,22 +82,22 @@
       "pinned_version": "deepseek-ai/DeepSeek-V3.1",
       "expected_returned_model": "deepseek-ai/DeepSeek-V3.1"
     },
-    "glm_4_5": {
-      "model_id": "glm-4.5-verifier",
+    "glm_4_7": {
+      "model_id": "glm-4.7-verifier",
       "provider_slot": "glm-official",
-      "pinned_version": "glm-4.5",
-      "expected_returned_model": "glm-4.5"
+      "pinned_version": "glm-4.7",
+      "expected_returned_model": "glm-4.7"
     }
   },
   "matrices": [
     {
       "filename": "formal_pilot_v2_jdeepseek_vglm_models.json",
       "judge_key": "deepseek_v3_1",
-      "verifier_key": "glm_4_5"
+      "verifier_key": "glm_4_7"
     },
     {
       "filename": "formal_pilot_v2_jglm_vdeepseek_models.json",
-      "judge_key": "glm_4_5",
+      "judge_key": "glm_4_7",
       "verifier_key": "deepseek_v3_1"
     }
   ],
@@ -102,15 +105,15 @@
     "filename": "stateful_paid_gate_v2_models.json",
     "targets": ["target-domestic-frontier"],
     "judge_key": "deepseek_v3_1",
-    "verifier_key": "glm_4_5",
+    "verifier_key": "glm_4_7",
     "note": "Single gate run touches all three API keys: target via moonshot-official, judge via siliconflow-cn, verifier via glm-official."
   },
   "expansion_roster": {
     "phase": "phase-2 — optional frontier expansion; does NOT block Phase-1 paid gate / pilot v2 / formal blocks",
     "activation_conditions": [
       "Phase-1 formal blocks completed and archived (hashes frozen)",
-      "Official OpenAI/Anthropic/Google billing becomes available, OR a third-party channel (e.g. AnyRouter) is accepted WITH explicit Limitations disclosure and per-call returned_model provenance checks",
-      "Expansion matrices are frozen as a new roster version (formal-pilot.v2.3+) without touching Phase-1 hashes"
+      "Official OpenAI/Anthropic/Google billing becomes available, OR a third-party channel is accepted WITH explicit Limitations disclosure and per-call returned_model provenance checks",
+      "Expansion matrices are frozen as a new roster version (formal-pilot.v2.4+) without touching Phase-1 hashes"
     ],
     "candidates": [
       {"family": "anthropic", "pinned_version": "claude-sonnet-5", "intended_role": "judge/verifier role-swap vs gemini"},
@@ -122,13 +125,19 @@
   },
   "deprecation_notes": {
     "avoid": [
+      "kimi-k2-0905-preview / kimi-k2-0711-preview (retired on Moonshot official)",
+      "kimi-k3 on Phase-1 (flagship alias; faster drift — Phase-2 only if pin policy is restated)",
+      "MiniMaxAI/MiniMax-M1-80k and MiniMax-M2.1 (SiliconFlow retired)",
+      "glm-4.5 as SiliconFlow id (retired); glm-5.3 on Phase-1 (too new / product alias)",
       "deepseek-chat / deepseek-reasoner official aliases (rolling; rejected by allow_rolling_aliases=false)",
+      "deepseek-ai/DeepSeek-V4-Pro / V4-Flash on Phase-1 (product-line drift)",
       "gpt-5.6-* (no dated immutable snapshot)",
       "gemini-2.5-pro (shutdown 2026-10-16)",
       "relay provider b98979c7-* for v2 collection",
       "claude-fable-5 for judge role (cost/audit complexity)"
     ],
     "supersedes": [
+      "formal-pilot.v2.2 roster (Kimi 0905 + MiniMax-M1-80k + GLM-4.5) — never used for collection; ids retired by vendors",
       "formal-pilot.v2.1 roster (Claude/Gemini judge pair + GPT targets) — never used for collection; moved to expansion_roster",
       "formal_pilot_v2_jclaude_vgemini_models.json / formal_pilot_v2_jgemini_vclaude_models.json (removed; regenerate at Phase-2 activation)",
       "formal_pilot_j54_v55_models.json",

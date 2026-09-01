@@ -61,14 +61,14 @@ Ground truth: v2 `hidden_state_transition` oracle + 人工金标子集（双盲�
 
 Target: stateful v2（`hidden_state_transition`）；temperature > 0 允许。
 
-## 8. 模型矩阵（v2.2 domestic-first，冻结 2026-08-31）
+## 8. 模型矩阵（v2.3 domestic-first，冻结 2026-09-01）
 
-- **3 targets（Phase-1 全国产）**: Qwen3-32B (SiliconFlow) + `kimi-k2-0905-preview`（Moonshot 官方，dated）+ `MiniMaxAI/MiniMax-M1-80k`（SiliconFlow）
-- **2 role-swap matrices**: DeepSeek-V3.1 ↔ GLM-4.5（异 provider、异家族；与全部 target 家族不重叠）
-- Paid gate 先用 `stateful_paid_gate_v2_models.json`（单 Kimi K2 target；一次触达全部 3 key）
+- **3 targets（Phase-1 全国产）**: Qwen3-32B (SiliconFlow) + `kimi-k2.6`（Moonshot 官方）+ `MiniMaxAI/MiniMax-M2.5`（SiliconFlow）
+- **2 role-swap matrices**: DeepSeek-V3.1 ↔ GLM-4.7（异 provider、异家族；与全部 target 家族不重叠）
+- Paid gate 先用 `stateful_paid_gate_v2_models.json`（单 `kimi-k2.6` target；一次触达全部 3 key）
 - 矩阵 hash 见 `backend/experiments/formal_pilot_v2_*.json`；provider UUID 见 `model_roster.v2.json`
-- **Phase-2（非阻塞）**: Claude/Gemini/GPT 在 `expansion_roster`，激活时冻结 v2.3+，不动 Phase-1 hash
-- **不使用** `deepseek-chat` 滚动别名、GPT-5.6（无 dated snapshot）、gemini-2.5-pro（2026-10-16 关停）、relay 中转
+- **Phase-2（非阻塞）**: Claude/Gemini/GPT 在 `expansion_roster`，激活时冻结 v2.4+，不动 Phase-1 hash
+- **不使用** `kimi-k2-0905-preview`（已下线）、`kimi-k3`（Phase-1）、`deepseek-chat`、`glm-5.3`（Phase-1）、GPT-5.6、gemini-2.5-pro、relay 中转
 
 ## 9. 统计
 

@@ -1,58 +1,47 @@
-# Provider 配置指南（Formal Pilot v2.2 — domestic-first）
+# Provider 配置指南（Formal Pilot v2.3 — domestic-first）
 
-在首次 **provider-backed** 采集前，在 Dashboard 或数据库中创建 **3 个国产 provider**，并将 UUID 写回 `backend/experiments/model_roster.v2.json`。全部平台支持国内支付（支付宝/微信），**不需要** OpenAI/Anthropic/Google 充值。
+在首次 **provider-backed** 采集前，创建 **3 个国产 provider**，把 UUID 写回 `backend/experiments/model_roster.v2.json`。全部支持支付宝/微信，不需要外卡。
+
+## 0. 你去办的账号（照这个买）
+
+| # | 平台 | 注册 / 充值 | 控制台里必须能看到的模型 ID | 建议首充 |
+|---|------|-------------|------------------------------|----------|
+| 1 | **硅基流动 SiliconFlow** | [siliconflow.cn](https://siliconflow.cn) / [cloud.siliconflow.com](https://cloud.siliconflow.com) | `Qwen/Qwen3-32B`、`MiniMaxAI/MiniMax-M2.5`、`deepseek-ai/DeepSeek-V3.1` | ≥ ¥200 |
+| 2 | **月之暗面 / Kimi** | [platform.moonshot.cn](https://platform.moonshot.cn) 或 [platform.kimi.com](https://platform.kimi.com)（同一家，`api.moonshot.cn/v1`） | **`kimi-k2.6`**（不要买/不要点 `kimi-k3` 当主表） | ¥50–100 |
+| 3 | **智谱** | [open.bigmodel.cn](https://open.bigmodel.cn) | **`glm-4.7`**（不要把 `glm-5.3` 当主表） | ¥100–200 |
+
+办完后在各平台 playground 各打一句「ping」，确认返回模型名与上表一致。**不要把 API key 发到聊天里**，只回「三个平台已开通、ID 对得上」。
+
+若控制台里某个 ID 已下线：先别换别的，回来改 roster 再冻 hash。
 
 ## 1. 需要创建的 Provider（3 个 key）
 
-| 槽位名 | provider_type | 平台 / 充值入口 | 承担角色 |
-|--------|---------------|-----------------|----------|
-| `siliconflow-cn` | `siliconflow` | 硅基流动 siliconflow.cn（支付宝/微信充值） | T1 `Qwen/Qwen3-32B`、T3 `MiniMaxAI/MiniMax-M1-80k`、J/V `deepseek-ai/DeepSeek-V3.1` |
-| `moonshot-official` | `moonshot` | Moonshot 开放平台 platform.moonshot.cn | T2 `kimi-k2-0905-preview`（dated 快照） |
-| `glm-official` | `glm` | 智谱开放平台 open.bigmodel.cn | J/V `glm-4.5` |
+| 槽位名 | provider_type | 承担角色 |
+|--------|---------------|----------|
+| `siliconflow-cn` | `siliconflow` | T1 `Qwen/Qwen3-32B`、T3 `MiniMaxAI/MiniMax-M2.5`、J/V `deepseek-ai/DeepSeek-V3.1` |
+| `moonshot-official` | `moonshot` | T2 `kimi-k2.6` |
+| `glm-official` | `glm` | J/V `glm-4.7` |
 
-> base_url 由后端 `PROVIDER_TYPES` 按 provider_type 自动填充，无需手工配置。
+> base_url 由后端 `PROVIDER_TYPES` 自动填：SiliconFlow `https://api.siliconflow.cn/v1`，Moonshot `https://api.moonshot.cn/v1`，智谱 `https://open.bigmodel.cn/api/paas/v4`。
 >
-> **可选第 4 key（非必需）**: 若希望 DeepSeek 判官走别的通道，注意官方 API 只有滚动别名 `deepseek-chat`，会被 `allow_rolling_aliases=false` 拒绝——保持 SiliconFlow 精确 id 即可。
+> 不要单独办 DeepSeek 官方 key：官方只有 `deepseek-chat`，会被冻结矩阵拒绝。
 
-## 2. 建议充值额度（Phase-1 全程）
+## 2. 更新 roster UUID
 
-- SiliconFlow: 承担 3 个模型槽位，建议首充 ≥ ¥200
-- Moonshot: 单 target，建议首充 ¥50–100
-- 智谱: J/V 高频调用，建议首充 ¥100–200
-
-（软顶预算 $3,000 见 `decisions.zh-CN.md` 签署表；以上为 gate+pilot 起步额度。）
-
-## 3. 更新 roster UUID
-
-编辑 `backend/experiments/model_roster.v2.json`：
-
-```json
-"provider_slots": {
-  "siliconflow-cn": {
-    "provider_id": "<粘贴 Dashboard 中的 UUID>",
-    ...
-  }
-}
-```
-
-然后重新生成矩阵（hash 会随 UUID 变化，须重新归档）：
+编辑 `backend/experiments/model_roster.v2.json` 的 `provider_slots.*.provider_id`，然后：
 
 ```bash
 cd backend
 python3 -m scripts.build_formal_pilot_v2_matrices
 ```
 
-## 4. 冒烟测试（1 call / provider）
+## 3. 冒烟（1 call / provider）
 
-对每个 provider 发 1 次最小 completion，确认：
+确认 `returned_model` 分别为 `Qwen/Qwen3-32B` 或 `deepseek-ai/DeepSeek-V3.1` / `MiniMaxAI/MiniMax-M2.5`、`kimi-k2.6`、`glm-4.7`。
 
-- `returned_model` 与矩阵中 `expected_returned_model` 一致（SiliconFlow 返回完整 id 如 `deepseek-ai/DeepSeek-V3.1`；Moonshot 返回 `kimi-k2-0905-preview`；智谱返回 `glm-4.5`）
-- 溯源字段（response id 等）非空或可接受为 null 并记录
-- 若 SiliconFlow 上任一 id 已下线，选等价 pinned id 替换并**重新冻结 hash**（一行 roster 改动）
+## 4. Paid gate（API 就绪后）
 
-## 5. Paid gate 命令（API 就绪后）
-
-单次 gate 运行即触达全部 3 个 key（target=Moonshot，judge=SiliconFlow，verifier=智谱）：
+一次跑完会打到全部 3 个 key（target=Moonshot，judge=SiliconFlow，verifier=智谱）：
 
 ```bash
 cd backend
@@ -66,20 +55,18 @@ python3 -m scripts.run_experiment \
   --abstention-policy e0
 ```
 
-通过 G1 四判据后再扩 pilot v2 / formal blocks。
+## 5. 开源权重 pin（写入协议附录）
 
-## 6. 开源权重 pin 清单（写入协议附录）
-
-| 模型 | HF repo | Revision |
-|------|---------|----------|
-| Qwen3-32B | `Qwen/Qwen3-32B` | `[TBD — 首次付费调用前记录]` |
-| Kimi K2 0905 | `moonshotai/Kimi-K2-Instruct-0905` | `[TBD]` |
-| MiniMax-M1-80k | `MiniMaxAI/MiniMax-M1-80k` | `[TBD]` |
+| 模型 | HF / 官方参照 | Revision |
+|------|---------------|----------|
+| Qwen3-32B | `Qwen/Qwen3-32B` | `[TBD]` |
+| Kimi K2.6 | Moonshot 官方命名世代 | 采集日 + returned_model |
+| MiniMax-M2.5 | `MiniMaxAI/MiniMax-M2.5` | `[TBD]` |
 | DeepSeek-V3.1 | `deepseek-ai/DeepSeek-V3.1` | `[TBD]` |
-| GLM-4.5（参照） | `zai-org/GLM-4.5` | `[TBD]` |
+| GLM-4.7 | 智谱官方 `glm-4.7` | 采集日 + returned_model |
 
-- T1 decode: temperature=0.7, top_p=0.95, seed=42
+T1 decode: temperature=0.7, top_p=0.95, seed=42
 
-## 7. Phase-2 扩展（不阻塞以上任何步骤）
+## 6. Phase-2
 
-Claude/Gemini/GPT 见 roster `expansion_roster`。激活前提：Phase-1 formal 归档 + 官方充值可用（或接受 AnyRouter 等第三方通道并写 Limitations 披露）。届时新增 provider、冻结 v2.3+ 矩阵，Phase-1 hash 不动。
+Claude/Gemini/GPT 见 roster `expansion_roster`。不阻塞以上步骤。
