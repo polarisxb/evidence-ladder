@@ -1,34 +1,40 @@
 {
-  "roster_version": "formal-pilot.v2.3",
+  "roster_version": "formal-pilot.v2.4",
   "strategy": "domestic-first",
   "frozen_date": "2026-09-01",
+  "selection_policy": {
+    "name": "current-catalog + collection-date pin + replacement-before-collection",
+    "rules": [
+      "Freshness: every Phase-1 id must be on the vendor's current sold catalog on freeze day. Prefer the vendor's current production SKU for closed targets and one judge. Do not freeze retired or legacy-only ids.",
+      "Pin: freeze (vendor, model_id, collection_date, returned_model). Product aliases may drift; that is disclosed, not silently patched after collection starts.",
+      "Replacement: if a vendor retires an id BEFORE the first paid call, swap and re-freeze the roster (this is a pre-collection id refresh, not a protocol change). AFTER collection starts, never silently substitute; report the frozen snapshot and optionally add a Phase-2 refresh block.",
+      "Validity: this paper's estimand is the measurement protocol (A vs A' vs B), not a model ranking. Current catalog coverage is required for external validity; being one week behind a new flagship does not invalidate McNemar. Evaluating retired products does.",
+      "Role split: at least one open-weight pin (target and/or judge) for reproducibility; at least one current closed production SKU for deployment relevance."
+    ]
+  },
   "notes": [
-    "v2.3 is a live-id refresh of v2.2 BEFORE any paid collection. Protocol (Re-Test / three-arm / McNemar / e0) is unchanged.",
-    "v2.2 ids retired by vendors: kimi-k2-0905-preview (Moonshot, offline 2026-05-25 / listed retired 2026-08-31), MiniMaxAI/MiniMax-M1-80k (SiliconFlow, offline 2026-02-08).",
-    "Phase-1 uses domestic (CN) providers only; Claude/Gemini/GPT remain in expansion_roster (Phase-2, non-blocking).",
-    "DeepSeek official API only exposes rolling aliases (deepseek-chat) which the driver rejects when allow_rolling_aliases=false; the DeepSeek judge/verifier therefore runs on SiliconFlow with the exact open-weights id deepseek-ai/DeepSeek-V3.1.",
-    "SiliconFlow is a third-party inference platform serving pinned open-weights checkpoints; disclose in Limitations (serving stack not vendor-official) and mitigate with exact model ids, fixed decode params, and per-call returned_model checks.",
-    "kimi-k2.6 is a named generation on the official Moonshot API (api.moonshot.cn), not a dated snapshot. Record collection date + returned_model. Do not use kimi-k3 (flagship / faster drift) for Phase-1.",
-    "glm-4.7 is the current Zhipu official pin below the GLM-5.x line. Do not put glm-5.3 on the Phase-1 matrix.",
-    "Provider UUIDs are placeholders until official API keys are registered in model_providers.",
-    "Replace provider_slots.*.provider_id after creating providers (see docs/paper/provider-setup.v2.md).",
-    "Re-run backend/scripts/build_formal_pilot_v2_matrices.py after changing provider_id values."
+    "v2.4 applies the current-catalog policy to v2.3. Protocol (Re-Test / three-arm / McNemar / e0) is unchanged. Still no paid collection.",
+    "Closed current SKUs: Moonshot official default kimi-k3; Zhipu official default glm-5.3. Both are product aliases — pin by collection date + returned_model.",
+    "Open pins kept for reproducibility: Qwen/Qwen3-32B (size-class open anchor, not a flagship chase) and deepseek-ai/DeepSeek-V3.1 (exact weights id; official DeepSeek API only exposes rolling deepseek-chat).",
+    "Economy target MiniMaxAI/MiniMax-M2.5 is the current MiniMax id on SiliconFlow after M1-80k / M2.1 retirement.",
+    "Phase-1 uses domestic providers only; Claude/Gemini/GPT remain in expansion_roster (Phase-2, freeze as v2.5+).",
+    "Provider UUIDs are placeholders until keys are registered. Re-run build_formal_pilot_v2_matrices.py after changing provider_id values."
   ],
   "provider_slots": {
     "siliconflow-cn": {
       "provider_id": "22222222-2222-4222-8222-222222220001",
       "provider_type": "siliconflow",
-      "description": "SiliconFlow (siliconflow.cn) — Qwen3-32B anchor, MiniMax-M2.5 economy target, DeepSeek-V3.1 judge/verifier"
+      "description": "SiliconFlow — Qwen3-32B anchor, MiniMax-M2.5 economy target, DeepSeek-V3.1 open-weight judge/verifier"
     },
     "moonshot-official": {
       "provider_id": "22222222-2222-4222-8222-222222220002",
       "provider_type": "moonshot",
-      "description": "Moonshot / Kimi official API (api.moonshot.cn) — kimi-k2.6 target"
+      "description": "Moonshot / Kimi official API (api.moonshot.cn) — current production target kimi-k3"
     },
     "glm-official": {
       "provider_id": "22222222-2222-4222-8222-222222220003",
       "provider_type": "glm",
-      "description": "Zhipu official API (open.bigmodel.cn) — GLM-4.7 judge/verifier"
+      "description": "Zhipu official API (open.bigmodel.cn) — current production judge/verifier glm-5.3"
     }
   },
   "targets": [
@@ -39,17 +45,19 @@
       "pinned_version": "Qwen/Qwen3-32B",
       "expected_returned_model": "Qwen/Qwen3-32B",
       "family": "qwen",
+      "role_rationale": "Open-weight size-class anchor (~32B dense), not a flagship chase. Reviewers can re-host the same weights.",
       "weights_reference": "HF Qwen/Qwen3-32B — revision [TBD — pin before first paid call]",
       "decode": {"temperature": 0.7, "top_p": 0.95, "seed": 42}
     },
     {
       "slot": "target-domestic-frontier",
-      "model_id": "kimi-k2.6-frontier-target",
+      "model_id": "kimi-k3-frontier-target",
       "provider_slot": "moonshot-official",
-      "pinned_version": "kimi-k2.6",
-      "expected_returned_model": "kimi-k2.6",
+      "pinned_version": "kimi-k3",
+      "expected_returned_model": "kimi-k3",
       "family": "moonshot",
-      "weights_reference": "Moonshot official named generation (not dated). Record collection-date served id. Do not use retired kimi-k2-0905-preview or flagship kimi-k3 on Phase-1."
+      "role_rationale": "Vendor current production default (2026-09 catalog). Product alias: record collection_date + returned_model.",
+      "weights_reference": "Moonshot official current SKU. Retired 0905 / k2.6 are not Phase-1 targets."
     },
     {
       "slot": "target-low-cost",
@@ -58,7 +66,8 @@
       "pinned_version": "MiniMaxAI/MiniMax-M2.5",
       "expected_returned_model": "MiniMaxAI/MiniMax-M2.5",
       "family": "minimax",
-      "weights_reference": "SiliconFlow id MiniMaxAI/MiniMax-M2.5 (M1-80k and M2.1 already retired). Equivalent swap requires hash re-freeze."
+      "role_rationale": "Current MiniMax SKU on SiliconFlow after M1/M2.1 retirement. Capability-tier coverage.",
+      "weights_reference": "SiliconFlow MiniMaxAI/MiniMax-M2.5. Equivalent swap requires hash re-freeze."
     }
   ],
   "judges": {
@@ -66,13 +75,15 @@
       "model_id": "deepseek-v3.1-judge",
       "provider_slot": "siliconflow-cn",
       "pinned_version": "deepseek-ai/DeepSeek-V3.1",
-      "expected_returned_model": "deepseek-ai/DeepSeek-V3.1"
+      "expected_returned_model": "deepseek-ai/DeepSeek-V3.1",
+      "role_rationale": "Open-weight judge pin (JailbreakBench-style). Judge freshness is secondary to independence + re-hostability. Do not use official deepseek-chat or V4 product aliases on Phase-1."
     },
-    "glm_4_7": {
-      "model_id": "glm-4.7-judge",
+    "glm_5_3": {
+      "model_id": "glm-5.3-judge",
       "provider_slot": "glm-official",
-      "pinned_version": "glm-4.7",
-      "expected_returned_model": "glm-4.7"
+      "pinned_version": "glm-5.3",
+      "expected_returned_model": "glm-5.3",
+      "role_rationale": "Zhipu current production default. Product alias: collection_date + returned_model. Thinking is vendor-forced enabled."
     }
   },
   "verifiers": {
@@ -82,22 +93,22 @@
       "pinned_version": "deepseek-ai/DeepSeek-V3.1",
       "expected_returned_model": "deepseek-ai/DeepSeek-V3.1"
     },
-    "glm_4_7": {
-      "model_id": "glm-4.7-verifier",
+    "glm_5_3": {
+      "model_id": "glm-5.3-verifier",
       "provider_slot": "glm-official",
-      "pinned_version": "glm-4.7",
-      "expected_returned_model": "glm-4.7"
+      "pinned_version": "glm-5.3",
+      "expected_returned_model": "glm-5.3"
     }
   },
   "matrices": [
     {
       "filename": "formal_pilot_v2_jdeepseek_vglm_models.json",
       "judge_key": "deepseek_v3_1",
-      "verifier_key": "glm_4_7"
+      "verifier_key": "glm_5_3"
     },
     {
       "filename": "formal_pilot_v2_jglm_vdeepseek_models.json",
-      "judge_key": "glm_4_7",
+      "judge_key": "glm_5_3",
       "verifier_key": "deepseek_v3_1"
     }
   ],
@@ -105,7 +116,7 @@
     "filename": "stateful_paid_gate_v2_models.json",
     "targets": ["target-domestic-frontier"],
     "judge_key": "deepseek_v3_1",
-    "verifier_key": "glm_4_7",
+    "verifier_key": "glm_5_3",
     "note": "Single gate run touches all three API keys: target via moonshot-official, judge via siliconflow-cn, verifier via glm-official."
   },
   "expansion_roster": {
@@ -113,33 +124,28 @@
     "activation_conditions": [
       "Phase-1 formal blocks completed and archived (hashes frozen)",
       "Official OpenAI/Anthropic/Google billing becomes available, OR a third-party channel is accepted WITH explicit Limitations disclosure and per-call returned_model provenance checks",
-      "Expansion matrices are frozen as a new roster version (formal-pilot.v2.4+) without touching Phase-1 hashes"
+      "Expansion matrices are frozen as a new roster version (formal-pilot.v2.5+) without touching Phase-1 hashes"
     ],
     "candidates": [
       {"family": "anthropic", "pinned_version": "claude-sonnet-5", "intended_role": "judge/verifier role-swap vs gemini"},
       {"family": "google", "pinned_version": "gemini-3.5-flash", "intended_role": "judge/verifier role-swap vs claude"},
-      {"family": "openai", "pinned_version": "gpt-5.5-2026-04-23", "intended_role": "target (frontier closed, dated)"},
-      {"family": "openai", "pinned_version": "gpt-5.4-mini-2026-03-17", "intended_role": "target (low cost, dated)"}
+      {"family": "openai", "pinned_version": "gpt-5.5-2026-04-23", "intended_role": "target (frontier closed, dated)"}
     ],
     "channel_policy": "Official APIs preferred. Any relay/aggregator channel requires Limitations disclosure; never silently substitute an unreproducible relay UUID."
   },
   "deprecation_notes": {
     "avoid": [
-      "kimi-k2-0905-preview / kimi-k2-0711-preview (retired on Moonshot official)",
-      "kimi-k3 on Phase-1 (flagship alias; faster drift — Phase-2 only if pin policy is restated)",
-      "MiniMaxAI/MiniMax-M1-80k and MiniMax-M2.1 (SiliconFlow retired)",
-      "glm-4.5 as SiliconFlow id (retired); glm-5.3 on Phase-1 (too new / product alias)",
+      "retired catalog ids (kimi-k2-0905-preview, MiniMax-M1-80k, MiniMax-M2.1, SiliconFlow zai-org/GLM-4.5)",
       "deepseek-chat / deepseek-reasoner official aliases (rolling; rejected by allow_rolling_aliases=false)",
-      "deepseek-ai/DeepSeek-V4-Pro / V4-Flash on Phase-1 (product-line drift)",
       "gpt-5.6-* (no dated immutable snapshot)",
       "gemini-2.5-pro (shutdown 2026-10-16)",
-      "relay provider b98979c7-* for v2 collection",
-      "claude-fable-5 for judge role (cost/audit complexity)"
+      "relay provider b98979c7-* for v2 collection"
     ],
     "supersedes": [
-      "formal-pilot.v2.2 roster (Kimi 0905 + MiniMax-M1-80k + GLM-4.5) — never used for collection; ids retired by vendors",
-      "formal-pilot.v2.1 roster (Claude/Gemini judge pair + GPT targets) — never used for collection; moved to expansion_roster",
-      "formal_pilot_v2_jclaude_vgemini_models.json / formal_pilot_v2_jgemini_vclaude_models.json (removed; regenerate at Phase-2 activation)",
+      "formal-pilot.v2.3 (kimi-k2.6 + glm-4.7) — pre-collection; replaced so closed SKUs match vendor current defaults",
+      "formal-pilot.v2.2 (Kimi 0905 + MiniMax-M1 + GLM-4.5) — ids retired, never collected",
+      "formal-pilot.v2.1 (Claude/Gemini + GPT) — moved to expansion_roster",
+      "formal_pilot_v2_jclaude_vgemini_models.json / formal_pilot_v2_jgemini_vclaude_models.json",
       "formal_pilot_j54_v55_models.json",
       "formal_pilot_j55_v54_models.json",
       "stateful_paid_gate_models.json (relay-based)"

@@ -61,14 +61,14 @@ Ground truth: v2 `hidden_state_transition` oracle + 人工金标子集（双盲�
 
 Target: stateful v2（`hidden_state_transition`）；temperature > 0 允许。
 
-## 8. 模型矩阵（v2.3 domestic-first，冻结 2026-09-01）
+## 8. 模型矩阵（v2.4 current-catalog，冻结 2026-09-01）
 
-- **3 targets（Phase-1 全国产）**: Qwen3-32B (SiliconFlow) + `kimi-k2.6`（Moonshot 官方）+ `MiniMaxAI/MiniMax-M2.5`（SiliconFlow）
-- **2 role-swap matrices**: DeepSeek-V3.1 ↔ GLM-4.7（异 provider、异家族；与全部 target 家族不重叠）
-- Paid gate 先用 `stateful_paid_gate_v2_models.json`（单 `kimi-k2.6` target；一次触达全部 3 key）
-- 矩阵 hash 见 `backend/experiments/formal_pilot_v2_*.json`；provider UUID 见 `model_roster.v2.json`
-- **Phase-2（非阻塞）**: Claude/Gemini/GPT 在 `expansion_roster`，激活时冻结 v2.4+，不动 Phase-1 hash
-- **不使用** `kimi-k2-0905-preview`（已下线）、`kimi-k3`（Phase-1）、`deepseek-chat`、`glm-5.3`（Phase-1）、GPT-5.6、gemini-2.5-pro、relay 中转
+- **选型规则**: 现行在售目录 + 采集日冻结 + 付费前可换、付费后不换。闭源位用厂商当前默认 SKU；开源位可复托管。
+- **3 targets**: `Qwen/Qwen3-32B` + `kimi-k3` + `MiniMaxAI/MiniMax-M2.5`
+- **J/V 对调**: `deepseek-ai/DeepSeek-V3.1` ↔ `glm-5.3`
+- Paid gate: `stateful_paid_gate_v2_models.json`（单 `kimi-k3`；3 key）
+- Phase-2（Claude/Gemini/GPT）冻 v2.5+，不动 Phase-1 hash
+- **不使用** 已下线 ID、`deepseek-chat`、GPT-5.6、gemini-2.5-pro、relay
 
 ## 9. 统计
 

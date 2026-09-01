@@ -48,37 +48,39 @@
 
 ---
 
-## D4 — 模型矩阵与 κ（v2.3 domestic-first，2026-09-01 修订冻结）
+## D4 — 模型矩阵与 κ（v2.4 domestic-first + current-catalog，2026-09-01）
 
-**决定**: 采用 **Domestic-first 分期路径**。Phase-1 全部使用国产可充值 API 完成 paid gate → pilot v2 → formal；Claude/Gemini/GPT 移入 `expansion_roster`（Phase-2，可选，不阻塞 Phase-1 任何环节）。
+**决定**: Domestic-first 分期 + **现行目录 / 采集日冻结 / 采集前可换、采集后不换**。Phase-1 用国产可充值 API；Claude/Gemini/GPT 在 `expansion_roster`（Phase-2 = v2.5+）。
 
-**背景**: 业主无法方便给 OpenAI/Anthropic/Google 官方充值。方法学贡献（Re-Test, Don't Re-Judge；三臂 A/A′/B；McNemar 主估计）不依赖任何特定模型家族——estimand 是测量协议的性质，不是模型排行榜。外部效度可分期补足。
+**背景**: 无外卡；方法贡献是协议不是排行榜。厂商会下架模型——这是预期事件，用替换规则处理，而不是追「永远最新」。
 
-**Roster v2.3**（冻结于 `backend/experiments/model_roster.v2.json`；相对 v2.2 仅刷新已下线的厂商 ID，协议未改）:
+### 选型三规则（回答「下架」和「不是最新有无效力」）
 
-| 角色 | 模型 | pinned ID | Provider |
-|------|------|-----------|----------|
-| Target-1 开源锚点 | Qwen3-32B | `Qwen/Qwen3-32B` | SiliconFlow |
-| Target-2 国产闭源 | Kimi K2.6 | `kimi-k2.6` | Moonshot 官方 |
-| Target-3 低成本 | MiniMax-M2.5 | `MiniMaxAI/MiniMax-M2.5` | SiliconFlow |
-| Judge（矩阵 A）/ Verifier（矩阵 B） | DeepSeek-V3.1 | `deepseek-ai/DeepSeek-V3.1` | SiliconFlow |
-| Verifier（矩阵 A）/ Judge（矩阵 B） | GLM-4.7 | `glm-4.7` | 智谱官方 |
+1. **现行目录（新鲜度）**: 冻结日必须仍在厂商在售目录。闭源 target 与其中一名裁判用厂商**当前默认生产 SKU**。已下线 / 仅 legacy 的 ID 无效（不能复跑 = 才真的没有效力）。
+2. **采集日冻结（可复现）**: 记下 `(vendor, model_id, collection_date, returned_model)`。产品别名会漂，写进 Limitations，采集开始后不静默换模。
+3. **替换窗口**: **第一次付费调用前**下架 → 换现行 SKU 并重冻 hash（预采集刷新，不是协议变更）。**采集开始后**下架 → 不重跑主表，当历史快照报告；需要时另开 Phase-2 refresh block。
 
-- **家族覆盖**: 5 个互相独立的国产家族（Qwen / Moonshot / MiniMax / DeepSeek / GLM）；Judge 与 Verifier 跨家族、跨 provider 角色对调；J/V 家族与全部 target 家族不重叠（无自评偏置）
-- **为何不用 Kimi 0905 / MiniMax-M1**: 2026-09-01 核实时厂商已下线，不能再买
-- **为何 Kimi 用 K2.6 不用 K3**: K3 是旗舰滚动线；K2.6 是仍在线的命名世代。采集日记录 `returned_model`
-- **为何 DeepSeek 不走官方 API**: 官方仅暴露滚动别名 `deepseek-chat`，被 `allow_rolling_aliases=false` 拒绝；改用 SiliconFlow 精确开源权重 id
-- **为何裁判用 GLM-4.7 不用 5.3**: 4.7 仍有官方文档；5.3 过新，留给附录
-- **SiliconFlow 披露**: 第三方推理平台——写入 Limitations，并以 returned_model 逐调用校验 + 固定 decode 缓解
-- 矩阵文件: `formal_pilot_v2_jdeepseek_vglm_models.json` / `jglm_vdeepseek`
-- Paid gate: `stateful_paid_gate_v2_models.json`（单 target `kimi-k2.6`；一次 gate 触达全部 3 个 key）
-- **Phase-2（expansion_roster，非阻塞）**: `claude-sonnet-5` ↔ `gemini-3.5-flash` J/V 对 + GPT dated targets；激活时冻结为 v2.4+，不改动 Phase-1 任何 hash
-- **审稿风险与应对**: 「缺 frontier-US coverage」→ Limitations 声明分期 + 主张限定「协议在跨 5 家族国产矩阵上成立」
-- **弃用**: relay `b98979c7-…`、v1 `formal_pilot_j54/j55_*`、`deepseek-chat`、`kimi-k2-0905-preview`、`MiniMax-M1-80k`、GPT-5.6、gemini-2.5-pro
-- 人-人 κ 门槛 **≥0.8**；Judge-人 κ 只报告
+**效力怎么说**: 这篇的主估计是 McNemar（协议降误差），不是「我们攻破了昨天发布的最强模型」。审稿人要的是「代表 2026 年仍在部署的系统」+ 别人能复核。JailbreakBench / HarmBench 也是 dated / 开源锚点，不是周更排行榜。
+
+**Roster v2.4**（`backend/experiments/model_roster.v2.json`）:
+
+| 角色 | 模型 | pinned ID | 为什么这样选 |
+|------|------|-----------|--------------|
+| Target-1 开源锚点 | Qwen3-32B | `Qwen/Qwen3-32B` | 可复托管的 ~32B 档，不是追旗舰 |
+| Target-2 现行闭源 | Kimi K3 | `kimi-k3` | Moonshot **当前默认**生产 SKU |
+| Target-3 现行低成本 | MiniMax-M2.5 | `MiniMaxAI/MiniMax-M2.5` | SiliconFlow 上现行 MiniMax |
+| Judge A / Verifier B | DeepSeek-V3.1 | `deepseek-ai/DeepSeek-V3.1` | 开源权重裁判（可复现）；裁判不必是最新旗舰 |
+| Verifier A / Judge B | GLM-5.3 | `glm-5.3` | 智谱 **当前默认**生产 SKU |
+
+- 5 家族；J/V 跨家族跨 provider 对调；与 target 不重叠
+- DeepSeek 不走官方 `deepseek-chat`（滚动别名会被拒）
+- `kimi-k3` / `glm-5.3` 是产品别名：采集日 + `returned_model` 写入附录
+- Paid gate: 单 target `kimi-k3`，一次打到 3 个 key
+- Phase-2 激活冻 v2.5+，不动 Phase-1 hash
+- 人-人 κ ≥ 0.8
 - 详情: [`model-roster.v2.md`](./model-roster.v2.md)
 
-**版本说明**: v2.1 / v2.2 均从未用于付费采集。v2.3 是采集前的 live-id 刷新。v3 保留给正式采集开始后的协议级变更。
+**版本说明**: v2.1–v2.3 均未付费采集。v2.4 是采集前按「现行目录」把闭源 SKU 对齐厂商当前默认。v3 留给采集开始后的协议变更。
 
 ---
 

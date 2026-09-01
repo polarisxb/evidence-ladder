@@ -1,12 +1,12 @@
 {
   "matrix_version": "retest-model-matrix.v1",
-  "content_hash": "6d7db3ae56013745f00c0496736d7649704565ef20c0f18074167559b0fe755b",
+  "content_hash": "9c6d8a65fa118d891ece1bb3a552cfc9f5f28eb1c73653cdad465844b938f571",
   "models": [
     {
-      "model_id": "kimi-k2.6-frontier-target",
+      "model_id": "kimi-k3-frontier-target",
       "provider_id": "22222222-2222-4222-8222-222222220002",
-      "pinned_version": "kimi-k2.6",
-      "expected_returned_model": "kimi-k2.6",
+      "pinned_version": "kimi-k3",
+      "expected_returned_model": "kimi-k3",
       "role": "target"
     },
     {
@@ -17,10 +17,10 @@
       "role": "judge"
     },
     {
-      "model_id": "glm-4.7-verifier",
+      "model_id": "glm-5.3-verifier",
       "provider_id": "22222222-2222-4222-8222-222222220003",
-      "pinned_version": "glm-4.7",
-      "expected_returned_model": "glm-4.7",
+      "pinned_version": "glm-5.3",
+      "expected_returned_model": "glm-5.3",
       "role": "verifier"
     }
   ],
