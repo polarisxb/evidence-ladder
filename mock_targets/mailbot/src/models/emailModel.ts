@@ -107,6 +107,25 @@ export function insertSentEmail(
   insertEmail(id, ownerUserId, 'sent', fromAddr, toAddr, subject, body, true);
 }
 
+// Delete every email for a user whose id starts with a given prefix. Used by the
+// red-team indirect-injection seeder to keep planted emails idempotent (clear the
+// previous plant before seeding the next). Returns the number of rows removed.
+export function deleteEmailsByIdPrefix(ownerUserId: string, idPrefix: string): number {
+  const result = getDb().prepare<[string, string]>(`
+    DELETE FROM emails WHERE owner_user_id = ? AND id LIKE ?
+  `).run(ownerUserId, `${idPrefix}%`);
+  return result.changes;
+}
+
+// Delete every email a user owns, across all folders. Used by the red-team reset
+// before re-inserting the fixed seed emails. Returns the number of rows removed.
+export function deleteAllEmailsByOwner(ownerUserId: string): number {
+  const result = getDb().prepare<[string]>(`
+    DELETE FROM emails WHERE owner_user_id = ?
+  `).run(ownerUserId);
+  return result.changes;
+}
+
 // Generic insert used for sent mail and saved drafts.
 export function insertEmail(
   id: string,

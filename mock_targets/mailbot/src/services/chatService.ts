@@ -7,18 +7,31 @@ import logger from '../logger';
 
 const MAX_TOOL_ROUNDS = config.maxToolRounds;
 
-let _systemPromptTemplate: string | null = null;
+// Defense strength is an experimental factor, not a product feature: 'defended'
+// uses the guarded system prompt (least-privilege, do-not-exfiltrate), 'undefended'
+// uses a permissive one that follows instructions found while doing the task. This
+// lets an evaluation isolate how much of an attack's failure is the model vs the
+// application's prompt-level defense.
+export type DefenseLevel = 'defended' | 'undefended';
 
-function getSystemPromptTemplate(): string {
-  if (_systemPromptTemplate === null) {
-    try {
-      _systemPromptTemplate = fs.readFileSync(config.systemPromptPath, 'utf-8');
-    } catch (err) {
-      logger.error('[CHAT] Failed to load system prompt template: %s', String(err));
-      _systemPromptTemplate = 'You are a helpful email assistant.';
-    }
+const _systemPromptCache: Partial<Record<DefenseLevel, string>> = {};
+
+function systemPromptPathFor(defense: DefenseLevel): string {
+  return defense === 'undefended' ? config.systemPromptUndefendedPath : config.systemPromptPath;
+}
+
+function getSystemPromptTemplate(defense: DefenseLevel): string {
+  const cached = _systemPromptCache[defense];
+  if (cached !== undefined) return cached;
+  let template: string;
+  try {
+    template = fs.readFileSync(systemPromptPathFor(defense), 'utf-8');
+  } catch (err) {
+    logger.error('[CHAT] Failed to load %s system prompt: %s', defense, String(err));
+    template = 'You are a helpful email assistant.';
   }
-  return _systemPromptTemplate;
+  _systemPromptCache[defense] = template;
+  return template;
 }
 
 interface LlmChoice {
@@ -31,8 +44,8 @@ interface LlmResponse {
   error?: { message: string };
 }
 
-function loadSystemPrompt(userId: string): string {
-  const template = getSystemPromptTemplate();
+function loadSystemPrompt(userId: string, defense: DefenseLevel): string {
+  const template = getSystemPromptTemplate(defense);
   const user = findUserById(userId);
   const ownerEmail = user?.email ?? `${userId}@corp.com`;
   return template.replace(/\{ownerEmail\}/g, ownerEmail);
@@ -42,9 +55,13 @@ export async function chat(
   userId: string,
   userMessage: string,
   history: ChatMessage[],
+  defense: DefenseLevel = 'defended',
 ): Promise<ChatResult> {
+  // Declared outside the try so every exit, the catch included, reports the
+  // tool calls that already ran.
+  const toolCalls: ToolCallRecord[] = [];
   try {
-    const systemPrompt = loadSystemPrompt(userId);
+    const systemPrompt = loadSystemPrompt(userId, defense);
 
     const messages: LlmMessage[] = [
       { role: 'system', content: systemPrompt },
@@ -55,16 +72,17 @@ export async function chat(
       { role: 'user', content: userMessage },
     ];
 
-    const toolCalls: ToolCallRecord[] = [];
-
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+      // extraRequestBody may override sampling knobs (temperature, max_tokens,
+      // tool_choice) but never the conversation or tool schema.
       const requestBody = {
         model: config.openaiModel,
+        tool_choice: 'auto',
+        temperature: config.temperature,
+        max_tokens: config.maxTokens,
+        ...config.extraRequestBody,
         messages,
         tools: TOOL_SCHEMA,
-        tool_choice: 'auto',
-        temperature: 0.2,
-        max_tokens: 1024,
       };
 
       const rawResponse = await callLlmApi(requestBody);
@@ -74,7 +92,7 @@ export async function chat(
         logger.error('[CHAT] LLM API error for userId=%s: %s', userId, llmResp.error.message);
         return {
           response: 'I am experiencing technical difficulties. Please contact support.',
-          modelInvoked: false, postProcessed: false, blockReason: 'pre_guardrail', toolCalls: [],
+          modelInvoked: false, postProcessed: false, blockReason: 'pre_guardrail', toolCalls, evaluable: false,
         };
       }
 
@@ -83,7 +101,7 @@ export async function chat(
         logger.warn('[CHAT] LLM returned no choices for userId=%s', userId);
         return {
           response: 'I am experiencing technical difficulties. Please contact support.',
-          modelInvoked: false, postProcessed: false, blockReason: 'pre_guardrail', toolCalls: [],
+          modelInvoked: false, postProcessed: false, blockReason: 'pre_guardrail', toolCalls, evaluable: false,
         };
       }
 
@@ -119,23 +137,23 @@ export async function chat(
           logger.warn('[CHAT] LLM returned empty content for userId=%s finishReason=%s', userId, finishReason);
           return {
             response: "I'm sorry, I couldn't generate a response. Please rephrase your request.",
-            modelInvoked: true, postProcessed: true, postReason: 'format_enforcement', toolCalls: [],
+            modelInvoked: true, postProcessed: true, postReason: 'format_enforcement', toolCalls, evaluable: false,
           };
         }
-        return { response: content, modelInvoked: true, postProcessed: false, toolCalls };
+        return { response: content, modelInvoked: true, postProcessed: false, toolCalls, evaluable: true };
       }
     }
 
     return {
       response: 'Request processed. Please contact support if you need further assistance.',
-      modelInvoked: true, postProcessed: true, postReason: 'tool_rewrite', toolCalls,
+      modelInvoked: true, postProcessed: true, postReason: 'tool_rewrite', toolCalls, evaluable: false,
     };
 
   } catch (err) {
     logger.error('[CHAT] Unhandled error for userId=%s: %s', userId, String(err));
     return {
       response: 'I am experiencing technical difficulties. Please contact support.',
-      modelInvoked: false, postProcessed: true, postReason: 'error_fallback', toolCalls: [],
+      modelInvoked: false, postProcessed: true, postReason: 'error_fallback', toolCalls, evaluable: false,
     };
   }
 }

@@ -21,11 +21,24 @@ function loadEnvFile(envPath: string): void {
 loadEnvFile(path.resolve(process.cwd(), '.env'));
 loadEnvFile(path.resolve(process.cwd(), '..', '..', '.env'));
 
+// Vendor-specific request fields (e.g. DeepSeek V4 / Qwen3.5 `thinking` switch)
+// merged into every chat/completions body. Must be a JSON object; anything else
+// is rejected at startup so a typo cannot silently change the experiment.
+function parseExtraRequestBody(raw: string | undefined): Record<string, unknown> {
+  if (!raw || !raw.trim()) return {};
+  const parsed: unknown = JSON.parse(raw);
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('TARGET_EXTRA_BODY_JSON must be a JSON object');
+  }
+  return parsed as Record<string, unknown>;
+}
+
 export const config = {
   port: parseInt(process.env['PORT'] ?? '8002', 10),
   openaiApiKey: process.env['OPENAI_API_KEY'] ?? 'change-me',
   openaiBaseUrl: (process.env['OPENAI_BASE_URL'] ?? 'https://api.openai.com/v1').replace(/\/+$/, ''),
   openaiModel: process.env['TARGET_MODEL'] ?? process.env['OPENAI_MODEL'] ?? 'gpt-4o',
+  extraRequestBody: parseExtraRequestBody(process.env['TARGET_EXTRA_BODY_JSON']),
   dbPath: process.env['DB_PATH'] ?? path.resolve(process.cwd(), 'shopbot.db'),
   systemPromptPath: path.resolve(process.cwd(), 'src', 'prompts', 'system.txt'),
   maxToolRounds: 6,

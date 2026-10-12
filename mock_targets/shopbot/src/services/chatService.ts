@@ -62,13 +62,16 @@ export async function chat(
     const toolCalls: ToolCallRecord[] = [];
 
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+      // extraRequestBody may override sampling knobs (temperature, max_tokens,
+      // tool_choice) but never the conversation or tool schema.
       const requestBody = {
         model: config.openaiModel,
-        messages,
-        tools: TOOL_SCHEMA,
         tool_choice: 'auto',
         temperature: 0.2,
         max_tokens: 1024,
+        ...config.extraRequestBody,
+        messages,
+        tools: TOOL_SCHEMA,
       };
 
       const rawResponse = await callLlmApi(requestBody);

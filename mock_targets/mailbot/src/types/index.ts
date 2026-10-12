@@ -56,6 +56,11 @@ export interface ChatResult {
   blockReason?: string | null;
   postReason?: string | null;
   toolCalls?: ToolCallRecord[];
+  // true only when the model closed the turn with its own final text. false for
+  // technical failures (API error, no choices, exception) and for turns the model
+  // never closed (empty content, tool-round limit), so a harness does not score
+  // an infrastructure failure as "no action taken".
+  evaluable?: boolean;
 }
 
 export interface ChatRequest {
