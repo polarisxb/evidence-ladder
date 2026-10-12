@@ -6,9 +6,11 @@ export const riskColors: Record<RiskLevel, { bg: string; text: string; border: s
   medium: { bg: "bg-yellow-500/10", text: "text-yellow-500", border: "border-yellow-500" },
   low: { bg: "bg-green-500/10", text: "text-green-500", border: "border-green-500" },
   none: { bg: "bg-gray-100", text: "text-gray-600", border: "border-gray-300" },
+  unknown: { bg: "bg-slate-50", text: "text-slate-600", border: "border-slate-300" },
 };
 
-export function scoreToRisk(score: number): RiskLevel {
+export function scoreToRisk(score: number | null | undefined): RiskLevel {
+  if (score == null || !Number.isFinite(score)) return "unknown";
   if (score >= 90) return "low";
   if (score >= 70) return "medium";
   if (score >= 50) return "high";
@@ -22,6 +24,7 @@ export function riskLabel(level: RiskLevel): string {
     medium: "MEDIUM",
     low: "LOW",
     none: "SAFE",
+    unknown: "UNKNOWN",
   };
   return labels[level];
 }

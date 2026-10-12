@@ -5,6 +5,7 @@ import logging
 from app.config import settings as _settings
 from app.schemas.report import AnalysisResult, BehaviorFlags, CvssMetrics
 from app.services.llm_client import (
+    LLMTimeoutError,
     ProviderClientInfo,
     get_judge_provider,
 )
@@ -511,6 +512,12 @@ async def _single_llm_evaluation(
             attack_goal_score=attack_goal_score,
             utility_score=utility_score,
             utility_explanation=utility_explanation,
+        )
+    except LLMTimeoutError:
+        logger.warning("Judge request timed out; marking not evaluable")
+        return _unusable_analysis(
+            "Judge request timed out",
+            "The judge exceeded its request deadline, so the outcome could not be determined.",
         )
     except AllRetriesExhaustedError:
         return None

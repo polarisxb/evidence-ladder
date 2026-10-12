@@ -30,7 +30,8 @@
   "response_extract": {
     "mode": "json_paths",
     "text_path": "$.response",
-    "tool_calls_path": "$.tool_calls"
+    "tool_calls_path": "$.tool_calls",
+    "sensitive_tools": ["send_email", "forward_email", "delete_email"]
   },
   "probe_config": {
     "enabled": true,

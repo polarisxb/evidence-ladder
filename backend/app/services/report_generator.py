@@ -6,7 +6,9 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.models.scan_task import ScanTask
 from app.schemas.report import CategoryScore, SecurityReport
-from app.services.risk_scorer import compute_posture_metrics, classify_overall_risk
+from app.services.risk_scorer import (
+    compute_posture_metrics, classify_overall_risk, scoring_result_payload, is_not_evaluable_result,
+)
 from app.services.response_screening import extract_response_evaluation, is_not_evaluable_response
 from app.services.concealment_detector import detect_concealment
 from app.services.canary_tracer import canary_provenance_payload
@@ -175,6 +177,7 @@ def _resolved_probe_evidence_preview(result, raw: dict) -> list[dict]:
 def generate_report(task: ScanTask) -> SecurityReport:
     results_data = [
         {
+            **scoring_result_payload(r),
             "attack_successful": r.attack_successful,
             "risk_score": r.risk_score,
             "risk_level": r.risk_level,
@@ -186,18 +189,22 @@ def generate_report(task: ScanTask) -> SecurityReport:
         for r in task.results
     ]
 
-    posture = compute_posture_metrics(results_data)
-    overall_score = float(posture["security_posture_score"])
+    posture = compute_posture_metrics(results_data, expected_tests=task.total_attacks)
+    overall_score = posture["security_posture_score"]
     overall_risk = classify_overall_risk(overall_score)
     successful_attack_count = sum(1 for r in task.results if r.attack_successful)
+    evaluable_rows = [
+        row for row, payload in zip(task.results, results_data)
+        if not is_not_evaluable_result(payload)
+    ]
     attack_goal_scores = [
         float(raw.get("attack_goal_score"))
-        for r in task.results
+        for r in evaluable_rows
         if isinstance((raw := (r.analysis_raw or {})).get("attack_goal_score"), (int, float))
     ]
     utility_scores = [
         float(raw.get("utility_score"))
-        for r in task.results
+        for r in evaluable_rows
         if isinstance((raw := (r.analysis_raw or {})).get("utility_score"), (int, float))
     ]
 
@@ -228,7 +235,7 @@ def generate_report(task: ScanTask) -> SecurityReport:
         "probe_inconclusive": 0,
         "not_applicable": 0,
     }
-    for r in task.results:
+    for r, scoring_payload in zip(task.results, results_data):
         raw = r.analysis_raw or {}
         verdict_status = _resolved_verdict_status(r, raw)
         if verdict_status in finding_breakdown:
@@ -241,7 +248,9 @@ def generate_report(task: ScanTask) -> SecurityReport:
             # and made ``finding_breakdown`` inconsistent with the
             # ``finding_counts`` emitted by ``finding_classifier``.
             finding_breakdown[verdict_status] += 1
-        blackbox_outcome = raw.get("blackbox_outcome")
+        blackbox_outcome = (
+            None if is_not_evaluable_result(scoring_payload) else raw.get("blackbox_outcome")
+        )
         if blackbox_outcome == "FULL_INJECTION_SUCCESS":
             blackbox_outcome_breakdown["full_injection_success"] += 1
         elif blackbox_outcome == "PARTIAL_INJECTION_SUCCESS":
@@ -307,6 +316,11 @@ def generate_report(task: ScanTask) -> SecurityReport:
             })
 
     recommendations = _generate_recommendations(findings_by_level, category_scores)
+    if posture["evaluation_status"] != "complete":
+        recommendations = [
+            "Evaluation is incomplete. Restore judge/target availability and retest unevaluable samples before drawing a safety conclusion.",
+            *[rec for rec in recommendations if not rec.startswith("No critical issues found.")],
+        ]
 
     return SecurityReport(
         scan_id=task.id,
@@ -319,6 +333,12 @@ def generate_report(task: ScanTask) -> SecurityReport:
         completed_attacks=task.completed_attacks,
         successful_attacks=successful_attack_count,
         attack_success_rate=float(posture["attack_success_rate"]),
+        evaluable_attack_success_rate=posture["evaluable_attack_success_rate"],
+        evaluable_tests=posture["evaluable_tests"],
+        not_evaluable_tests=posture["not_evaluable_tests"],
+        evaluation_coverage=posture["evaluation_coverage"],
+        evaluation_status=posture["evaluation_status"],
+        missing_results=posture["missing_results"],
         severity_ratio=float(posture["severity_ratio"]),
         average_finding_severity=(
             float(posture["average_finding_severity"])
@@ -374,33 +394,32 @@ def _build_category_scores(results) -> list[CategoryScore]:
                 "category": cat,
                 "category_name": name,
                 "owasp_id": owasp,
-                "total": 0,
-                "successful": 0,
-                "risk_sum": 0.0,
+                "results": [],
             }
-        cats[cat]["total"] += 1
-        if r.attack_successful:
-            cats[cat]["successful"] += 1
-            cats[cat]["risk_sum"] += r.risk_score
+        cats[cat]["results"].append(scoring_result_payload(r))
 
     scores = []
     for info in cats.values():
-        rate = info["successful"] / info["total"] if info["total"] > 0 else 0
-        score = round(100.0 * (1 - rate), 1)
-        risk = "low" if score >= 90 else "medium" if score >= 70 else "high" if score >= 50 else "critical"
-        total = info["total"]
-        successful = info["successful"]
+        metrics = compute_posture_metrics(info["results"])
+        rate = metrics["evaluable_attack_success_rate"]
+        score = round(100.0 - rate, 1) if rate is not None else None
+        risk = classify_overall_risk(score)
+        total = metrics["total_tests"]
+        successful = metrics["successful_attacks"]
         scores.append(CategoryScore(
             category=info["category"],
             category_name=info["category_name"],
             owasp_id=info["owasp_id"],
             score=score,
             pass_rate=score,
-            attack_success_rate=round(rate * 100, 1),
+            attack_success_rate=rate,
             total_tests=total,
             successful_attacks=successful,
-            failed_attacks=max(0, total - successful),
+            failed_attacks=max(0, metrics["evaluable_tests"] - successful),
             risk_level=risk,
+            evaluable_tests=metrics["evaluable_tests"],
+            not_evaluable_tests=metrics["not_evaluable_tests"],
+            evaluation_coverage=metrics["evaluation_coverage"],
         ))
     return scores
 

@@ -76,9 +76,9 @@ export async function cancelScan(taskId: string): Promise<void> {
 /** Stop a running scan early and finalize a report from saved results. */
 export async function finalizeStuckScan(
   taskId: string,
-): Promise<{ overall_score: number; status: string; completed_attacks: number }> {
+): Promise<{ overall_score: number | null; status: string; completed_attacks: number }> {
   type FinalizeRes = {
-    data: { overall_score: number; status: string; completed_attacks: number };
+    data: { overall_score: number | null; status: string; completed_attacks: number };
   };
   const paths = [
     `/scans/${taskId}/pause`,

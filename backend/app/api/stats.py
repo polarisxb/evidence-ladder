@@ -1,13 +1,15 @@
 import logging
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func, select, case
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.exceptions import AppException
 from app.database import get_db
 from app.models import ScanTask, AttackResult
+from app.services.risk_scorer import compute_posture_metrics, scoring_result_payload
+from app.services.scan_comparison import compare_finding_names
 from app.core.frameworks import (
     OWASP_LLM_TOP10,
     MITRE_ATLAS_TECHNIQUES,
@@ -49,7 +51,7 @@ async def get_overview_stats(db: AsyncSession = Depends(get_db)):
             "completed_scans": completed_scans,
             "total_attacks": total_attacks,
             "successful_attacks": successful_attacks,
-            "avg_score": round(avg_score, 1) if avg_score else None,
+            "avg_score": round(avg_score, 1) if avg_score is not None else None,
             "attack_success_rate": round(successful_attacks / total_attacks * 100, 1) if total_attacks > 0 else 0,
         },
         "message": "ok",
@@ -105,23 +107,23 @@ async def get_risk_distribution(db: AsyncSession = Depends(get_db)):
 @router.get("/category-success-rate", response_model=dict)
 async def get_category_success_rate(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(
-            AttackResult.category,
-            func.count(AttackResult.id).label("total"),
-            func.sum(case((AttackResult.attack_successful.is_(True), 1), else_=0)).label("successful"),
-        )
-        .group_by(AttackResult.category)
+        select(AttackResult).options(selectinload(AttackResult.attack_case))
     )
-    rows = result.all()
+    groups: dict[str, list[dict]] = {}
+    for row in result.scalars():
+        groups.setdefault(row.category, []).append(scoring_result_payload(row))
     return {
         "data": [
             {
-                "category": r.category,
-                "total": r.total,
-                "successful": r.successful,
-                "rate": round(r.successful / r.total * 100, 1) if r.total > 0 else 0,
+                "category": category,
+                "total": metrics["total_tests"],
+                "successful": metrics["successful_attacks"],
+                "evaluable": metrics["evaluable_tests"],
+                "not_evaluable": metrics["not_evaluable_tests"],
+                "rate": metrics["evaluable_attack_success_rate"],
             }
-            for r in rows
+            for category, rows in groups.items()
+            for metrics in [compute_posture_metrics(rows)]
         ],
         "message": "ok",
     }
@@ -147,7 +149,7 @@ async def get_compliance_score(scan_id: str, db: AsyncSession = Depends(get_db))
     result = await db.execute(
         select(ScanTask)
         .where(ScanTask.id == scan_id)
-        .options(selectinload(ScanTask.results))
+        .options(selectinload(ScanTask.results).selectinload(AttackResult.attack_case))
     )
     task = result.scalar_one_or_none()
     if not task:
@@ -168,7 +170,8 @@ async def get_compliance_score(scan_id: str, db: AsyncSession = Depends(get_db))
     for oid, entry in OWASP_LLM_TOP10.items():
         cat_results = [r for r in task.results if CATEGORY_TO_OWASP.get(r.category) == oid]
         total = len(cat_results)
-        passed = sum(1 for r in cat_results if not r.attack_successful)
+        metrics = compute_posture_metrics([scoring_result_payload(r) for r in cat_results])
+        passed = metrics["evaluable_tests"] - metrics["successful_attacks"]
         owasp_results.append({
             "id": oid,
             "name": entry["name"],
@@ -176,8 +179,10 @@ async def get_compliance_score(scan_id: str, db: AsyncSession = Depends(get_db))
             "tested": total > 0,
             "total_tests": total,
             "passed": passed,
-            "failed": total - passed,
-            "score": round(passed / total * 100, 1) if total > 0 else None,
+            "failed": metrics["successful_attacks"],
+            "not_evaluable": metrics["not_evaluable_tests"],
+            "evaluable": metrics["evaluable_tests"],
+            "score": round(passed / metrics["evaluable_tests"] * 100, 1) if metrics["evaluable_tests"] else None,
         })
 
     return {
@@ -225,27 +230,23 @@ async def compare_scans(
     db: AsyncSession = Depends(get_db),
 ):
     result_a = await db.execute(
-        select(ScanTask).where(ScanTask.id == scan_a).options(selectinload(ScanTask.results))
+        select(ScanTask).where(ScanTask.id == scan_a).options(selectinload(ScanTask.results).selectinload(AttackResult.attack_case))
     )
     task_a = result_a.scalar_one_or_none()
     if not task_a:
         raise AppException(404, f"Scan {scan_a} not found")
 
     result_b = await db.execute(
-        select(ScanTask).where(ScanTask.id == scan_b).options(selectinload(ScanTask.results))
+        select(ScanTask).where(ScanTask.id == scan_b).options(selectinload(ScanTask.results).selectinload(AttackResult.attack_case))
     )
     task_b = result_b.scalar_one_or_none()
     if not task_b:
         raise AppException(404, f"Scan {scan_b} not found")
 
     def _summarize(task: ScanTask) -> dict:
-        cats: dict[str, dict] = {}
+        cats: dict[str, list[dict]] = {}
         for r in task.results:
-            if r.category not in cats:
-                cats[r.category] = {"total": 0, "successful": 0}
-            cats[r.category]["total"] += 1
-            if r.attack_successful:
-                cats[r.category]["successful"] += 1
+            cats.setdefault(r.category, []).append(scoring_result_payload(r))
 
         return {
             "scan_id": task.id,
@@ -256,28 +257,29 @@ async def compare_scans(
             "created_at": task.created_at.isoformat() if task.created_at else None,
             "categories": {
                 cat: {
-                    "total": info["total"],
-                    "successful": info["successful"],
-                    "rate": round(info["successful"] / info["total"] * 100, 1) if info["total"] > 0 else 0,
+                    "total": metrics["total_tests"],
+                    "successful": metrics["successful_attacks"],
+                    "evaluable": metrics["evaluable_tests"],
+                    "not_evaluable": metrics["not_evaluable_tests"],
+                    "rate": metrics["evaluable_attack_success_rate"],
                 }
-                for cat, info in cats.items()
+                for cat, rows in cats.items()
+                for metrics in [compute_posture_metrics(rows)]
             },
         }
 
     a_summary = _summarize(task_a)
     b_summary = _summarize(task_b)
 
-    a_vuln_names = {r.attack_name for r in task_a.results if r.attack_successful}
-    b_vuln_names = {r.attack_name for r in task_b.results if r.attack_successful}
-
     return {
         "data": {
             "scan_a": a_summary,
             "scan_b": b_summary,
-            "score_diff": round((b_summary["overall_score"] or 0) - (a_summary["overall_score"] or 0), 1),
-            "new_vulnerabilities": sorted(b_vuln_names - a_vuln_names),
-            "fixed_vulnerabilities": sorted(a_vuln_names - b_vuln_names),
-            "persistent_vulnerabilities": sorted(a_vuln_names & b_vuln_names),
+            "score_diff": (
+                round(b_summary["overall_score"] - a_summary["overall_score"], 1)
+                if a_summary["overall_score"] is not None and b_summary["overall_score"] is not None else None
+            ),
+            **compare_finding_names(task_a.results, task_b.results),
         },
         "message": "ok",
     }

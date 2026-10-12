@@ -17,6 +17,7 @@ Usage
 """
 from __future__ import annotations
 
+import asyncio
 import contextvars
 import httpx
 import logging
@@ -205,21 +206,24 @@ async def call_chat(
     Returns:
         The assistant's response as a plain string.
     """
-    if info.provider_type == "claude":
-        # Anthropic has no ``seed`` parameter; it is silently ignored there.
-        return await _call_anthropic(
-            info, model, messages,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            json_mode=json_mode,
-        )
-    return await _call_openai_compatible(
-        info, model, messages,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        json_mode=json_mode,
-        seed=seed,
-    )
+    from app.config import settings
+
+    try:
+        # SDK timeouts bound individual IO waits; this also caps total elapsed
+        # time if a provider keeps sending tiny chunks without finishing.
+        async with asyncio.timeout(settings.llm_request_timeout_s):
+            if info.provider_type == "claude":
+                # Anthropic has no ``seed`` parameter.
+                return await _call_anthropic(
+                    info, model, messages,
+                    max_tokens=max_tokens, temperature=temperature, json_mode=json_mode,
+                )
+            return await _call_openai_compatible(
+                info, model, messages,
+                max_tokens=max_tokens, temperature=temperature, json_mode=json_mode, seed=seed,
+            )
+    except TimeoutError as exc:
+        raise LLMTimeoutError(f"LLM request timed out on {info.provider_type}") from exc
 
 
 # ---------------------------------------------------------------------------
@@ -236,18 +240,23 @@ async def _call_openai_compatible(
     json_mode: bool,
     seed: int | None = None,
 ) -> str:
-    from openai import AsyncOpenAI, RateLimitError, APIError
+    from openai import AsyncOpenAI, RateLimitError, APIError, APITimeoutError
+    from app.config import settings
 
     cache_key = (info.api_key, info.base_url)
     client = _openai_clients.get(cache_key)
     if client is None:
-        client = AsyncOpenAI(api_key=info.api_key, base_url=info.base_url or None)
+        client = AsyncOpenAI(
+            api_key=info.api_key, base_url=info.base_url or None,
+            timeout=settings.llm_request_timeout_s, max_retries=0,
+        )
         _openai_clients[cache_key] = client
     kwargs: dict = {
         "model": model,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
+        "timeout": settings.llm_request_timeout_s,
     }
     # Best-effort determinism: only sent when explicitly requested. Providers
     # that don't support ``seed`` (e.g. most non-OpenAI backends) ignore it.
@@ -255,6 +264,11 @@ async def _call_openai_compatible(
         kwargs["seed"] = seed
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
+    # Vendor-specific fields the OpenAI SDK does not model (DeepSeek V4 / Qwen3.5
+    # ``thinking`` switches, etc.); forwarded verbatim in the request body.
+    extra_body = info.extra.get("extra_body")
+    if isinstance(extra_body, dict) and extra_body:
+        kwargs["extra_body"] = extra_body
 
     try:
         response = await client.chat.completions.create(**kwargs)
@@ -272,6 +286,8 @@ async def _call_openai_compatible(
             f"Rate limit reached on {info.provider_type}",
             retry_after_s=retry_after,
         ) from exc
+    except APITimeoutError as exc:
+        raise LLMTimeoutError(f"LLM request timed out on {info.provider_type}") from exc
     except APIError as e:
         raise LLMAPIError(f"API error from {info.provider_type}: {e}") from e
 
@@ -289,6 +305,8 @@ async def _call_anthropic(
     temperature: float,
     json_mode: bool,
 ) -> str:
+    from app.config import settings
+
     try:
         import anthropic
     except ImportError as exc:
@@ -325,13 +343,16 @@ async def _call_anthropic(
 
     client = _anthropic_clients.get(info.api_key)
     if client is None:
-        client = anthropic.AsyncAnthropic(api_key=info.api_key)
+        client = anthropic.AsyncAnthropic(
+            api_key=info.api_key, timeout=settings.llm_request_timeout_s, max_retries=0,
+        )
         _anthropic_clients[info.api_key] = client
 
     create_kwargs: dict = {
         "model": model,
         "max_tokens": max_tokens,
         "messages": chat_messages,
+        "timeout": settings.llm_request_timeout_s,
     }
     # temperature is NOT_GIVEN for extended thinking models; pass when explicitly set
     if temperature != 1.0:
@@ -351,6 +372,8 @@ async def _call_anthropic(
         return prefill + text if prefill else text
     except Exception as exc:
         exc_type = type(exc).__name__
+        if exc_type == "APITimeoutError":
+            raise LLMTimeoutError("LLM request timed out on claude") from exc
         if exc_type in _ANTHROPIC_RATE_LIMIT_NAMES:
             retry_after: float | None = None
             if hasattr(exc, "response") and exc.response is not None:
@@ -400,10 +423,15 @@ def _inject_json_mode(messages: list[dict]) -> None:
 def make_platform_provider() -> ProviderClientInfo:
     """Return a ProviderClientInfo built from platform settings (fallback path)."""
     from app.config import settings
+    extra: dict = {}
+    extra_body = settings.openai_extra_body
+    if extra_body:
+        extra["extra_body"] = extra_body
     return ProviderClientInfo(
         provider_type="openai",
         api_key=settings.openai_api_key or "",
         base_url=settings.openai_base_url or None,
+        extra=extra,
     )
 
 
@@ -416,17 +444,20 @@ async def get_judge_provider() -> tuple[ProviderClientInfo, str]:
     3. Fallback to platform settings (.env)
     """
     override_id = _scan_judge_provider_id.get()
+    override_model = _scan_judge_model.get()
     if override_id:
         result = await get_provider_by_id(override_id, role="judge")
         if result:
             info, default_model = result
-            model = _scan_judge_model.get() or default_model
+            model = override_model or default_model
             return info, model
+        raise LLMConfigurationError("Selected judge provider is unavailable or disabled")
 
     global _judge_provider_cache
     now = time.monotonic()
     if _judge_provider_cache is not None and now < _judge_provider_cache[0]:
-        return _judge_provider_cache[1]  # type: ignore[return-value]
+        info, default_model = _judge_provider_cache[1]
+        return info, override_model or default_model
 
     from app.config import settings
     result_tuple: tuple[ProviderClientInfo, str]
@@ -457,14 +488,14 @@ async def get_judge_provider() -> tuple[ProviderClientInfo, str]:
             )
             result_tuple = (info, model)
             _judge_provider_cache = (now + _PROVIDER_CACHE_TTL_S, result_tuple)
-            return result_tuple
+            return info, override_model or model
     except LLMConfigurationError:
         raise
     except Exception:
         pass
     result_tuple = (make_platform_provider(), settings.openai_model)
     _judge_provider_cache = (now + _PROVIDER_CACHE_TTL_S, result_tuple)
-    return result_tuple
+    return result_tuple[0], override_model or result_tuple[1]
 
 
 async def get_generation_provider() -> tuple[ProviderClientInfo, str]:
@@ -476,17 +507,20 @@ async def get_generation_provider() -> tuple[ProviderClientInfo, str]:
     3. Fallback to platform settings (.env)
     """
     override_id = _scan_generation_provider_id.get()
+    override_model = _scan_generation_model.get()
     if override_id:
         result = await get_provider_by_id(override_id, role="generation")
         if result:
             info, default_model = result
-            model = _scan_generation_model.get() or default_model
+            model = override_model or default_model
             return info, model
+        raise LLMConfigurationError("Selected generation provider is unavailable or disabled")
 
     global _generation_provider_cache
     now = time.monotonic()
     if _generation_provider_cache is not None and now < _generation_provider_cache[0]:
-        return _generation_provider_cache[1]  # type: ignore[return-value]
+        info, default_model = _generation_provider_cache[1]
+        return info, override_model or default_model
 
     from app.config import settings
     result_tuple: tuple[ProviderClientInfo, str]
@@ -517,14 +551,14 @@ async def get_generation_provider() -> tuple[ProviderClientInfo, str]:
             )
             result_tuple = (info, model)
             _generation_provider_cache = (now + _PROVIDER_CACHE_TTL_S, result_tuple)
-            return result_tuple
+            return info, override_model or model
     except LLMConfigurationError:
         raise
     except Exception:
         pass
     result_tuple = (make_platform_provider(), settings.openai_mini_model)
     _generation_provider_cache = (now + _PROVIDER_CACHE_TTL_S, result_tuple)
-    return result_tuple
+    return result_tuple[0], override_model or result_tuple[1]
 
 
 
@@ -622,3 +656,7 @@ class LLMConfigurationError(Exception):
 
 class LLMAPIError(Exception):
     """Raised when any provider returns an API-level error."""
+
+
+class LLMTimeoutError(TimeoutError):
+    """A bounded call expired; release its slot without retrying the same judge."""

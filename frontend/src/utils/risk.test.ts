@@ -2,6 +2,10 @@ import { describe, it, expect } from "vitest";
 import { scoreToRisk, riskLabel } from "./risk";
 
 describe("scoreToRisk", () => {
+  it("keeps unavailable scores distinct from a real zero", () => {
+    expect(scoreToRisk(null)).toBe("unknown");
+    expect(scoreToRisk(0)).toBe("critical");
+  });
   it("maps high scores to low risk", () => {
     expect(scoreToRisk(100)).toBe("low");
     expect(scoreToRisk(90)).toBe("low");

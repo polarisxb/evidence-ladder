@@ -240,6 +240,8 @@ class Phase2AdapterRegressionTests(unittest.IsolatedAsyncioTestCase):
             await conn.run_sync(Base.metadata.create_all)
 
         self.patchers = [
+            patch("app.config.settings.auth_required", True),
+            patch("app.config.settings.app_secret", "adapter-regression-secret"),
             patch.object(scan_runner, "async_session", self.session_factory),
             patch.object(case_executor, "analyze_response", _fake_analyze_response),
             patch.object(case_executor, "classify_verdict", _fake_classify_verdict),
@@ -286,7 +288,7 @@ class Phase2AdapterRegressionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_adapter_test_api_reports_auth_failure(self):
         transport = ASGITransport(app=app)
-        async with REAL_HTTPX_ASYNC_CLIENT(transport=transport, base_url="http://testserver") as client:
+        async with REAL_HTTPX_ASYNC_CLIENT(transport=transport, base_url="http://testserver", headers={"X-API-Key": "adapter-regression-secret"}) as client:
             response = await client.post(
                 "/api/v1/adapters/test",
                 json={
@@ -304,7 +306,7 @@ class Phase2AdapterRegressionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_adapter_test_api_reports_extract_failure(self):
         transport = ASGITransport(app=app)
-        async with REAL_HTTPX_ASYNC_CLIENT(transport=transport, base_url="http://testserver") as client:
+        async with REAL_HTTPX_ASYNC_CLIENT(transport=transport, base_url="http://testserver", headers={"X-API-Key": "adapter-regression-secret"}) as client:
             response = await client.post(
                 "/api/v1/adapters/test",
                 json={

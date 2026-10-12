@@ -16,7 +16,7 @@ from app.schemas.report import AnalysisResult, CvssMetrics
 from app.services.canary_tracer import canary_provenance_payload
 from app.services.concealment_detector import detect_concealment
 from app.services.report_generator import generate_report, render_html_report
-from app.services.risk_scorer import compute_posture_metrics, compute_risk_score
+from app.services.risk_scorer import compute_posture_metrics, compute_risk_score, scoring_result_payload
 from app.services.case_serializer import derive_judge_fields
 from app.services.response_screening import extract_response_evaluation, is_not_evaluable_response
 from app.services.response_screening import infer_not_evaluable_response_evaluation
@@ -341,7 +341,9 @@ def _sync_attack_case_review_state(
 
 async def _refresh_scan_rollups(db: AsyncSession, scan_task_id: str) -> None:
     result = await db.execute(
-        select(ScanTask).where(ScanTask.id == scan_task_id).options(selectinload(ScanTask.results))
+        select(ScanTask).where(ScanTask.id == scan_task_id).options(
+            selectinload(ScanTask.results).selectinload(AttackResult.attack_case)
+        )
     )
     task = result.scalar_one_or_none()
     if not task:
@@ -349,6 +351,7 @@ async def _refresh_scan_rollups(db: AsyncSession, scan_task_id: str) -> None:
 
     results_data = [
         {
+            **scoring_result_payload(row),
             "attack_successful": row.attack_successful,
             "risk_score": row.risk_score,
             "verdict_status": _resolved_verdict_status(row, row.analysis_raw or {}),
@@ -357,14 +360,14 @@ async def _refresh_scan_rollups(db: AsyncSession, scan_task_id: str) -> None:
         }
         for row in task.results
     ]
-    posture = compute_posture_metrics(results_data)
+    posture = compute_posture_metrics(results_data, expected_tests=task.total_attacks)
     # Align with the single source of truth in ``finding_classifier``: only
     # confirmed + suspected cases count as vulnerabilities. Previously this
     # used ``successful_attacks`` which silently included
     # ``manual_review_needed`` cases and drifted away from the count written
     # by ``scan_runner`` / ``scan_recovery``.
     task.vulnerabilities_found = int(posture["confirmed_findings"])
-    task.overall_score = float(posture["security_posture_score"])
+    task.overall_score = posture["security_posture_score"]
 
 
 @router.post("/{scan_id}/finalize-stuck", response_model=dict)

@@ -12,15 +12,16 @@ interface Props {
 }
 
 export function CategoryRadarChart({ scores }: Props) {
-  if (scores.length < 2) {
+  const evaluableScores = scores.filter((score) => score.pass_rate != null);
+  if (evaluableScores.length < 2) {
     return (
       <div className="h-72 flex items-center justify-center text-gray-500 text-sm">
-        Need at least 2 categories for radar chart
+        Need at least 2 evaluable categories for radar chart
       </div>
     );
   }
 
-  const data = scores.map((cs) => ({
+  const data = evaluableScores.map((cs) => ({
     category: cs.category_name,
     score: cs.pass_rate,
     fullMark: 100,

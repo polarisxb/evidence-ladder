@@ -1,7 +1,8 @@
 import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, WebSocket, WebSocketDisconnect
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -16,6 +17,8 @@ from app.services.llm_client import (
     ProviderClientInfo,
     call_chat,
     fetch_openai_compatible_model_ids,
+    get_generation_provider,
+    get_judge_provider,
     get_provider_by_id,
 )
 from app.services.autotest_retest_runs import record_retest_run_for_scan
@@ -79,6 +82,15 @@ async def _validate_provider_model(
             400,
             f"{label}: model '{model}' failed provider probe: {exc}",
         ) from exc
+
+
+async def _default_role_model(resolver) -> str | None:
+    """Model name the platform would use for a role right now, or None if unresolvable."""
+    try:
+        _info, model = await resolver()
+    except Exception:  # noqa: BLE001 - recording must never block scan creation
+        return None
+    return (model or "").strip() or None
 
 
 @router.post("", response_model=dict)
@@ -168,6 +180,15 @@ async def create_scan(
             "Custom OpenAI-compatible targets require an explicit model when no provider is selected.",
         )
 
+    # Record the model that will actually judge/generate even when the caller
+    # relied on platform defaults, so a stored scan is self-describing for
+    # reproducibility. Without a provider id the provider follows the platform
+    # default, but the recorded model remains a per-scan override on execution.
+    if not body.judge_provider_id and not resolved_judge_model:
+        resolved_judge_model = await _default_role_model(get_judge_provider)
+    if not body.generation_provider_id and not resolved_generation_model:
+        resolved_generation_model = await _default_role_model(get_generation_provider)
+
     task = ScanTask(
         name=body.name,
         target_url=resolved_target_url,
@@ -251,14 +272,16 @@ async def batch_delete_scans(
 
 @router.post("/{task_id}/finalize-stuck", response_model=dict)
 async def finalize_stuck_scan(task_id: str, db: AsyncSession = Depends(get_db)):
-    """Mark a stuck `running` scan as completed using existing attack results (recovery / UI out of sync)."""
+    """Finalize saved results without misrepresenting an incomplete scan."""
     data = await finalize_stuck_scan_from_db(task_id, db)
-    return {"data": data, "message": "Scan marked completed from saved results"}
+    return {"data": data, "message": "Scan finalized from saved results"}
 
 
 @router.post("/{task_id}/pause", response_model=dict)
 async def pause_scan(task_id: str, db: AsyncSession = Depends(get_db)):
     """Stop the scan early and finalize a report from the results collected so far."""
+    from app.services.scan_runner import signal_scan_stop
+    signal_scan_stop(task_id)
     data = await finalize_stuck_scan_from_db(task_id, db)
     return {"data": data, "message": "Scan stopped and finalized from saved results"}
 
@@ -271,8 +294,15 @@ async def cancel_scan(task_id: str, db: AsyncSession = Depends(get_db)):
         raise AppException(404, "Scan task not found")
     if task.status not in ("pending", "running"):
         raise AppException(400, "Scan is not running")
-    task.status = "cancelled"
+    changed = await db.execute(
+        update(ScanTask)
+        .where(ScanTask.id == task_id, ScanTask.status.in_(("pending", "running")))
+        .values(status="cancelled", completed_at=datetime.now(timezone.utc))
+        .execution_options(synchronize_session=False)
+    )
     await db.commit()
+    if changed.rowcount != 1:
+        raise AppException(400, "Scan is not running")
     from app.services.scan_runner import signal_scan_stop
     signal_scan_stop(task_id)
     return {"data": {"task_id": task_id}, "message": "Scan cancelled"}
@@ -318,6 +348,10 @@ async def retry_scan(
         runtime_vars=original.runtime_vars,
         attack_categories=original.attack_categories,
         advanced_config=original.advanced_config,
+        judge_provider_id=original.judge_provider_id,
+        judge_model=original.judge_model,
+        generation_provider_id=original.generation_provider_id,
+        generation_model=original.generation_model,
     )
     db.add(new_task)
     await db.commit()

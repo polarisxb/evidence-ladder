@@ -759,6 +759,7 @@ async def schedule_fixed_call(
 
     if _aimd is None:
         raise RuntimeError("Scheduler not initialized — call init_scheduler() first")
+    controller = _aimd
 
     cached = _check_dedup(dedup_key, attack_category, response_text)
     if cached is not None:
@@ -776,7 +777,8 @@ async def schedule_fixed_call(
             )
             break
 
-        start_time = await _aimd.acquire(key_id)
+        start_time = await controller.acquire(key_id)
+        slot_owned = True
 
         try:
             result = await call_chat(
@@ -789,14 +791,16 @@ async def schedule_fixed_call(
                 seed=seed,
             )
 
-            await _aimd.release_on_success(key_id, start_time)
+            await controller.release_on_success(key_id, start_time)
+            slot_owned = False
             _retry_bucket = min(_retry_bucket + RETRY_BUCKET_REFILL, RETRY_BUCKET_MAX)
             _store_dedup(dedup_key, result, attack_category, response_text)
             return result
 
         except LLMRateLimitError as exc:
             consecutive_failures += 1
-            await _aimd.release_on_rate_limit(key_id, exc.retry_after_s)
+            await controller.release_on_rate_limit(key_id, exc.retry_after_s)
+            slot_owned = False
 
             if _retry_bucket < RETRY_COST_429:
                 raise AllRetriesExhaustedError(
@@ -817,7 +821,8 @@ async def schedule_fixed_call(
 
         except LLMAPIError as exc:
             consecutive_failures += 1
-            await _aimd.release_on_error(key_id)
+            await controller.release_on_error(key_id)
+            slot_owned = False
 
             if _retry_bucket < RETRY_COST_5XX:
                 raise AllRetriesExhaustedError(
@@ -836,9 +841,11 @@ async def schedule_fixed_call(
             )
             await asyncio.sleep(delay)
 
-        except Exception:
-            await _aimd.release_on_error(key_id)
-            raise
+        finally:
+            # CancelledError bypasses Exception handlers. Keep ownership until
+            # a release succeeds, and shield cleanup from repeated cancellation.
+            if slot_owned:
+                await asyncio.shield(controller.release_on_error(key_id))
 
     raise AllRetriesExhaustedError(
         f"All {max_retries} retries exhausted for fixed role={role}"
@@ -912,6 +919,7 @@ async def schedule_call(
 
     if _pool is None or _aimd is None:
         raise RuntimeError("Scheduler not initialized — call init_scheduler() first")
+    controller = _aimd
 
     cached = _check_dedup(dedup_key, attack_category, response_text)
     if cached is not None:
@@ -931,7 +939,8 @@ async def schedule_call(
             raise
 
         effective_model = model or slot.model
-        start_time = await _aimd.acquire(slot.key_id)
+        start_time = await controller.acquire(slot.key_id)
+        slot_owned = True
 
         try:
             result = await call_chat(
@@ -944,7 +953,8 @@ async def schedule_call(
             )
 
             rtt_ms = (time.monotonic() - start_time) * 1000
-            await _aimd.release_on_success(slot.key_id, start_time)
+            await controller.release_on_success(slot.key_id, start_time)
+            slot_owned = False
             _pool.mark_success(slot, rtt_ms)
 
             # Refill retry bucket on success
@@ -956,7 +966,8 @@ async def schedule_call(
 
         except LLMRateLimitError as exc:
             consecutive_failures += 1
-            await _aimd.release_on_rate_limit(slot.key_id, exc.retry_after_s)
+            await controller.release_on_rate_limit(slot.key_id, exc.retry_after_s)
+            slot_owned = False
             _pool.mark_throttled(slot, exc.retry_after_s)
 
             # Token bucket gate
@@ -979,7 +990,8 @@ async def schedule_call(
 
         except LLMAPIError as exc:
             consecutive_failures += 1
-            await _aimd.release_on_error(slot.key_id)
+            await controller.release_on_error(slot.key_id)
+            slot_owned = False
             _pool.mark_error(slot)
 
             if _retry_bucket < RETRY_COST_5XX:
@@ -996,9 +1008,9 @@ async def schedule_call(
             )
             await asyncio.sleep(delay)
 
-        except Exception:
-            await _aimd.release_on_error(slot.key_id)
-            raise
+        finally:
+            if slot_owned:
+                await asyncio.shield(controller.release_on_error(slot.key_id))
 
     raise AllRetriesExhaustedError(
         f"All {max_retries} retries exhausted for role={role}"

@@ -18,6 +18,7 @@ class SettingsResponse(BaseModel):
     openai_base_url: str | None
     openai_model: str
     openai_mini_model: str
+    openai_extra_body: dict | None = None
     database_url: str
     cors_origins: list[str]
     allow_localhost_targets: bool
@@ -40,6 +41,7 @@ async def get_settings():
             openai_base_url=settings.openai_base_url,
             openai_model=settings.openai_model,
             openai_mini_model=settings.openai_mini_model,
+            openai_extra_body=settings.openai_extra_body,
             database_url=settings.database_url.split("///")[-1],
             cors_origins=settings.cors_origins,
             allow_localhost_targets=settings.allow_localhost_targets,

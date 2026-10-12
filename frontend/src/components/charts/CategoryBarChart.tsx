@@ -15,7 +15,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   information_disclosure: "Info Disclosure",
 };
 
-function getBarColor(rate: number): string {
+function getBarColor(rate: number | null): string {
+  if (rate == null) return "#94a3b8";
   if (rate >= 60) return "#ef4444";
   if (rate >= 40) return "#f97316";
   if (rate >= 20) return "#eab308";
@@ -37,6 +38,10 @@ export function CategoryBarChart() {
     );
   }
 
+  if (data.every((entry) => entry.rate == null)) {
+    return <div className="h-64 flex items-center justify-center text-gray-500 text-sm">No evaluable attack results</div>;
+  }
+
   const formatted = data.map((d) => ({
     ...d,
     label: CATEGORY_LABELS[d.category] || d.category,
@@ -54,7 +59,7 @@ export function CategoryBarChart() {
         />
         <Tooltip
           contentStyle={chartTooltipContentStyle}
-          formatter={(value) => [`${value ?? 0}%`, "Attack Success Rate"]}
+          formatter={(value) => [value == null ? "—" : `${value}%`, "Attack Success Rate"]}
         />
         <Bar dataKey="rate" radius={[4, 4, 0, 0]}>
           {formatted.map((entry, i) => (

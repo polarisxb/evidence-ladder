@@ -99,9 +99,20 @@ class AdapterResponseExtract(BaseModel):
     text_path: str | None = None
     error_path: str | None = None
     tool_calls_path: str | None = None
+    # Names (as they appear in the extracted tool calls) of state-changing or
+    # otherwise sensitive tools. Only these can become E4 evidence through the
+    # quartet differential; read-only tools the agent legitimately uses to do
+    # the task (list/read/search) never do. When omitted, the differential is
+    # not applicable and bare tool activity is flagged for retest instead.
+    sensitive_tools: list[str] | None = None
 
     @model_validator(mode="after")
     def validate_extract(self):
+        if self.sensitive_tools is not None:
+            cleaned = sorted({name.strip() for name in self.sensitive_tools if isinstance(name, str) and name.strip()})
+            if not cleaned:
+                raise ValueError("response_extract.sensitive_tools must list at least one tool name when provided")
+            self.sensitive_tools = cleaned
         if self.mode == "raw_text":
             return self
         if not any([self.text_path, self.error_path, self.tool_calls_path]):

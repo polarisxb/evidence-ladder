@@ -47,6 +47,11 @@ export function CompliancePanel({ scanId }: Props) {
                 <Minus className="w-3 h-3" />
                 Not tested
               </span>
+            ) : item.score == null ? (
+              <span className="flex items-center gap-1 text-xs text-slate-500">
+                <Minus className="w-3 h-3" />
+                Unable to assess
+              </span>
             ) : item.failed === 0 ? (
               <span className="flex items-center gap-1 text-xs text-green-400">
                 <CheckCircle className="w-3 h-3" />
@@ -57,6 +62,9 @@ export function CompliancePanel({ scanId }: Props) {
                 <XCircle className="w-3 h-3" />
                 {item.failed} finding, {item.score}% pass rate
               </span>
+            )}
+            {(item.not_evaluable ?? 0) > 0 && (
+              <span className="text-xs text-amber-700">{item.not_evaluable} not evaluable</span>
             )}
           </div>
         ))}

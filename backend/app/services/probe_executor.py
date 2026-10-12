@@ -69,7 +69,7 @@ async def execute_probe(
     step_results: list[dict[str, Any]] = []
     runtime_probe_steps: dict[str, Any] = {}
 
-    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_S, follow_redirects=True) as client:
+    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_S, follow_redirects=False) as client:
         for step in resolved_probe.steps:
             context = build_adapter_context(
                 runtime_vars=runtime_vars,

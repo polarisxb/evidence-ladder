@@ -33,13 +33,29 @@ class TestConfigLoading:
         assert settings.openai_mini_model, "openai_mini_model should have a value"
 
     def test_database_url(self) -> None:
+        from app.config import Settings
+
+        local = Settings(_env_file=None, database_url="sqlite+aiosqlite:///./data/app.db")
+        assert "///./data/app.db" not in local.database_url
+        assert local.database_url.replace("\\", "/").endswith("backend/data/app.db")
+
+    def test_suite_never_uses_the_developer_database(self) -> None:
+        # Tests create scans; on the default URL they persist in the dev database.
         assert "sqlite" in settings.database_url
-        assert "///./data/app.db" not in settings.database_url
-        assert "backend/data/app.db" in settings.database_url.replace("\\", "/")
+        assert not settings.database_url.replace("\\", "/").endswith("backend/data/app.db")
 
     def test_cors_origins(self) -> None:
         assert isinstance(settings.cors_origins, list)
         assert len(settings.cors_origins) > 0
+
+    def test_secrets_are_hidden_from_repr(self) -> None:
+        # pytest assertion introspection and log lines print the repr verbatim.
+        from app.config import Settings
+
+        local = Settings(_env_file=None, openai_api_key="sk-repr-canary", app_secret="app-secret-canary")
+        assert "sk-repr-canary" not in repr(local)
+        assert "app-secret-canary" not in repr(local)
+        assert local.openai_api_key == "sk-repr-canary"
 
     @_requires_root_env
     def test_root_env_exists(self) -> None:

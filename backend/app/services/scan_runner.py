@@ -11,11 +11,13 @@ import logging
 import uuid
 from collections import deque
 from collections.abc import Awaitable, Callable, Coroutine
+from contextvars import ContextVar, Token
 from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import WebSocket
 from sqlalchemy import select, update
+from sqlalchemy.orm import selectinload
 from app.database import async_session
 from app.models import AttackResult, ScanTask
 from app.services.adapter_executor import resolve_task_adapter_payload
@@ -34,7 +36,7 @@ from app.services.tap_engine import run_tap
 from app.services.pair_engine import run_pair
 from app.services.iris_engine import run_iris
 from app.services.mutation_engine import generate_variants
-from app.services.risk_scorer import compute_overall_score, classify_overall_risk
+from app.services.risk_scorer import compute_overall_score, classify_overall_risk, scoring_result_payload
 from app.services.response_screening import (
     TargetResponseEnvelope,
     describe_not_evaluable_reason,
@@ -70,20 +72,17 @@ logger = logging.getLogger(__name__)
 ACTIVE_SCAN_STATUSES = {"pending", "running"}
 
 
-def _apply_scan_providers(task: ScanTask) -> None:
-    """Set per-scan provider overrides from the task's stored provider IDs and models."""
-    judge_id = getattr(task, "judge_provider_id", None)
-    judge_model = getattr(task, "judge_model", None)
-    gen_id = getattr(task, "generation_provider_id", None)
-    gen_model = getattr(task, "generation_model", None)
-    if judge_id:
-        _scan_judge_provider_id.set(judge_id)
-    if judge_model:
-        _scan_judge_model.set(judge_model)
-    if gen_id:
-        _scan_generation_provider_id.set(gen_id)
-    if gen_model:
-        _scan_generation_model.set(gen_model)
+def _apply_scan_providers(task: ScanTask) -> list[tuple[ContextVar, Token]]:
+    """Set every override, including None, and return tokens for scope restoration."""
+    return [
+        (variable, variable.set(getattr(task, field_name, None)))
+        for variable, field_name in (
+            (_scan_judge_provider_id, "judge_provider_id"),
+            (_scan_judge_model, "judge_model"),
+            (_scan_generation_provider_id, "generation_provider_id"),
+            (_scan_generation_model, "generation_model"),
+        )
+    ]
 MAX_SCAN_DURATION_S = 3600.0  # 全局扫描超时 1 小时
 _MAX_CONCURRENT_CHAINS = 8   # 全局最大并行攻击链数
 
@@ -1140,6 +1139,49 @@ async def _run_pilot_suite_cases(
                 })
 
 
+async def _broadcast_scan_cancelled(ws_clients: dict, task: ScanTask) -> None:
+    await _broadcast(ws_clients, task.id, {
+        "type": "scan_cancelled",
+        "completed": task.completed_attacks,
+        "total": task.total_attacks,
+        "target_health": task.target_health,
+        "health_probe_passed": task.health_probe_passed,
+        "health_failure_reason": task.health_failure_reason,
+        "recent_health_signature": task.recent_health_signature,
+        "invalid_response_ratio": task.invalid_response_ratio,
+    })
+
+
+async def _broadcast_scan_terminal(ws_clients: dict, task: ScanTask, *, error: str | None = None) -> None:
+    """Broadcast the terminal state actually committed, including cancellation races."""
+    if task.status == "cancelled":
+        await _broadcast_scan_cancelled(ws_clients, task)
+        return
+    health = {
+        "completed": task.completed_attacks,
+        "total": task.total_attacks,
+        "target_health": task.target_health,
+        "health_probe_passed": task.health_probe_passed,
+        "health_failure_reason": task.health_failure_reason,
+        "recent_health_signature": task.recent_health_signature,
+        "invalid_response_ratio": task.invalid_response_ratio,
+    }
+    if task.status == "completed":
+        await _broadcast(ws_clients, task.id, {
+            **health,
+            "type": "scan_completed",
+            "overall_score": task.overall_score,
+            "risk_level": classify_overall_risk(task.overall_score),
+            "vulnerabilities_found": task.vulnerabilities_found,
+        })
+    elif task.status == "failed":
+        await _broadcast(ws_clients, task.id, {
+            **health,
+            "type": "scan_failed",
+            "error": error or f"Scan ended early after {task.completed_attacks}/{task.total_attacks} attacks",
+        })
+
+
 async def run_scan(task_id: str, ws_clients: dict[str, list[WebSocket]]):
     async with async_session() as db:
         result = await db.execute(select(ScanTask).where(ScanTask.id == task_id))
@@ -1148,12 +1190,25 @@ async def run_scan(task_id: str, ws_clients: dict[str, list[WebSocket]]):
             logger.error("Scan task %s not found", task_id)
             return
 
-        task.status = "running"
-        task.started_at = datetime.now(timezone.utc)
-        await db.commit()
+        if task.status not in ACTIVE_SCAN_STATUSES:
+            if task.status == "cancelled":
+                await _broadcast_scan_cancelled(ws_clients, task)
+            return
 
-        # Activate per-scan provider overrides for the entire scan lifetime.
-        _apply_scan_providers(task)
+        # Claim only pending work. An API cancellation or another runner can
+        # win after our initial read; stale ORM state must never overwrite it.
+        claimed = await db.execute(
+            update(ScanTask)
+            .where(ScanTask.id == task_id, ScanTask.status == "pending")
+            .values(status="running", started_at=datetime.now(timezone.utc))
+            .execution_options(synchronize_session=False)
+        )
+        await db.commit()
+        await db.refresh(task)
+        if claimed.rowcount != 1 or task.status != "running":
+            if task.status == "cancelled":
+                await _broadcast_scan_cancelled(ws_clients, task)
+            return
 
         adv = task.advanced_config or {}
         pilot_suite_path = _pilot_suite_path_from_config(adv)
@@ -1240,7 +1295,14 @@ async def run_scan(task_id: str, ws_clients: dict[str, list[WebSocket]]):
         _scan_stop_check_ts[task_id] = 0.0
         _scan_health_trackers[task_id] = _new_scan_health_tracker(adv)
 
+        provider_tokens = _apply_scan_providers(task)
         try:
+            # A cancellation during planning may precede stop-event creation.
+            await db.refresh(task, attribute_names=["status"])
+            if task.status not in ACTIVE_SCAN_STATUSES:
+                await db.refresh(task)
+                await _broadcast_scan_terminal(ws_clients, task)
+                return
             if pilot_suite_path:
                 pilot_suite = _load_validated_pilot_suite(adv)
                 task.total_attacks = pilot_suite.manifest.case_count
@@ -1374,17 +1436,13 @@ async def run_scan(task_id: str, ws_clients: dict[str, list[WebSocket]]):
                     logger.warning("Engine %d failed: %s", idx, res)
 
             all_results = [
-                {
-                    "attack_successful": r.attack_successful,
-                    "risk_score": r.risk_score,
-                    "verdict_status": (r.analysis_raw or {}).get("verdict_status"),
-                    "target_response": r.target_response,
-                }
+                scoring_result_payload(r)
                 for r in (await db.execute(
                     select(AttackResult).where(AttackResult.scan_task_id == task_id)
+                    .options(selectinload(AttackResult.attack_case))
                 )).scalars().all()
             ]
-            overall_score = compute_overall_score(all_results)
+            overall_score = compute_overall_score(all_results, expected_tests=task.total_attacks)
 
             await db.refresh(
                 task,
@@ -1402,57 +1460,39 @@ async def run_scan(task_id: str, ws_clients: dict[str, list[WebSocket]]):
                 ],
             )
             task.overall_score = overall_score
-            final_status = task.status
             incomplete_scan = task.completed_attacks < task.total_attacks
             if task.status in ACTIVE_SCAN_STATUSES:
-                final_status = "failed" if incomplete_scan else "completed"
-                task.status = final_status
-            if task.completed_at is None:
+                await db.execute(
+                    update(ScanTask)
+                    .where(ScanTask.id == task_id, ScanTask.status.in_(ACTIVE_SCAN_STATUSES))
+                    .values(
+                        status="failed" if incomplete_scan else "completed",
+                        completed_at=datetime.now(timezone.utc),
+                    )
+                    .execution_options(synchronize_session=False)
+                )
+            elif task.completed_at is None:
                 task.completed_at = datetime.now(timezone.utc)
             await db.commit()
-
-            if final_status == "completed":
-                await _broadcast(ws_clients, task_id, {
-                    "type": "scan_completed",
-                    "overall_score": overall_score,
-                    "risk_level": classify_overall_risk(overall_score),
-                    "total": task.total_attacks,
-                    "vulnerabilities_found": task.vulnerabilities_found,
-                    "target_health": task.target_health,
-                    "health_probe_passed": task.health_probe_passed,
-                    "health_failure_reason": task.health_failure_reason,
-                    "recent_health_signature": task.recent_health_signature,
-                    "invalid_response_ratio": task.invalid_response_ratio,
-                })
-            elif final_status == "failed":
-                logger.warning(
-                    "Scan %s ended early: completed %s/%s attacks",
-                    task_id,
-                    task.completed_attacks,
-                    task.total_attacks,
-                )
-                await _broadcast(ws_clients, task_id, {
-                    "type": "scan_failed",
-                    "error": (
-                        f"Scan ended early after {task.completed_attacks}/{task.total_attacks} attacks"
-                    ),
-                    "target_health": task.target_health,
-                    "health_probe_passed": task.health_probe_passed,
-                    "health_failure_reason": task.health_failure_reason,
-                    "recent_health_signature": task.recent_health_signature,
-                    "invalid_response_ratio": task.invalid_response_ratio,
-                })
+            await db.refresh(task)
+            await _broadcast_scan_terminal(ws_clients, task)
 
         except Exception:
             await db.rollback()
-            logger.exception("Scan %s failed", task_id)
-            task.status = "failed"
-            task.completed_at = datetime.now(timezone.utc)
+            logger.exception("Scan %s execution raised an error", task_id)
+            await db.execute(
+                update(ScanTask)
+                .where(ScanTask.id == task_id, ScanTask.status.in_(ACTIVE_SCAN_STATUSES))
+                .values(status="failed", completed_at=datetime.now(timezone.utc))
+                .execution_options(synchronize_session=False)
+            )
             await db.commit()
-
-            await _broadcast(ws_clients, task_id, {"type": "scan_failed", "error": "Internal error"})
+            await db.refresh(task)
+            await _broadcast_scan_terminal(ws_clients, task, error="Internal error")
 
         finally:
+            for variable, token in reversed(provider_tokens):
+                variable.reset(token)
             _scan_stop_events.pop(task_id, None)
             _scan_stop_check_ts.pop(task_id, None)
             _scan_health_trackers.pop(task_id, None)

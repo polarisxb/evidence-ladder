@@ -175,7 +175,10 @@ def _flaky_analyze_response_factory():
     return _flaky_analyze_response
 
 
-def _fake_classify_verdict(*, attack_payload, target_response, analysis, target_config, control_assessment=None):
+def _fake_classify_verdict(
+    *, attack_payload, target_response, analysis, target_config, control_assessment=None,
+    attack_category=None, variant_type=None, business_verification_status=None,
+):
     return {
         "verdict_status": "rule_verified" if analysis.attack_successful else "passed",
         "verdict_reason": "mock verdict",
@@ -400,6 +403,7 @@ class Phase1RegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(variants), 4)
         self.assertEqual(cases[0].legacy_attack_result_id, results[0].id)
         self.assertEqual(cases[0].template_id, "S-001")
+        self.assertEqual(results[0].analysis_raw["verdict_status"], "rule_verified")
 
     async def test_multi_turn_scan_counts_one_case_and_keeps_legacy_payload_format(self):
         task = await self._create_task(name="multi", categories=["multi"])
