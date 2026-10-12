@@ -73,7 +73,7 @@ export function ScanProgress() {
     if (last?.type === "attack_completed") {
       void loadAttackResults();
     }
-    if (last?.type === "scan_completed" || last?.type === "scan_failed" || last?.type === "scan_health") {
+    if (last?.type === "scan_completed" || last?.type === "scan_failed" || last?.type === "scan_cancelled" || last?.type === "scan_health") {
       if (taskId) {
         getScan(taskId).then(setScan).catch(() => {});
       }
@@ -102,14 +102,14 @@ export function ScanProgress() {
   const pct = total > 0 ? Math.min(100, Math.round((completed / total) * 100)) : 0;
 
   const wsCompleted = events.some((e) => e.type === "scan_completed");
-  const wsFailed = events.some((e) => e.type === "scan_failed");
+  const wsFailed = events.some((e) => e.type === "scan_failed" || e.type === "scan_cancelled");
   const apiCompleted = scan?.status === "completed";
   const apiFailed = scan?.status === "failed" || scan?.status === "cancelled";
   const scanSucceeded = wsCompleted || apiCompleted;
   const scanEndedEarly = !scanSucceeded && (wsFailed || apiFailed);
   const scanDone = scanSucceeded || scanEndedEarly;
   const doneEvent = events.find((e) => e.type === "scan_completed");
-  const finalScore = doneEvent?.overall_score ?? scan?.overall_score ?? undefined;
+  const finalScore = doneEvent ? doneEvent.overall_score : scan?.overall_score;
   const latestHealthEvent = [...events].reverse().find((e) => e.target_health != null);
   const targetHealth = latestHealthEvent?.target_health ?? scan?.target_health ?? null;
   const healthProbePassed = latestHealthEvent?.health_probe_passed ?? scan?.health_probe_passed ?? null;

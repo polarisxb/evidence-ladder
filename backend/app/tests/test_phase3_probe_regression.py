@@ -255,6 +255,8 @@ class Phase3ProbeRegressionTests(unittest.IsolatedAsyncioTestCase):
         app.dependency_overrides[get_db] = _override_get_db
 
         self.patchers = [
+            patch("app.config.settings.auth_required", True),
+            patch("app.config.settings.app_secret", "probe-regression-secret"),
             patch.object(scan_runner, "async_session", self.session_factory),
             patch.object(case_executor, "analyze_response", _fake_analyze_response),
             patch.object(case_executor, "classify_verdict", _fake_classify_verdict),
@@ -325,7 +327,7 @@ class Phase3ProbeRegressionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_probe_test_requires_stored_or_override_probe_config(self):
         transport = ASGITransport(app=app)
-        async with REAL_HTTPX_ASYNC_CLIENT(transport=transport, base_url="http://testserver") as client:
+        async with REAL_HTTPX_ASYNC_CLIENT(transport=transport, base_url="http://testserver", headers={"X-API-Key": "probe-regression-secret"}) as client:
             response = await client.post(
                 "/api/v1/adapters/probe/test",
                 json={
@@ -339,7 +341,7 @@ class Phase3ProbeRegressionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_probe_test_api_succeeds_for_single_step_probe(self):
         transport = ASGITransport(app=app)
-        async with REAL_HTTPX_ASYNC_CLIENT(transport=transport, base_url="http://testserver") as client:
+        async with REAL_HTTPX_ASYNC_CLIENT(transport=transport, base_url="http://testserver", headers={"X-API-Key": "probe-regression-secret"}) as client:
             response = await client.post(
                 "/api/v1/adapters/probe/test",
                 json={
@@ -463,7 +465,7 @@ class Phase3ProbeRegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(any(event.get("probe_runtime_state") == "verified" for event in ws.events))
 
         transport = ASGITransport(app=app)
-        async with REAL_HTTPX_ASYNC_CLIENT(transport=transport, base_url="http://testserver") as client:
+        async with REAL_HTTPX_ASYNC_CLIENT(transport=transport, base_url="http://testserver", headers={"X-API-Key": "probe-regression-secret"}) as client:
             cases_response = await client.get(f"/api/v1/scans/{task_id}/cases")
             self.assertEqual(cases_response.status_code, 200)
             case_row = cases_response.json()["data"][0]

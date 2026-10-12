@@ -96,17 +96,19 @@ export function Compare() {
             <div className="card p-6 flex flex-col items-center justify-center">
               <div
                 className={`flex items-center gap-1 text-3xl font-bold ${
-                  result.score_diff > 0
+                  (result.score_diff ?? 0) > 0
                     ? "text-green-600"
-                    : result.score_diff < 0
+                    : (result.score_diff ?? 0) < 0
                       ? "text-red-600"
                       : "text-gray-400"
                 }`}
               >
-                {result.score_diff > 0 ? <ArrowUp className="w-6 h-6" /> : null}
-                {result.score_diff < 0 ? <ArrowDown className="w-6 h-6" /> : null}
-                {result.score_diff > 0 ? "+" : ""}
-                {result.score_diff}
+                {result.score_diff == null ? <span className="text-sm">{t("compare.scoreUnavailable")}</span> : <>
+                  {result.score_diff > 0 ? <ArrowUp className="w-6 h-6" /> : null}
+                  {result.score_diff < 0 ? <ArrowDown className="w-6 h-6" /> : null}
+                  {result.score_diff > 0 ? "+" : ""}
+                  {result.score_diff}
+                </>}
               </div>
               <p className="text-xs text-gray-500 mt-1">{t("compare.postureChange")}</p>
             </div>
@@ -119,37 +121,43 @@ export function Compare() {
             <VulnList title={t("compare.persistent")} items={result.persistent_vulnerabilities} color="yellow" icon={AlertTriangle} />
           </div>
 
+          {!!result.uncompared_vulnerabilities?.length && (
+            <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              {t("compare.unmatchedFindings", { n: result.uncompared_vulnerabilities.length })}
+              {" "}{result.uncompared_vulnerabilities.join(", ")}
+            </p>
+          )}
+
           <div className="card p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">{t("compare.categoryComparison")}</h2>
             <div className="space-y-3">
               {Object.keys({ ...result.scan_a.categories, ...result.scan_b.categories }).map((cat) => {
                 const a = result.scan_a.categories[cat];
                 const b = result.scan_b.categories[cat];
-                const rateA = a?.rate ?? 0;
-                const rateB = b?.rate ?? 0;
-                const diff = rateB - rateA;
+                const rateA = a?.rate ?? null;
+                const rateB = b?.rate ?? null;
+                const diff = rateA != null && rateB != null ? rateB - rateA : null;
                 return (
                   <div key={cat} className="flex items-center gap-4">
                     <span className="text-sm text-gray-700 w-40 capitalize">{cat.replace(/_/g, " ")}</span>
                     <div className="flex-1 flex items-center gap-2">
-                      <span className="text-xs font-mono text-gray-500 w-12 text-right">{rateA}%</span>
+                      <span className="text-xs font-mono text-gray-500 w-12 text-right">{rateA == null ? "—" : `${rateA}%`}</span>
                       <div className="flex-1 bg-gray-100 rounded-full h-2 relative">
                         <div className="absolute inset-0 flex">
-                          <div className="h-2 rounded-l-full bg-indigo-200" style={{ width: `${rateA}%` }} />
+                          <div className="h-2 rounded-l-full bg-indigo-200" style={{ width: `${rateA ?? 0}%` }} />
                         </div>
                         <div className="absolute inset-0 flex">
-                          <div className="h-2 rounded-l-full bg-indigo-500" style={{ width: `${rateB}%` }} />
+                          <div className="h-2 rounded-l-full bg-indigo-500" style={{ width: `${rateB ?? 0}%` }} />
                         </div>
                       </div>
-                      <span className="text-xs font-mono text-gray-500 w-12">{rateB}%</span>
+                      <span className="text-xs font-mono text-gray-500 w-12">{rateB == null ? "—" : `${rateB}%`}</span>
                     </div>
                     <span
                       className={`text-xs font-mono w-16 text-right ${
-                        diff < 0 ? "text-green-600" : diff > 0 ? "text-red-600" : "text-gray-500"
+                        diff == null ? "text-gray-500" : diff < 0 ? "text-green-600" : diff > 0 ? "text-red-600" : "text-gray-500"
                       }`}
                     >
-                      {diff > 0 ? "+" : ""}
-                      {diff.toFixed(1)}%
+                      {diff == null ? "—" : `${diff > 0 ? "+" : ""}${diff.toFixed(1)}%`}
                     </span>
                   </div>
                 );
@@ -184,6 +192,7 @@ function VulnList({
   color: "green" | "red" | "yellow";
   icon: React.ElementType;
 }) {
+  const { t } = useLocale();
   const colorMap = {
     green: { text: "text-green-700", bg: "bg-green-50", border: "border-green-200" },
     red: { text: "text-red-700", bg: "bg-red-50", border: "border-red-200" },
@@ -200,7 +209,7 @@ function VulnList({
         </span>
       </div>
       {items.length === 0 ? (
-        <p className="text-xs text-gray-500">{useLocale().t("common.none")}</p>
+        <p className="text-xs text-gray-500">{t("common.none")}</p>
       ) : (
         <ul className="space-y-1">
           {items.map((item) => (

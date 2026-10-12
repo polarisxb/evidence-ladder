@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import { chat } from '../services/chatService';
+import { chat, DefenseLevel } from '../services/chatService';
 import { ChatRequest, ChatMessage } from '../types';
 
 const router = Router();
@@ -40,15 +40,23 @@ router.post('/', chatValidation, async (req: Request, res: Response): Promise<vo
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     res.set('X-Provenance-Model-Invoked', 'false');
+    res.set('X-Provenance-Evaluable', 'false');
     res.set('X-Provenance-Block-Reason', 'input_validation');
     res.status(400).json({ error: 'Validation failed', details: errors.array() });
     return;
   }
 
   const { message, userId = 'alice', history = [] } = req.body as ChatRequest;
-  const result = await chat(userId, message, history as ChatMessage[]);
+  // Defense strength is a red-team experimental factor (query ?defense= or body).
+  const rawDefense = String(req.query.defense ?? (req.body as { defense?: unknown }).defense ?? 'defended');
+  const defense: DefenseLevel = rawDefense === 'undefended' ? 'undefended' : 'defended';
+  const result = await chat(userId, message, history as ChatMessage[], defense);
+  // Optional on ChatResult: absent means not shown to be evaluable.
+  const evaluable = result.evaluable === true;
   res.set('X-Provenance-Model-Invoked', String(result.modelInvoked));
+  res.set('X-Provenance-Defense', defense);
   res.set('X-Provenance-Post-Processed', String(result.postProcessed));
+  res.set('X-Provenance-Evaluable', String(evaluable));
   if (result.blockReason) res.set('X-Provenance-Block-Reason', result.blockReason);
   if (result.postReason) res.set('X-Provenance-Post-Reason', result.postReason);
   if (req.query.format === 'json') {
@@ -57,6 +65,7 @@ router.post('/', chatValidation, async (req: Request, res: Response): Promise<vo
       tool_calls: result.toolCalls ?? [],
       modelInvoked: result.modelInvoked,
       postProcessed: result.postProcessed,
+      evaluable,
     });
   } else {
     res.type('text/plain').send(result.response);

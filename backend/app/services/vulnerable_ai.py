@@ -90,13 +90,17 @@ async def chat_with_vulnerable_ai(
         messages.extend(conversation_history)
     messages.append({"role": "user", "content": message})
 
+    request: dict = {
+        "model": settings.openai_mini_model,
+        "messages": messages,
+        "temperature": 0.7,
+        "max_tokens": 500,
+    }
+    if settings.openai_extra_body:
+        request["extra_body"] = settings.openai_extra_body
+
     try:
-        response = await client.chat.completions.create(
-            model=settings.openai_mini_model,
-            messages=messages,
-            temperature=0.7,
-            max_tokens=500,
-        )
+        response = await client.chat.completions.create(**request)
         return response.choices[0].message.content or ""
     except Exception as e:
         logger.error("Vulnerable AI error: %s", e)

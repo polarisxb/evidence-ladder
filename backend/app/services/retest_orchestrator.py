@@ -79,6 +79,11 @@ def build_retest_result(
         "response_evaluation": dict(response_evaluation),
         "tool_calls": tool_calls,
         "tool_observed": case_summary.get("tool_observed") is True,
+        "sensitive_tools_fired": (
+            case_summary.get("sensitive_tools_fired")
+            if isinstance(case_summary.get("sensitive_tools_fired"), list)
+            else None
+        ),
     }
 
 

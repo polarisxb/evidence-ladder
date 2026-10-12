@@ -238,7 +238,7 @@ export function Dashboard() {
         ) : (
           <div className="divide-y divide-gray-100">
             {scans.map((scan) => {
-              const risk = scan.overall_score != null ? scoreToRisk(scan.overall_score) : "none";
+              const risk = scoreToRisk(scan.overall_score);
               const colors = riskColors[risk];
               const isPartial = scan.status === "completed" && scan.completed_attacks < scan.total_attacks;
               const isRunning = scan.status === "running";
@@ -315,6 +315,9 @@ export function Dashboard() {
                       <span className={`px-2 py-1 rounded text-xs font-mono ${colors.bg} ${colors.text}`}>
                         {riskLabel(risk)} ({scan.overall_score})
                       </span>
+                    )}
+                    {scan.overall_score == null && ["completed", "failed", "cancelled"].includes(scan.status) && (
+                      <span className="text-xs text-slate-500">{t("report.unableToScore")}</span>
                     )}
                     <span className={`text-xs ${isPartial ? "text-amber-700" : isRunning ? "text-indigo-600" : "text-gray-500"}`}>
                       {isPartial ? "partial" : isRunning ? t("dashboard.running") : scan.status}

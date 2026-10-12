@@ -1,8 +1,10 @@
 import logging
 from contextlib import asynccontextmanager
+from urllib.parse import urlencode
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from httpx import URL
 
 from app.config import settings
 from app.core.auth import AuthMiddleware
@@ -11,6 +13,21 @@ from app.database import init_db
 from app.api import api_router
 from app.services.llm_scheduler import init_scheduler
 
+
+def _redact_httpx_request_urls(record: logging.LogRecord) -> bool:
+    """Keep HTTP diagnostics without logging arbitrary adapter query secrets."""
+    if isinstance(record.args, tuple):
+        record.args = tuple(
+            arg.copy_with(query=urlencode([
+                (name, "[REDACTED]") for name, _ in arg.params.multi_items()
+            ]).encode("ascii"))
+            if isinstance(arg, URL) and arg.query else arg
+            for arg in record.args
+        )
+    return True
+
+
+logging.getLogger("httpx").addFilter(_redact_httpx_request_urls)
 logging.basicConfig(
     level=logging.DEBUG if settings.debug else logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",

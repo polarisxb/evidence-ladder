@@ -148,6 +148,13 @@ class ScanResponse(BaseModel):
     health_failure_reason: str | None = None
     recent_health_signature: str | None = None
     invalid_response_ratio: float | None = None
+    # Provider/model actually recorded for this scan (resolved defaults included),
+    # so a run manifest can be rebuilt from the API alone.
+    judge_provider_id: str | None = None
+    judge_model: str | None = None
+    generation_provider_id: str | None = None
+    generation_model: str | None = None
+    advanced_config: dict | None = None
 
     model_config = {"from_attributes": True}
 

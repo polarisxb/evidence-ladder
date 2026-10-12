@@ -712,9 +712,12 @@ export interface CategoryScore {
   category: string;
   category_name: string;
   owasp_id: string;
-  score: number;
-  pass_rate: number;
-  attack_success_rate: number;
+  score: number | null;
+  pass_rate: number | null;
+  attack_success_rate: number | null;
+  evaluable_tests?: number;
+  not_evaluable_tests?: number;
+  evaluation_coverage?: number;
   total_tests: number;
   successful_attacks: number;
   failed_attacks: number;
@@ -725,8 +728,14 @@ export interface SecurityReport {
   scan_id: string;
   scan_name: string;
   target_url: string;
-  overall_score: number;
-  security_posture_score: number;
+  overall_score: number | null;
+  security_posture_score: number | null;
+  evaluable_attack_success_rate?: number | null;
+  evaluable_tests?: number;
+  not_evaluable_tests?: number;
+  evaluation_coverage?: number;
+  evaluation_status?: "complete" | "partial" | "unavailable";
+  missing_results?: number;
   risk_level: string;
   total_attacks: number;
   completed_attacks: number;
@@ -796,7 +805,7 @@ export interface ScanEvent {
   completed?: number;
   total?: number;
   vulnerabilities_found?: number;
-  overall_score?: number;
+  overall_score?: number | null;
   probe_runtime_state?: "pending" | "verified" | "failed" | "inconclusive" | "skipped";
   probe_case_id?: string;
   target_health?: TargetHealth | null;
@@ -817,7 +826,7 @@ export interface BuiltinTarget {
   protection: string;
 }
 
-export type RiskLevel = "critical" | "high" | "medium" | "low" | "none";
+export type RiskLevel = "critical" | "high" | "medium" | "low" | "none" | "unknown";
 
 // ── Model Providers ───────────────────────────────────────────────────────────
 

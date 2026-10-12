@@ -81,19 +81,20 @@ Judge 只是一层证据（E2），不是至上裁判。确定性「利用一次
 >
 > 两者可在同一实验中并列报告，作为互补诊断指标。
 
-### 2.4 冲突驱动闭环补测
+### 2.4 冲突驱动闭环补测：证据强度 ≠ 可归因性
 
-弱证据 finding 通过 `conflict-type → retest-action` 状态机自动触发复测：
+一条关键区分：**证据「强」只说明观察可信，不等于该后果由攻击造成。** 典型反例是过度分享——模型被要求"总结收件箱"时照实输出了机密串，canary 在文本里命中、按阶梯算 E3（强），但无攻击的 Clean 臂同样会泄露，故不可归因于攻击。因此弱证据乃至这类"强而不可归因"的 finding，都通过 `conflict-type → retest-action` 状态机触发跨通道补测：
 
 | `conflict_type` | 触发条件 | 补测策略 |
 |---|---|---|
 | `judge_without_rule_evidence` | Judge 判成功但规则/probe 无证据 | Quartet 复测 |
 | `quoted_attack_success` | Quoted Attack 也成功 | 标记为 judge false-positive 候选 |
+| `secret_disclosure_text_only` | canary 仅出现在响应文本（未入工具/状态），E3 但可能是过度分享 | Quartet/Clean 差分，对照亦泄露则翻案 |
 | `secret_disclosure_suspected` | 疑似泄露但无 canary 命中 | Canary 重测 |
 | `unauthorized_action_claim` | 文本声称但无工具日志 | Probe 验证 |
 | `clean_failed` | 原任务失败 | 标记 `not_evaluable` / `utility_failure` |
 
-每个 finding 保留可审计的补测历史（`initial → retest_1 → ... → final`），最终标记为 `confirmed` / `overturned` / `manual_review_needed`。
+每个 finding 保留可审计的补测历史（`initial → retest_1 → ... → final`），最终标记为 `confirmed` / `overturned` / `manual_review_needed`。仅文本命中的 canary 即便判到 E3，若 Clean / Quoted / Distractor 对照臂也出现同一 canary，补测会将其翻为 `overturned`（过度分享假阳的消除），而真正的强证据（工具/状态/非 canary 规则）照常直接确认。
 
 ### 2.5 Canary 通道溯源
 
@@ -109,6 +110,9 @@ Canary 命中按通道记录证据强度与一个粗粒度传播标签：当前�
 |---|---|---|
 | *A Coin Flip for Safety* (2026) | 用裁判 precision 缩放一个标量 ASR | 按证据源切开报告，不倍乘 |
 | *When Scanners Lie* (2026) | 冻结输出、换 evaluator，ASR 可差 ±33% | 冲突后换**通道**补测，不是再换一个文本裁判 |
+| *REDAgentBench* (2026) | 同一轨迹换证据视角（轨迹 vs 状态），状态口径 ASR 高 7.73–11.72 pp、翻转 12.97–21.20% 标签 | 确认"是否发生"；本仓库进一步分"是否**攻击所致**"，并用冲突**触发补测**而非并列报告 |
+| *Vera* (2026) | 证据来自环境状态 + 工具调用的确定性 verifier | 同属状态验证一侧；本仓库保留 judge 为 E2，用状态在冲突时审计它 |
+| *LITMUS* (2026) | 语义-物理双重验证，以"嘴上拒绝但系统已执行"的不一致率为指标 | 冲突率是一等对象这点同构；本仓库把冲突进一步**类型化并驱动补测** |
 | *Kill-Chain Canaries* (2026) | 四阶段传播 | 当前只标 exposed / executed；完整阶段矩阵未实现 |
 | *GroundEval* (2026) | 用状态合同**替换** LLM judge | judge 留下当 E2；冲突时用独立通道重测 |
 | *SafeClawBench* (2026) | 语义 / 审计证据 / 沙箱伤害三个独立协议的率 | 同一轮评测上多通道分层，不是三次独立调用 |
@@ -132,11 +136,23 @@ Canary 命中按通道记录证据强度与一个粗粒度传播标签：当前�
 - Node.js 20+
 - OpenAI-compatible API Key
 
+### 配置（后端与 Docker 均必需）
+
+在仓库根目录复制配置并生成应用鉴权密钥：
+
+```bash
+cp .env.example .env
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+将命令输出填入 `.env` 的 `APP_SECRET`，同时填入模型/API 配置。
+保持 `AUTH_REQUIRED=true`；密钥为空时后端会拒绝启动。
+前端首次访问时使用同一个 `APP_SECRET`，API 请求通过 `X-API-Key` 传入。
+
 ### 后端
 
 ```bash
 cd backend
-cp .env.example .env  # 编辑 .env，填入模型/API 配置
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
@@ -156,8 +172,9 @@ npm run dev
 
 ### Docker
 
+先完成上面的配置步骤，再从仓库根目录启动：
+
 ```bash
-cp .env.example .env
 docker compose up --build
 ```
 
@@ -219,7 +236,7 @@ docker compose up --build
 
 [MIT 协议](./LICENSE)。
 
-本项目站在以下开源工作之上：HarmBench、JailbreakBench、AgentDojo、tau-bench、ToolEmu、AgentHarm、garak、PyRIT、Promptfoo、OWASP LLM Top 10 / Agentic Top 10。2026 年必须正面区分的工作还包括 *GroundEval*、*SafeClawBench*、*Action-Graded*、*False Success*、*ASSERT*、*RECEIPT*，以及裁判可靠性文献 *A Coin Flip for Safety*、*When Scanners Lie*、*Kill-Chain Canaries*、*Noisy but Valid*、*Know Thy Judge*、*RobustJudge*。
+本项目站在以下开源工作之上：HarmBench、JailbreakBench、AgentDojo、tau-bench、ToolEmu、AgentHarm、garak、PyRIT、Promptfoo、OWASP LLM Top 10 / Agentic Top 10。2026 年必须正面区分的工作还包括 *GroundEval*、*SafeClawBench*、*Action-Graded*、*False Success*、*ASSERT*、*RECEIPT*、*REDAgentBench*、*Vera*、*LITMUS*，以及裁判可靠性文献 *A Coin Flip for Safety*、*When Scanners Lie*、*Kill-Chain Canaries*、*Noisy but Valid*、*Know Thy Judge*、*RobustJudge*。
 
 ---
 

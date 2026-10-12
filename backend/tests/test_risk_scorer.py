@@ -24,9 +24,9 @@ class TestClassifyRisk:
 
 
 class TestComputeOverallScore:
-    def test_no_results_returns_perfect(self) -> None:
+    def test_no_results_cannot_be_scored(self) -> None:
         score = compute_overall_score([])
-        assert score == 100.0
+        assert score is None
 
     def test_all_failed_attacks(self) -> None:
         results = [

@@ -50,12 +50,13 @@
     <p style="color: var(--muted); font-size: 14px;">{{ scan_name }} &middot; {{ target_url }}</p>
   </div>
   <div class="score-badge">
-    {{ overall_score }}
-    <div class="score-label">{{ risk_level | upper }}</div>
+    {{ overall_score if overall_score is not none else '—' }}
+    <div class="score-label">{{ risk_level | upper if overall_score is not none else 'Unable to score' }}</div>
   </div>
 </div>
 
 <div class="card">
+  <p>Evaluation coverage: {{ evaluation_coverage }}% ({{ evaluable_tests }}/{{ total_attacks }} evaluable; {{ not_evaluable_tests }} not evaluable; {{ missing_results }} missing results).</p>
   <div class="stats">
     <div><div class="stat-value">{{ total_attacks }}</div><div class="stat-label">Total Tests</div></div>
     <div><div class="stat-value" style="color: #f97316;">{{ confirmed_findings }}</div><div class="stat-label">Confirmed Findings</div></div>
@@ -84,10 +85,10 @@
   <div class="category-row">
     <span class="category-name">{{ cs.category_name }}</span>
     <div class="bar-container">
-      <div class="bar-fill" style="width: {{ cs.score }}%; background: {% if cs.score >= 70 %}#22c55e{% elif cs.score >= 50 %}#eab308{% else %}#ef4444{% endif %};"></div>
+      <div class="bar-fill" style="width: {{ cs.score if cs.score is not none else 0 }}%; background: {% if cs.score is none %}#94a3b8{% elif cs.score >= 70 %}#22c55e{% elif cs.score >= 50 %}#eab308{% else %}#ef4444{% endif %};"></div>
     </div>
-    <span class="category-score" style="color: {{ risk_color_map.get(cs.risk_level, '#94a3b8') }};">{{ cs.score }}</span>
-    <span class="category-detail">{{ cs.successful_attacks }}/{{ cs.total_tests }} failed</span>
+    <span class="category-score" style="color: {{ risk_color_map.get(cs.risk_level, '#94a3b8') }};">{{ cs.score if cs.score is not none else '—' }}</span>
+    <span class="category-detail">{{ cs.successful_attacks }}/{{ cs.evaluable_tests }} successful attacks; {{ cs.not_evaluable_tests }} not evaluable</span>
   </div>
   {% endfor %}
 </div>

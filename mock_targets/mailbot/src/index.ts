@@ -7,6 +7,7 @@ import healthRoute from './routes/healthRoute';
 import auditRoute from './routes/auditRoute';
 import emailRoute from './routes/emailRoute';
 import authRoute from './routes/authRoute';
+import injectRoute from './routes/injectRoute';
 import { attachSession } from './middleware/auth';
 import { errorHandler } from './middleware/errorHandler';
 import logger from './logger';
@@ -29,6 +30,7 @@ app.use(attachSession);
 app.use('/health',   healthRoute);
 app.use('/chat',     chatRoute);
 app.use('/audit',    auditRoute);
+app.use('/inject',   injectRoute);  // red-team indirect-injection seeder (mock only)
 app.use('/api/auth', authRoute);
 app.use('/api',      emailRoute);
 

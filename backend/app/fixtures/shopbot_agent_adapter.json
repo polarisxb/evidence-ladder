@@ -22,7 +22,8 @@
   "response_extract": {
     "mode": "json_paths",
     "text_path": "$.response",
-    "tool_calls_path": "$.tool_calls"
+    "tool_calls_path": "$.tool_calls",
+    "sensitive_tools": ["requestRefund", "cancelOrder", "updateShippingAddress", "applyCoupon"]
   },
   "probe_config": {
     "enabled": true,

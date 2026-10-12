@@ -2,7 +2,7 @@ import os
 import time
 from collections.abc import Mapping
 from typing import Any
-from urllib.parse import urljoin
+from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 import httpx
 from sqlalchemy import select
@@ -20,6 +20,46 @@ from app.services.url_guard import validate_target_url
 HTTP_TIMEOUT_S = 30.0
 CUSTOM_COMPAT_TIMEOUT_S = 60.0
 MAX_ADAPTER_RESPONSE_BYTES = 1 * 1024 * 1024
+_SENSITIVE_REQUEST_NAMES = {
+    "authorization", "proxy_authorization", "cookie", "x_api_key", "api_key", "apikey",
+    "key", "token", "access_token", "refresh_token", "secret", "client_secret",
+    "password", "signature", "credential",
+}
+
+
+def _redact_request_preview(
+    request: dict[str, Any], auth_config: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Copy the public preview; leave the actual outbound credentials intact."""
+    auth = auth_config or {}
+    auth_name = str(auth.get("name") or "").strip().lower()
+
+    def sensitive(name: str, location: str) -> bool:
+        return (
+            name.lower().replace("-", "_") in _SENSITIVE_REQUEST_NAMES
+            or (auth.get("type") == location and name.lower() == auth_name)
+        )
+
+    url = urlsplit(request["url"])
+    url_query = parse_qsl(url.query, keep_blank_values=True)
+    public_url = request["url"]
+    if any(sensitive(key, "query") for key, _ in url_query):
+        public_url = urlunsplit(url._replace(query=urlencode([
+            (key, "[REDACTED]" if sensitive(key, "query") else value)
+            for key, value in url_query
+        ])))
+    return {
+        **request,
+        "url": public_url,
+        "headers": {
+            key: "[REDACTED]" if sensitive(key, "header") else value
+            for key, value in request["headers"].items()
+        },
+        "query": {
+            key: "[REDACTED]" if sensitive(key, "query") else value
+            for key, value in request["query"].items()
+        },
+    }
 
 
 def _parse_bool_header(value: str | None) -> bool | None:
@@ -304,14 +344,14 @@ async def _request_json(
         kwargs["timeout"] = request_timeout
 
     response = await client.request(method, url, **kwargs)
-    return response, {
+    return response, _redact_request_preview({
         "method": method,
         "url": url,
         "headers": headers,
         "query": query,
         "body": body,
         "timeout_s": request_timeout or HTTP_TIMEOUT_S,
-    }
+    }, adapter.get("auth_config"))
 
 
 async def request_adapter_http(

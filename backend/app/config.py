@@ -1,7 +1,8 @@
+import json
 from pathlib import Path
 from typing import Literal
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -13,10 +14,15 @@ class Settings(BaseSettings):
     app_name: str = "Evidence-Ladder"
     debug: bool = False
 
-    openai_api_key: str = ""
+    openai_api_key: str = Field(default="", repr=False)
     openai_base_url: str | None = None
     openai_model: str = "gpt-4o"
     openai_mini_model: str = "gpt-4o-mini"
+    # JSON object merged verbatim into every request body sent to the platform
+    # (env-configured) OpenAI-compatible provider. Vendors expose switches the
+    # OpenAI SDK does not model, e.g. DeepSeek V4 / Qwen3.5 default to thinking
+    # mode and need {"thinking": {"type": "disabled"}} for a plain judge call.
+    openai_extra_body_json: str | None = None
 
     judge_version: str = "v1"
 
@@ -26,6 +32,25 @@ class Settings(BaseSettings):
         if v is None or v == "":
             return None
         return str(v).rstrip("/")
+
+    @field_validator("openai_extra_body_json", mode="before")
+    @classmethod
+    def validate_extra_body_json(cls, v: object) -> str | None:
+        if v is None:
+            return None
+        raw = str(v).strip()
+        if not raw:
+            return None
+        parsed = json.loads(raw)
+        if not isinstance(parsed, dict):
+            raise ValueError("OPENAI_EXTRA_BODY_JSON must be a JSON object")
+        return raw
+
+    @property
+    def openai_extra_body(self) -> dict | None:
+        if not self.openai_extra_body_json:
+            return None
+        return json.loads(self.openai_extra_body_json)
 
     database_url: str = "sqlite+aiosqlite:///./data/app.db"
 
@@ -57,9 +82,11 @@ class Settings(BaseSettings):
     # remain open. Set ``AUTH_REQUIRED=false`` for local development to
     # opt out, in which case ``app_secret`` is ignored.
     auth_required: bool = True
-    app_secret: str = ""
+    app_secret: str = Field(default="", repr=False)
 
     analyzer_concurrency: int = 12
+    # Wall-clock deadline and SDK request timeout for platform LLM calls.
+    llm_request_timeout_s: float = Field(default=60.0, gt=0, allow_inf_nan=False)
 
     # ----- Verdict Arbiter rollout flags (Phase 4b) ----------------
     # Run the new evidence-based Arbiter alongside the legacy

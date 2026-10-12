@@ -551,9 +551,11 @@ export function Report() {
   if (loading) return <div className="text-center text-gray-500 py-12">{t("common.loading")}</div>;
   if (!report || !scanId) return <div className="text-center text-gray-500 py-12">{t("common.noData")}</div>;
 
-  const risk = report.risk_level as RiskLevel;
-  const colors = riskColors[risk];
-  const postureScore = report.security_posture_score ?? report.overall_score;
+  const postureScore = report.security_posture_score === undefined ? report.overall_score : report.security_posture_score;
+  const risk = postureScore == null ? "unknown" : report.risk_level as RiskLevel;
+  const colors = riskColors[risk] ?? riskColors.unknown;
+  const evaluatedRate = report.evaluable_attack_success_rate === undefined
+    ? report.attack_success_rate : report.evaluable_attack_success_rate;
   const isPartial = report.completed_attacks < report.total_attacks;
   const findingBreakdown = report.finding_breakdown ?? {
     rule_verified: 0,
@@ -710,8 +712,8 @@ export function Report() {
 
       <div className="grid grid-cols-4 gap-4">
         <div className={`col-span-1 rounded-xl p-6 border ${colors.border} ${colors.bg} flex flex-col items-center justify-center`}>
-          <p className="text-4xl font-bold text-gray-900">{postureScore}</p>
-          <p className={`text-sm font-mono mt-1 ${colors.text}`}>{riskLabel(risk)}</p>
+          <p className="text-4xl font-bold text-gray-900">{postureScore ?? "—"}</p>
+          <p className={`text-sm font-mono mt-1 ${colors.text}`}>{postureScore == null ? t("report.unableToScore") : riskLabel(risk)}</p>
           <p className="text-[11px] text-gray-500 mt-2">{t("report.overallScore")}</p>
         </div>
         <div className="col-span-3 card p-6">
@@ -727,7 +729,7 @@ export function Report() {
               <p className="text-xs text-gray-500">{t("report.successfulAttacks")}</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{report.attack_success_rate}%</p>
+              <p className="text-2xl font-bold text-gray-900">{evaluatedRate == null ? "—" : `${evaluatedRate}%`}</p>
               <p className="text-xs text-gray-500">{t("report.attackSuccessRate")}</p>
             </div>
             <div>
@@ -754,10 +756,24 @@ export function Report() {
         </div>
       </div>
 
+      {report.evaluation_coverage != null && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+          <p>{t("report.evaluationCoverage", {
+            coverage: report.evaluation_coverage,
+            evaluable: report.evaluable_tests ?? 0,
+            total: report.total_attacks,
+            unknown: report.not_evaluable_tests ?? 0,
+          })}</p>
+          {(report.missing_results ?? 0) > 0 && <p>{t("report.missingResults", { n: report.missing_results ?? 0 })}</p>}
+          {report.evaluation_status !== "complete" && <p className="mt-1">{t("report.evaluationIncomplete")}</p>}
+        </div>
+      )}
+
       <div className="card p-6">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-gray-900">{t("report.coreBreakdown")}</h2>
           <p className="text-xs text-gray-500 mt-1 max-w-3xl">{t("report.coreBreakdownHint")}</p>
+          <p className="text-xs text-gray-500 mt-1">{t("report.verdictBreakdownHint")}</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Each card deep-links into ScanResults with a preselected verdict
@@ -848,19 +864,21 @@ export function Report() {
         <div className="space-y-3">
           {categoryScores.map((cs) => {
             const catRisk = cs.risk_level as RiskLevel;
-            const catColors = riskColors[catRisk];
+            const catColors = riskColors[catRisk] ?? riskColors.unknown;
             return (
               <div key={cs.category} className="flex items-center gap-4">
                 <span className="text-sm text-gray-700 w-48">{cs.category_name}</span>
                 <div className="flex-1 bg-gray-100 rounded-full h-2">
                   <div
-                    className={`h-2 rounded-full ${cs.pass_rate >= 70 ? "bg-green-500" : cs.pass_rate >= 50 ? "bg-yellow-500" : "bg-red-500"}`}
-                    style={{ width: `${cs.pass_rate}%` }}
+                    className={`h-2 rounded-full ${cs.pass_rate == null ? "bg-slate-300" : cs.pass_rate >= 70 ? "bg-green-500" : cs.pass_rate >= 50 ? "bg-yellow-500" : "bg-red-500"}`}
+                    style={{ width: `${cs.pass_rate ?? 0}%` }}
                   />
                 </div>
-                <span className={`text-xs font-mono w-16 text-right ${catColors.text}`}>{cs.pass_rate}%</span>
+                <span className={`text-xs font-mono w-16 text-right ${catColors.text}`}>{cs.pass_rate == null ? "—" : `${cs.pass_rate}%`}</span>
                 <span className="text-xs text-gray-500 w-28 text-right">
-                  {cs.successful_attacks}/{cs.total_tests} {t("report.successful")}
+                  {cs.evaluable_tests === 0 ? t("report.noEvaluableSamples")
+                    : `${cs.successful_attacks}/${cs.evaluable_tests ?? cs.total_tests} ${t("report.successful")}`}
+                  {cs.not_evaluable_tests ? ` · ${cs.not_evaluable_tests} ${t("common.notEvaluable")}` : ""}
                 </span>
               </div>
             );
@@ -1257,7 +1275,10 @@ export function Report() {
             );
           })}
           {allFindings.length === 0 && (
-            <div className="p-8 text-center text-gray-500">{t("report.noVulnerabilities")}</div>
+            <div className="p-8 text-center text-gray-500">
+              {t(postureScore == null || report.evaluation_status === "partial" || isPartial
+                ? "report.evaluationIncomplete" : "report.noVulnerabilities")}
+            </div>
           )}
         </div>
       </div>

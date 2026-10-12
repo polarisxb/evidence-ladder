@@ -6,21 +6,24 @@ class CategoryScore(BaseModel):
     category: str
     category_name: str
     owasp_id: str
-    score: float
-    pass_rate: float
-    attack_success_rate: float
+    score: float | None
+    pass_rate: float | None
+    attack_success_rate: float | None
     total_tests: int
     successful_attacks: int
     failed_attacks: int
     risk_level: str
+    evaluable_tests: int = 0
+    not_evaluable_tests: int = 0
+    evaluation_coverage: float = 0.0
 
 
 class SecurityReport(BaseModel):
     scan_id: str
     scan_name: str
     target_url: str
-    overall_score: float
-    security_posture_score: float
+    overall_score: float | None
+    security_posture_score: float | None
     risk_level: str
     total_attacks: int
     completed_attacks: int
@@ -33,6 +36,12 @@ class SecurityReport(BaseModel):
     # consumers; new consumers should prefer ``confirmed_findings``.
     successful_attacks: int
     attack_success_rate: float
+    evaluable_attack_success_rate: float | None = None
+    evaluable_tests: int = 0
+    not_evaluable_tests: int = 0
+    evaluation_coverage: float = 0.0
+    evaluation_status: Literal["complete", "partial", "unavailable"] = "unavailable"
+    missing_results: int = 0
     severity_ratio: float
     average_finding_severity: float | None
     average_attack_goal_score: float | None

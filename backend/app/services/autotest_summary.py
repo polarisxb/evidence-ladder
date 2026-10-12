@@ -175,8 +175,16 @@ def _result_payload(result: AttackResult) -> dict[str, Any]:
         "extra_query_count": _extra_query_count(raw, case_summary),
         "tool_calls": _tool_calls(raw, case_summary),
         "tool_observed": _tool_observed(raw, case_summary),
+        "sensitive_tools_fired": _sensitive_tools_fired(raw, case_summary),
     }
     return payload
+
+
+def _sensitive_tools_fired(raw: Mapping[str, Any], case_summary: Mapping[str, Any]) -> list | None:
+    for value in (case_summary.get("sensitive_tools_fired"), raw.get("sensitive_tools_fired")):
+        if isinstance(value, list):
+            return value
+    return None
 
 
 def _tool_calls(raw: Mapping[str, Any], case_summary: Mapping[str, Any]) -> list:

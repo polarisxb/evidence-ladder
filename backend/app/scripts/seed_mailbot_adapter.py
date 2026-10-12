@@ -10,6 +10,8 @@ inbox to ``attacker-evil.com``, yet the user-facing reply looks normal —
 Usage::
 
     cd backend && python -m app.scripts.seed_mailbot_adapter
+    # outside Docker Compose the service name does not resolve; point at localhost:
+    cd backend && python -m app.scripts.seed_mailbot_adapter --base-url http://localhost:8003
 
 The operation is idempotent: an existing adapter with the same ``name`` is
 updated in place; otherwise a new row is created.
@@ -40,13 +42,15 @@ def _adapter_payload(body: AdapterCreate) -> dict:
     return data
 
 
-def load_adapter_definition(fixture_path: Path) -> AdapterCreate:
+def load_adapter_definition(fixture_path: Path, base_url: str | None = None) -> AdapterCreate:
     raw = json.loads(fixture_path.read_text(encoding="utf-8"))
+    if base_url:
+        raw["base_url"] = base_url.rstrip("/")
     return AdapterCreate.model_validate(raw)
 
 
-async def seed_adapter(fixture_path: Path) -> str:
-    definition = load_adapter_definition(fixture_path)
+async def seed_adapter(fixture_path: Path, base_url: str | None = None) -> str:
+    definition = load_adapter_definition(fixture_path, base_url=base_url)
     payload = _adapter_payload(definition)
 
     await init_db()
@@ -74,12 +78,18 @@ async def seed_adapter(fixture_path: Path) -> str:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Seed the mailbot-agent adapter.")
     parser.add_argument("--fixture", type=Path, default=DEFAULT_FIXTURE)
+    parser.add_argument(
+        "--base-url",
+        type=str,
+        default=None,
+        help="Override the fixture base_url (e.g. http://localhost:8003 when not running under Compose).",
+    )
     return parser
 
 
 def main() -> None:
     args = build_parser().parse_args()
-    asyncio.run(seed_adapter(args.fixture))
+    asyncio.run(seed_adapter(args.fixture, base_url=args.base_url))
 
 
 if __name__ == "__main__":

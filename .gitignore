@@ -132,3 +132,6 @@ docs/assets/tech-route-figure-prompt.md
 docs/papers/**/*.pdf
 docs/papers/**/*.txt
 *.pdf
+
+# Local run logs from the paper experiments
+*.console

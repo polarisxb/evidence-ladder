@@ -12,7 +12,7 @@ export interface OverviewStats {
 export interface ScoreTrendPoint {
   scan_id: string;
   name: string;
-  score: number;
+  score: number | null;
   date: string;
 }
 
@@ -27,7 +27,9 @@ export interface CategoryRate {
   category: string;
   total: number;
   successful: number;
-  rate: number;
+  rate: number | null;
+  evaluable?: number;
+  not_evaluable?: number;
 }
 
 export interface ComplianceData {
@@ -41,6 +43,8 @@ export interface ComplianceData {
     total_tests: number;
     passed: number;
     failed: number;
+    evaluable?: number;
+    not_evaluable?: number;
     score: number | null;
   }>;
   tested_atlas_ids: string[];
@@ -75,10 +79,11 @@ export async function getComplianceScore(scanId: string): Promise<ComplianceData
 export interface CompareResult {
   scan_a: ScanSummary;
   scan_b: ScanSummary;
-  score_diff: number;
+  score_diff: number | null;
   new_vulnerabilities: string[];
   fixed_vulnerabilities: string[];
   persistent_vulnerabilities: string[];
+  uncompared_vulnerabilities?: string[];
 }
 
 interface ScanSummary {
@@ -88,7 +93,7 @@ interface ScanSummary {
   total_attacks: number;
   vulnerabilities_found: number;
   created_at: string | null;
-  categories: Record<string, { total: number; successful: number; rate: number }>;
+  categories: Record<string, { total: number; successful: number; rate: number | null; evaluable?: number; not_evaluable?: number }>;
 }
 
 export async function compareScans(scanA: string, scanB: string): Promise<CompareResult> {
