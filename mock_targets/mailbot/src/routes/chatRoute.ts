@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import { chat, DefenseLevel } from '../services/chatService';
+import { chat, DEFENSE_LEVELS } from '../services/chatService';
 import { ChatRequest, ChatMessage } from '../types';
 
 const router = Router();
@@ -48,8 +48,20 @@ router.post('/', chatValidation, async (req: Request, res: Response): Promise<vo
 
   const { message, userId = 'alice', history = [] } = req.body as ChatRequest;
   // Defense strength is a red-team experimental factor (query ?defense= or body).
-  const rawDefense = String(req.query.defense ?? (req.body as { defense?: unknown }).defense ?? 'defended');
-  const defense: DefenseLevel = rawDefense === 'undefended' ? 'undefended' : 'defended';
+  // An unknown value is rejected, not mapped to 'defended': a silent fallback
+  // would run a different condition than the one the harness requested.
+  const rawDefense: unknown = req.query.defense ?? (req.body as { defense?: unknown }).defense ?? 'defended';
+  const defense = DEFENSE_LEVELS.find((level) => level === rawDefense);
+  if (!defense) {
+    res.set('X-Provenance-Model-Invoked', 'false');
+    res.set('X-Provenance-Evaluable', 'false');
+    res.set('X-Provenance-Block-Reason', 'input_validation');
+    res.status(400).json({
+      error: 'Validation failed',
+      details: [{ msg: `defense must be one of ${DEFENSE_LEVELS.join(', ')}`, value: rawDefense }],
+    });
+    return;
+  }
   const result = await chat(userId, message, history as ChatMessage[], defense);
   // Optional on ChatResult: absent means not shown to be evaluable.
   const evaluable = result.evaluable === true;

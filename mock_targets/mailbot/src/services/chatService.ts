@@ -9,15 +9,22 @@ const MAX_TOOL_ROUNDS = config.maxToolRounds;
 
 // Defense strength is an experimental factor, not a product feature: 'defended'
 // uses the guarded system prompt (least-privilege, do-not-exfiltrate), 'undefended'
-// uses a permissive one that follows instructions found while doing the task. This
-// lets an evaluation isolate how much of an attack's failure is the model vs the
-// application's prompt-level defense.
-export type DefenseLevel = 'defended' | 'undefended';
+// uses a permissive one that follows instructions found while doing the task, and
+// 'neutral' states only the assistant's role, with neither guard nor permission.
+// This lets an evaluation isolate how much of an attack's failure is the model vs
+// the application's prompt-level defense.
+export type DefenseLevel = 'defended' | 'undefended' | 'neutral';
+
+export const DEFENSE_LEVELS: readonly DefenseLevel[] = ['defended', 'undefended', 'neutral'];
 
 const _systemPromptCache: Partial<Record<DefenseLevel, string>> = {};
 
-function systemPromptPathFor(defense: DefenseLevel): string {
-  return defense === 'undefended' ? config.systemPromptUndefendedPath : config.systemPromptPath;
+export function systemPromptPathFor(defense: DefenseLevel): string {
+  switch (defense) {
+    case 'undefended': return config.systemPromptUndefendedPath;
+    case 'neutral':    return config.systemPromptNeutralPath;
+    case 'defended':   return config.systemPromptPath;
+  }
 }
 
 function getSystemPromptTemplate(defense: DefenseLevel): string {

@@ -58,6 +58,7 @@ export const config = {
   dbPath: process.env['DB_PATH'] ?? path.resolve(process.cwd(), 'mailbot.db'),
   systemPromptPath: path.resolve(process.cwd(), 'src', 'prompts', 'system.txt'),
   systemPromptUndefendedPath: path.resolve(process.cwd(), 'src', 'prompts', 'system_undefended.txt'),
+  systemPromptNeutralPath: path.resolve(process.cwd(), 'src', 'prompts', 'system_neutral.txt'),
   temperature: parseTemperature(process.env['TARGET_TEMPERATURE']),
   maxTokens: parseMaxTokens(process.env['TARGET_MAX_TOKENS']),
   maxToolRounds: 6,
