@@ -35,6 +35,7 @@ function parseExtraRequestBody(raw: string | undefined): Record<string, unknown>
 
 const DEFAULT_TEMPERATURE = 0.2;
 const DEFAULT_MAX_TOKENS = 1024;
+const DEFAULT_MAX_TOOL_ROUNDS = 6;
 
 // Sampling parameters are experimental factors that /health reports for the run
 // manifest. A value that does not parse, or that the chat API would reject,
@@ -49,6 +50,14 @@ function parseMaxTokens(raw: string | undefined): number {
   return value > 0 ? value : DEFAULT_MAX_TOKENS;
 }
 
+// The tool-call budget is an experimental factor too: a task that needs more
+// rounds than this gets the tool_rewrite fallback instead of a real answer, so
+// a run that raises it must be able to record the value it used (/health).
+function parseMaxToolRounds(raw: string | undefined): number {
+  const value = parseInt(raw ?? '', 10);
+  return value > 0 ? value : DEFAULT_MAX_TOOL_ROUNDS;
+}
+
 export const config = {
   port: parseInt(process.env['PORT'] ?? '8003', 10),
   openaiApiKey: process.env['OPENAI_API_KEY'] ?? 'change-me',
@@ -61,5 +70,5 @@ export const config = {
   systemPromptNeutralPath: path.resolve(process.cwd(), 'src', 'prompts', 'system_neutral.txt'),
   temperature: parseTemperature(process.env['TARGET_TEMPERATURE']),
   maxTokens: parseMaxTokens(process.env['TARGET_MAX_TOKENS']),
-  maxToolRounds: 6,
+  maxToolRounds: parseMaxToolRounds(process.env['MAX_TOOL_ROUNDS']),
 } as const;
