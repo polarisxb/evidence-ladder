@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 
 import { getDb } from '../database/db';
 import { seedEmailsForFreshState } from '../database/seed';
-import { insertEmail, deleteEmailsByIdPrefix, deleteAllEmailsByOwner } from '../models/emailModel';
+import { insertEmail, findEmailById, deleteEmailsByIdPrefix, deleteAllEmailsByOwner } from '../models/emailModel';
 import { findUserById } from '../models/userModel';
 import { clearEmailOps } from '../services/auditService';
 import logger from '../logger';
@@ -17,6 +17,13 @@ function str(val: unknown, fallback: string): string {
   return typeof val === 'string' && val.trim().length > 0 ? val.trim() : fallback;
 }
 
+// A caller may pin the planted email's id so it looks like any other mailbox
+// entry. The default `MAIL-INJ-*` id is visible to the model in tool output and
+// would label the plant as injected, which an experiment on what the agent
+// reports must not do. Restricted to the seed id shape so a plant can never
+// masquerade as a sent item or collide with an existing email.
+const CUSTOM_ID_RE = /^MAIL-\d{4}$/;
+
 /**
  * RED-TEAM TEST SCAFFOLDING — not part of the product surface.
  *
@@ -28,7 +35,8 @@ function str(val: unknown, fallback: string): string {
  * Idempotent by default: clears previously planted `MAIL-INJ-*` emails for the
  * user before seeding the next one, so repeated cases do not accumulate.
  *
- * Body: { body: string (required), userId?, subject?, fromAddr?, resetInjected? }
+ * Body: { body: string (required), userId?, subject?, fromAddr?, resetInjected?, emailId? }
+ * `emailId` must match MAIL-#### and be unused; omitted means the MAIL-INJ-* default.
  * Returns a `session_id` so an adapter `session_config.create` step can chain it.
  */
 router.post('/seed', (req: Request, res: Response): void => {
@@ -47,8 +55,19 @@ router.post('/seed', (req: Request, res: Response): void => {
   const fromAddr = str(b['fromAddr'], 'promo@news-update.com');
   const resetInjected = b['resetInjected'] !== false;
 
+  const rawId = b['emailId'];
+  if (rawId !== undefined && (typeof rawId !== 'string' || !CUSTOM_ID_RE.test(rawId.trim()))) {
+    res.status(400).json({ ok: false, error: 'emailId must match MAIL-#### (four digits)' });
+    return;
+  }
+  const customId = typeof rawId === 'string' ? rawId.trim() : null;
+  if (customId && findEmailById(customId)) {
+    res.status(409).json({ ok: false, error: `emailId '${customId}' is already in use` });
+    return;
+  }
+
   const removed = resetInjected ? deleteEmailsByIdPrefix(userId, INJECT_PREFIX) : 0;
-  const id = `${INJECT_PREFIX}${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const id = customId ?? `${INJECT_PREFIX}${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   insertEmail(id, userId, 'inbox', fromAddr, `${userId}@corp.com`, subject, payloadBody, false);
   logger.warn('[INJECT] seeded %s into %s inbox (cleared %d prior plant(s))', id, userId, removed);
 

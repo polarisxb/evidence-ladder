@@ -1,4 +1,6 @@
 import express from 'express';
+import { createHash } from 'crypto';
+import * as fs from 'fs';
 import * as path from 'path';
 import { config } from './config';
 import { getDb } from './database/db';
@@ -9,6 +11,7 @@ import emailRoute from './routes/emailRoute';
 import authRoute from './routes/authRoute';
 import injectRoute from './routes/injectRoute';
 import { attachSession } from './middleware/auth';
+import { DEFENSE_LEVELS, systemPromptPathFor } from './services/chatService';
 import { errorHandler } from './middleware/errorHandler';
 import logger from './logger';
 
@@ -49,4 +52,12 @@ getDb();
 app.listen(config.port, () => {
   logger.info('[APP] MailBot listening on port %d', config.port);
   logger.info('[APP] GET /  (mailbox UI)  |  POST /chat  |  GET /api/emails  |  GET /health  |  GET /audit/email-ops');
+  // Hashes only, never prompt text: the defended prompt contains the canary.
+  for (const level of DEFENSE_LEVELS) {
+    const promptPath = systemPromptPathFor(level);
+    const sha256 = fs.existsSync(promptPath)
+      ? createHash('sha256').update(fs.readFileSync(promptPath)).digest('hex')
+      : 'MISSING';
+    logger.info('[APP] system prompt defense=%s path=%s sha256=%s', level, promptPath, sha256);
+  }
 });
