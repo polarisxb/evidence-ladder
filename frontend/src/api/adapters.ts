@@ -6,6 +6,9 @@ import type {
   AdapterTestRequest,
   AdapterTestResult,
   ProbeTestRequest,
+  SampleAdapter,
+  SampleAdapterInstallResult,
+  SampleAdapterKey,
 } from "../types";
 
 export async function getAdapters(): Promise<Adapter[]> {
@@ -30,6 +33,23 @@ export async function updateAdapter(adapterId: string, body: Partial<AdapterConf
   const res = await request<{ data: Adapter }>(`/adapters/${adapterId}`, {
     method: "PATCH",
     body: JSON.stringify(body),
+  });
+  return res.data;
+}
+
+export async function deleteAdapter(adapterId: string): Promise<void> {
+  await request(`/adapters/${adapterId}`, { method: "DELETE" });
+}
+
+export async function getSampleAdapters(): Promise<SampleAdapter[]> {
+  const res = await request<{ data: SampleAdapter[] }>("/adapters/samples");
+  return res.data;
+}
+
+/** Import a sample adapter; an already imported one comes back unchanged. */
+export async function installSampleAdapter(key: SampleAdapterKey): Promise<SampleAdapterInstallResult> {
+  const res = await request<{ data: SampleAdapterInstallResult }>(`/adapters/samples/${key}/install`, {
+    method: "POST",
   });
   return res.data;
 }

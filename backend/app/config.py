@@ -67,6 +67,18 @@ class Settings(BaseSettings):
                 return f"{prefix}{path.as_posix()}"
         return raw
 
+    # Where the backend reaches the bundled mock targets (mock_targets/). The
+    # defaults fit a local run; docker-compose.yml points them at the Compose
+    # service names. Used by the sample adapters and the New Scan presets.
+    mock_financebot_url: str = "http://localhost:8001"
+    mock_shopbot_url: str = "http://localhost:8002"
+    mock_mailbot_url: str = "http://localhost:8003"
+
+    @field_validator("mock_financebot_url", "mock_shopbot_url", "mock_mailbot_url", mode="before")
+    @classmethod
+    def normalize_mock_target_url(cls, v: object) -> str:
+        return str(v or "").strip().rstrip("/")
+
     cors_origins: list[str] = ["http://localhost:5173"]
     allow_localhost_targets: bool = True
     # Allow RFC1918 private IPs (Docker Compose internal networking).

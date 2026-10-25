@@ -53,6 +53,7 @@ function enabledAdvancedItems(scanDraft: ScanConfig | null): string[] {
     advanced.enable_crescendo ? "crescendo" : null,
     advanced.enable_pair ? "pair" : null,
     advanced.enable_tap ? "tap" : null,
+    advanced.retest_arm === "B" ? `retest ×${advanced.max_retest_rounds ?? 2}` : null,
   ].filter((item): item is string => Boolean(item));
 }
 
@@ -66,6 +67,8 @@ export function AutoTest() {
   const [adapterId, setAdapterId] = useState("");
   const [adapters, setAdapters] = useState<Adapter[]>([]);
   const [budget, setBudget] = useState<AutoTestBudget>("medium");
+  // "" = let the planner pick from the budget; "0" turns the in-scan retest off.
+  const [maxRetestRounds, setMaxRetestRounds] = useState("");
   const [categories, setCategories] = useState<string[]>([
     "prompt_injection",
     "system_prompt_extraction",
@@ -127,6 +130,7 @@ export function AutoTest() {
       adapter: selectedAdapter ? { probe_config: selectedAdapter.probe_config ?? null } : null,
       attack_categories: selectedCategories,
       budget,
+      max_retest_rounds: maxRetestRounds === "" ? null : Number(maxRetestRounds),
       enable_quartet: enableQuartet,
       enable_canary: enableCanary,
       enable_probe: enableProbe,
@@ -255,6 +259,23 @@ export function AutoTest() {
               <option value="small">{t("autotest.budgetSmall")}</option>
               <option value="medium">{t("autotest.budgetMedium")}</option>
               <option value="full">{t("autotest.budgetFull")}</option>
+            </select>
+          </label>
+
+          <label className="block space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              {t("autotest.retestRounds")}
+            </span>
+            <select
+              value={maxRetestRounds}
+              onChange={(event) => setMaxRetestRounds(event.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+            >
+              <option value="">{t("autotest.retestRoundsDefault")}</option>
+              <option value="0">{t("autotest.retestRoundsOff")}</option>
+              {[1, 2, 3, 4, 5].map((rounds) => (
+                <option key={rounds} value={String(rounds)}>{rounds}</option>
+              ))}
             </select>
           </label>
 

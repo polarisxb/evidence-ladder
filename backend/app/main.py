@@ -12,6 +12,7 @@ from app.core.exceptions import AppException, app_exception_handler
 from app.database import init_db
 from app.api import api_router
 from app.services.llm_scheduler import init_scheduler
+from app.version import APP_FULL_NAME, APP_VERSION
 
 
 def _redact_httpx_request_urls(record: logging.LogRecord) -> bool:
@@ -43,9 +44,9 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(
-    title=settings.app_name,
-    description="AI Application Security Testing Platform",
-    version="0.1.0",
+    title=f"{APP_FULL_NAME}（{settings.app_name}）",
+    description="多源证据分层（E0–E5）与冲突驱动补测的大模型应用黑盒安全评测 API",
+    version=APP_VERSION,
     lifespan=lifespan,
 )
 
@@ -88,4 +89,4 @@ def _validate_auth_config() -> None:
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "app": settings.app_name}
+    return {"status": "ok", "app": settings.app_name, "version": APP_VERSION}

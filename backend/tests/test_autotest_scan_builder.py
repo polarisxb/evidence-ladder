@@ -61,6 +61,31 @@ def test_quartet_can_be_disabled_in_draft() -> None:
     assert scan.advanced.enable_mutations is True
 
 
+def test_plan_retest_budget_turns_on_in_scan_retest() -> None:
+    plan, scan = build_autotest_scan_draft(AutoTestDraftRequest(
+        target_type="builtin_vulnerable",
+        budget="full",
+    ))
+
+    assert plan.max_retest_rounds == 2
+    assert scan.advanced is not None
+    assert scan.advanced.retest_arm == "B"
+    assert scan.advanced.max_retest_rounds == 2
+
+
+def test_zero_retest_budget_leaves_retest_off() -> None:
+    plan, scan = build_autotest_scan_draft(AutoTestDraftRequest(
+        target_type="builtin_vulnerable",
+        budget="medium",
+        max_retest_rounds=0,
+    ))
+
+    assert plan.max_retest_rounds == 0
+    assert scan.advanced is not None
+    assert scan.advanced.retest_arm is None
+    assert scan.advanced.max_retest_rounds is None
+
+
 def test_adapter_draft_requires_adapter_id() -> None:
     with pytest.raises(ValueError, match="adapter_id is required"):
         AutoTestDraftRequest(target_type="adapter")

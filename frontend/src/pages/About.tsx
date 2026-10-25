@@ -1,6 +1,7 @@
 import { Shield, Zap, Target, BarChart3, BookOpen, ExternalLink, Box } from "lucide-react";
 import { useLocale } from "../i18n";
 import { ArchitectureDiagram } from "../components/ArchitectureDiagram";
+import { APP_VERSION_LABEL } from "../appInfo";
 
 const FRAMEWORKS = [
   { name: "OWASP LLM Top 10", version: "2025", items: 10 },
@@ -37,6 +38,12 @@ export function About() {
           </div>
         </div>
         <h1 className="text-3xl font-bold text-gray-900">{t("about.title")}</h1>
+        <p className="text-base font-medium text-gray-700">
+          {t("app.fullName")}
+          <span className="ml-2 inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-mono text-gray-600 align-middle">
+            {APP_VERSION_LABEL}
+          </span>
+        </p>
         <p className="text-gray-600 max-w-2xl mx-auto">
           {t("about.subtitle")}
         </p>

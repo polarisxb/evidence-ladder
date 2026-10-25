@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from app.config import settings
 from app.core.openai_client import get_platform_openai_client
+from app.version import APP_FULL_NAME, APP_VERSION
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -141,6 +142,8 @@ async def get_system_status():
             "database_connected": db_ok,
             "openai_configured": openai_ok,
             "app_name": settings.app_name,
+            "app_full_name": APP_FULL_NAME,
+            "app_version": APP_VERSION,
             "debug_mode": settings.debug,
         },
         "message": "ok",

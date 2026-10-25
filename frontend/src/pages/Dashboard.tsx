@@ -5,6 +5,7 @@ import { listScans, deleteScan } from "../api/scans";
 import { getOverviewStats, type OverviewStats } from "../api/stats";
 import { useToast } from "../components/Toast";
 import { useLocale } from "../i18n";
+import { APP_VERSION_LABEL } from "../appInfo";
 import { ListSkeleton } from "../components/Skeleton";
 import { ScoreTrendChart } from "../components/charts/ScoreTrendChart";
 import { RiskPieChart } from "../components/charts/RiskPieChart";
@@ -115,7 +116,7 @@ export function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t("dashboard.title")}</h1>
-          <p className="text-gray-500 mt-1 text-sm">{t("dashboard.subtitle")}</p>
+          <p className="text-gray-500 mt-1 text-sm">{t("app.fullName")} {APP_VERSION_LABEL}</p>
         </div>
         <Link
           to="/scan/new"

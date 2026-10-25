@@ -1,9 +1,25 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { FlaskConical, Play, Plus, Save, Server, TestTube2 } from "lucide-react";
-import { createAdapter, getAdapters, testAdapter, testAdapterProbe, updateAdapter } from "../api/adapters";
+import { FlaskConical, PackagePlus, Play, Plus, Save, Server, TestTube2, Trash2 } from "lucide-react";
+import {
+  createAdapter,
+  deleteAdapter,
+  getAdapters,
+  getSampleAdapters,
+  installSampleAdapter,
+  testAdapter,
+  testAdapterProbe,
+  updateAdapter,
+} from "../api/adapters";
 import { useToast } from "../components/Toast";
 import { useLocale } from "../i18n";
-import type { Adapter, AdapterConfig, AdapterProbeTestResult, AdapterTestResult } from "../types";
+import type {
+  Adapter,
+  AdapterConfig,
+  AdapterProbeTestResult,
+  AdapterTestResult,
+  SampleAdapter,
+  SampleAdapterKey,
+} from "../types";
 
 interface AdapterFormState {
   id: string | null;
@@ -172,6 +188,56 @@ export function Adapters() {
   const [probeTesting, setProbeTesting] = useState(false);
   const [probeSessionId, setProbeSessionId] = useState("demo-session");
   const [probeResult, setProbeResult] = useState<AdapterProbeTestResult | null>(null);
+  const [samples, setSamples] = useState<SampleAdapter[]>([]);
+  const [importingKey, setImportingKey] = useState<SampleAdapterKey | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  async function loadSamples() {
+    try {
+      setSamples(await getSampleAdapters());
+    } catch (error) {
+      toast("warning", `${t("adapters.samplesLoadFailed")}: ${error instanceof Error ? error.message : error}`);
+    }
+  }
+
+  function selectAdapter(adapter: Adapter | null) {
+    setForm(adapter ? fromAdapter(adapter) : makeBlankForm());
+    setTestResult(null);
+    setProbeResult(null);
+  }
+
+  async function handleImportSample(key: SampleAdapterKey) {
+    setImportingKey(key);
+    try {
+      const { adapter, created } = await installSampleAdapter(key);
+      toast("success", created ? t("adapters.sampleImportSuccess") : t("adapters.sampleAlreadyImported"));
+      setAdapters(await getAdapters());
+      selectAdapter(adapter);
+      await loadSamples();
+    } catch (error) {
+      toast("error", `${t("adapters.sampleImportFailed")}: ${error instanceof Error ? error.message : error}`);
+    } finally {
+      setImportingKey(null);
+    }
+  }
+
+  async function handleDelete() {
+    if (!form.id) return;
+    if (!window.confirm(t("adapters.confirmDelete"))) return;
+    setDeleting(true);
+    try {
+      await deleteAdapter(form.id);
+      toast("success", t("adapters.deleteSuccess"));
+      const rows = await getAdapters();
+      setAdapters(rows);
+      selectAdapter(rows[0] ?? null);
+      await loadSamples();
+    } catch (error) {
+      toast("error", `${t("adapters.failedToDelete")}: ${error instanceof Error ? error.message : error}`);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function loadAdapters() {
     setLoading(true);
@@ -190,6 +256,7 @@ export function Adapters() {
 
   useEffect(() => {
     void loadAdapters();
+    void loadSamples();
   }, []);
 
   const selectedAdapter = useMemo(
@@ -311,6 +378,39 @@ export function Adapters() {
       </div>
 
       <div className="grid grid-cols-[320px_minmax(0,1fr)] gap-6">
+        <div className="space-y-6">
+        <div className="card overflow-hidden">
+          <div className="border-b border-gray-100 px-4 py-3 flex items-center gap-2">
+            <PackagePlus className="w-4 h-4 text-gray-500" />
+            <h2 className="text-sm font-semibold text-gray-900">{t("adapters.samplesTitle")}</h2>
+          </div>
+          <p className="px-4 pt-3 text-xs text-gray-500 leading-relaxed">{t("adapters.samplesDesc")}</p>
+          <div className="divide-y divide-gray-100">
+            {samples.map((sample) => (
+              <div key={sample.key} className="px-4 py-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{sample.name}</p>
+                  <p className="text-xs text-gray-500 font-mono truncate">{sample.base_url}</p>
+                </div>
+                {sample.installed_adapter_id ? (
+                  <span className="shrink-0 text-[11px] px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">
+                    {t("adapters.sampleImported")}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void handleImportSample(sample.key)}
+                    disabled={importingKey !== null}
+                    className="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-1 text-xs text-gray-800 hover:border-gray-400 disabled:opacity-60 transition-colors"
+                  >
+                    {importingKey === sample.key ? t("adapters.sampleImporting") : t("adapters.sampleImport")}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="card overflow-hidden">
           <div className="border-b border-gray-100 px-4 py-3 flex items-center gap-2">
             <Server className="w-4 h-4 text-gray-500" />
@@ -349,6 +449,7 @@ export function Adapters() {
             )}
           </div>
         </div>
+        </div>
 
         <div className="space-y-6">
           <div className="card p-6 space-y-5">
@@ -362,6 +463,17 @@ export function Adapters() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                {form.id && (
+                  <button
+                    type="button"
+                    onClick={() => void handleDelete()}
+                    disabled={deleting}
+                    className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-60 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    {deleting ? t("adapters.deleting") : t("adapters.deleteAdapter")}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => void handleTest()}

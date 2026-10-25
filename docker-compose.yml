@@ -9,6 +9,10 @@ services:
       # Docker Compose: allow backend to reach mock targets via service names
       ALLOW_PRIVATE_TARGETS: "true"
       ALLOW_LOCALHOST_TARGETS: "false"
+      # Sample adapters and New Scan presets reach the mock targets here.
+      MOCK_FINANCEBOT_URL: "http://financebot:8001"
+      MOCK_SHOPBOT_URL: "http://shopbot:8002"
+      MOCK_MAILBOT_URL: "http://mailbot:8003"
     volumes:
       - ./backend/data:/app/data
     healthcheck:

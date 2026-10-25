@@ -1,12 +1,12 @@
 import logging
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppException
 from app.database import get_db
-from app.models import Adapter
+from app.models import Adapter, ScanTask
 from app.schemas.adapter import (
     AdapterCreate,
     AdapterProbeTestResponse,
@@ -16,9 +16,18 @@ from app.schemas.adapter import (
     AdapterTestResponse,
     AdapterUpdate,
     ProbeTestRequest,
+    SampleAdapterInstallResponse,
+    SampleAdapterResponse,
 )
 from app.services.adapter_executor import execute_adapter_request, get_adapter_or_raise
 from app.services.probe_executor import execute_probe
+from app.services.sample_adapters import (
+    SAMPLE_ADAPTERS,
+    find_adapter_by_name,
+    get_sample_spec,
+    sample_definition,
+    upsert_adapter,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/adapters")
@@ -62,10 +71,64 @@ async def list_adapters(db: AsyncSession = Depends(get_db)):
     }
 
 
+# Declared before ``/{adapter_id}`` so "samples" is not read as an adapter id.
+@router.get("/samples", response_model=dict)
+async def list_sample_adapters(db: AsyncSession = Depends(get_db)):
+    samples = []
+    for spec in SAMPLE_ADAPTERS.values():
+        definition = sample_definition(spec)
+        installed = await find_adapter_by_name(db, definition.name)
+        samples.append(SampleAdapterResponse(
+            key=spec.key,
+            name=definition.name,
+            description=definition.description,
+            base_url=definition.base_url,
+            has_probe=bool(definition.probe_config and definition.probe_config.enabled),
+            installed_adapter_id=installed.id if installed else None,
+            installed_enabled=installed.enabled if installed else None,
+        ))
+    return {"data": samples, "message": "ok"}
+
+
+@router.post("/samples/{key}/install", response_model=dict)
+async def install_sample_adapter(key: str, db: AsyncSession = Depends(get_db)):
+    """Import a sample adapter; an already imported one is returned as is."""
+    adapter, created = await upsert_adapter(db, sample_definition(get_sample_spec(key)), overwrite=False)
+    return {
+        "data": SampleAdapterInstallResponse(
+            adapter=AdapterResponse.model_validate(adapter), created=created
+        ),
+        "message": "Sample adapter imported" if created else "Sample adapter already imported",
+    }
+
+
 @router.get("/{adapter_id}", response_model=dict)
 async def get_adapter(adapter_id: str, db: AsyncSession = Depends(get_db)):
     adapter = await get_adapter_or_raise(db, adapter_id)
     return {"data": AdapterResponse.model_validate(adapter), "message": "ok"}
+
+
+@router.delete("/{adapter_id}", response_model=dict)
+async def delete_adapter(adapter_id: str, db: AsyncSession = Depends(get_db)):
+    """Delete an adapter no scan refers to.
+
+    Scans keep ``adapter_id`` so they can be retried and audited; deleting the
+    adapter under them would orphan that history, so a referenced adapter has
+    to be disabled instead (or its scans deleted first).
+    """
+    await get_adapter_or_raise(db, adapter_id)
+    scan_count = await db.scalar(
+        select(func.count()).select_from(ScanTask).where(ScanTask.adapter_id == adapter_id)
+    )
+    if scan_count:
+        raise AppException(
+            409,
+            f"Adapter is used by {scan_count} scan(s); disable it instead, or delete those scans first",
+        )
+    # Core DELETE: the ORM path would lazy-load Adapter.scans, which async sessions cannot do.
+    await db.execute(delete(Adapter).where(Adapter.id == adapter_id))
+    await db.commit()
+    return {"data": {"id": adapter_id}, "message": "Adapter deleted"}
 
 
 @router.patch("/{adapter_id}", response_model=dict)

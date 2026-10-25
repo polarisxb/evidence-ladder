@@ -4,6 +4,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from app.config import settings
 from app.models.scan_task import ScanTask
 from app.schemas.report import CategoryScore, SecurityReport
 from app.services.risk_scorer import (
@@ -12,6 +13,7 @@ from app.services.risk_scorer import (
 from app.services.response_screening import extract_response_evaluation, is_not_evaluable_response
 from app.services.concealment_detector import detect_concealment
 from app.services.canary_tracer import canary_provenance_payload
+from app.version import APP_FULL_NAME, APP_VERSION_LABEL
 
 logger = logging.getLogger(__name__)
 
@@ -476,5 +478,8 @@ def render_html_report(report: SecurityReport) -> str:
             all_findings.append({**f, "level": level, "color": Markup(risk_color_map[level])})
     data["all_findings"] = all_findings
     data["risk_color_map"] = {k: Markup(v) for k, v in risk_color_map.items()}
+    data["app_full_name"] = APP_FULL_NAME
+    data["app_short_name"] = settings.app_name
+    data["app_version_label"] = APP_VERSION_LABEL
 
     return template.render(**data)
