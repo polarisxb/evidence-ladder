@@ -14,6 +14,7 @@ import { CategoryRadarChart } from "../components/charts/CategoryRadarChart";
 import { CompliancePanel } from "../components/CompliancePanel";
 import { resolveResponseEvaluation } from "../utils/responseEvaluation";
 import { riskColors, riskLabel } from "../utils/risk";
+import { categoryLabel, healthLabel, localizeHealthReason, retestActionLabel, riskLevelLabel, scanStatusLabel } from "../utils/labels";
 import type { AttackCaseDetail, AutoTestRetestOutcome, AutoTestSummary, SecurityReport, RiskLevel } from "../types";
 
 function verdictLabel(status?: string | null, t?: (k: string) => string) {
@@ -257,7 +258,7 @@ function AutoTestSummaryPanel({
             </button>
           ) : null}
           <span className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600">
-            {summary.scan_status}
+            {scanStatusLabel(t, summary.scan_status)}
           </span>
         </div>
       </div>
@@ -303,7 +304,7 @@ function AutoTestSummaryPanel({
                 <div key={group.result_id} className="rounded-lg bg-gray-50 px-3 py-2">
                   <p className="truncate text-sm font-medium text-gray-800">{group.attack_name}</p>
                   <p className="mt-1 text-xs text-gray-500">
-                    {group.actions.map((action) => action.action_type).join(", ")}
+                    {group.actions.map((action) => retestActionLabel(t, action.action_type)).join(" · ")}
                   </p>
                 </div>
               ))}
@@ -339,7 +340,7 @@ function AutoTestSummaryPanel({
                     {t("autotestSummary.retestScan")}: {summary.retest_run.retest_scan_id}
                   </span>
                   <span className="rounded-lg border border-indigo-200 bg-white px-2.5 py-1 text-xs font-medium text-indigo-700">
-                    {t("autotestSummary.runStatus")}: {summary.retest_run.status}
+                    {t("autotestSummary.runStatus")}: {scanStatusLabel(t, summary.retest_run.status)}
                   </span>
                 </>
               )}
@@ -606,7 +607,13 @@ export function Report() {
   const highFindings = report.high_findings ?? [];
   const mediumFindings = report.medium_findings ?? [];
   const lowFindings = report.low_findings ?? [];
-  const recommendations = report.recommendations ?? [];
+  // Show each recommendation in the reader's language when its code is known.
+  const recommendationCodes = report.recommendation_codes ?? [];
+  const recommendations = (report.recommendations ?? []).map((text, i) => {
+    const key = `report.recommendationText.${recommendationCodes[i]}`;
+    const translated = recommendationCodes[i] ? t(key) : key;
+    return translated !== key ? translated : text;
+  });
   const utilityScoredResults = report.utility_scored_results ?? 0;
 
   const allFindings = [
@@ -659,7 +666,7 @@ export function Report() {
                 ? "bg-amber-100 text-amber-800"
                 : "bg-rose-100 text-rose-700"
             }`}>
-              {report.target_health}
+              {healthLabel(t, report.target_health)}
             </span>
           </div>
           <p className="text-xs text-gray-500">{t("report.targetHealthDesc")}</p>
@@ -689,7 +696,7 @@ export function Report() {
           </div>
           {report.health_failure_reason && (
             <p className="text-xs text-gray-700 pt-1">
-              <span className="text-gray-500">{t("report.healthReason")}:</span> {report.health_failure_reason}
+              <span className="text-gray-500">{t("report.healthReason")}:</span> {localizeHealthReason(t, report.health_failure_reason)}
             </p>
           )}
           {report.target_health === "unhealthy" && isPartial && (
@@ -713,7 +720,7 @@ export function Report() {
       <div className="grid grid-cols-4 gap-4">
         <div className={`col-span-1 rounded-xl p-6 border ${colors.border} ${colors.bg} flex flex-col items-center justify-center`}>
           <p className="text-4xl font-bold text-gray-900">{postureScore ?? "—"}</p>
-          <p className={`text-sm font-mono mt-1 ${colors.text}`}>{postureScore == null ? t("report.unableToScore") : riskLabel(risk)}</p>
+          <p className={`text-sm font-mono mt-1 ${colors.text}`}>{postureScore == null ? t("report.unableToScore") : riskLabel(risk, t)}</p>
           <p className="text-[11px] text-gray-500 mt-2">{t("report.overallScore")}</p>
         </div>
         <div className="col-span-3 card p-6">
@@ -867,7 +874,7 @@ export function Report() {
             const catColors = riskColors[catRisk] ?? riskColors.unknown;
             return (
               <div key={cs.category} className="flex items-center gap-4">
-                <span className="text-sm text-gray-700 w-48">{cs.category_name}</span>
+                <span className="text-sm text-gray-700 w-48">{categoryLabel(t, cs.category, cs.category_name)}</span>
                 <div className="flex-1 bg-gray-100 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full ${cs.pass_rate == null ? "bg-slate-300" : cs.pass_rate >= 70 ? "bg-green-500" : cs.pass_rate >= 50 ? "bg-yellow-500" : "bg-red-500"}`}
@@ -1004,7 +1011,7 @@ export function Report() {
                   <AlertTriangle className={`w-4 h-4 ${fColors.text} shrink-0`} />
                   <span className="text-sm text-gray-900 flex-1">{f.attack_name}</span>
                   <span className={`text-xs px-2 py-0.5 rounded ${fColors.bg} ${fColors.text}`}>
-                    {f.level.toUpperCase()}
+                    {riskLevelLabel(t, f.level)}
                   </span>
                   <span className={`text-[11px] px-2 py-0.5 rounded ${businessVerificationClasses(f.business_verification_status)}`}>
                     {businessVerificationLabel(f.business_verification_status, t)}

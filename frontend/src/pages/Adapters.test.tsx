@@ -92,3 +92,18 @@ it("shows the server's reason when an adapter in use cannot be deleted", async (
   ));
   expect(screen.getByText("adapters.editAdapter: first")).toBeInTheDocument();
 });
+
+it("labels the adapter form from the locale instead of hard-coded English", async () => {
+  vi.mocked(getAdapters).mockResolvedValue([adapter("adapter-1", "first")]);
+  render(<Adapters />);
+  await screen.findByText("adapters.editAdapter: first");
+
+  for (const key of ["adapters.adapterName", "adapters.transport", "adapters.description", "adapters.baseUrl", "adapters.enabled"]) {
+    expect(screen.getByText(key)).toBeInTheDocument();
+  }
+  expect(screen.getByRole("option", { name: "adapters.transportHttpJson" })).toBeInTheDocument();
+  for (const english of ["Name", "Transport", "Description", "Base URL", "Enabled"]) {
+    expect(screen.queryByText(english)).not.toBeInTheDocument();
+  }
+  expect(document.body.textContent).not.toContain("Phase 2");
+});

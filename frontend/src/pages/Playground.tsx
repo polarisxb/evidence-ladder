@@ -3,6 +3,7 @@ import { Send, Bot, User, RotateCcw, Shield } from "lucide-react";
 import { request } from "../api/client";
 import { useToast } from "../components/Toast";
 import { useLocale } from "../i18n";
+import { builtinLevelLabel } from "../utils/labels";
 
 interface Message {
   role: "user" | "assistant";
@@ -10,10 +11,10 @@ interface Message {
 }
 
 const LEVELS = [
-  { level: 1, name: "Level 1", desc: "No Protection", text: "text-red-600", border: "border-red-200" },
-  { level: 2, name: "Level 2", desc: "Basic Filtering", text: "text-orange-600", border: "border-orange-200" },
-  { level: 3, name: "Level 3", desc: "Moderate Defense", text: "text-amber-600", border: "border-amber-200" },
-  { level: 4, name: "Level 4", desc: "Strong Defense", text: "text-green-600", border: "border-green-200" },
+  { level: 1, text: "text-red-600", border: "border-red-200" },
+  { level: 2, text: "text-orange-600", border: "border-orange-200" },
+  { level: 3, text: "text-amber-600", border: "border-amber-200" },
+  { level: 4, text: "text-green-600", border: "border-green-200" },
 ];
 
 export function Playground() {
@@ -50,7 +51,7 @@ export function Playground() {
       });
       setMessages([...updatedMessages, { role: "assistant", content: res.data.response }]);
     } catch (err) {
-      toast("error", `Chat failed: ${err instanceof Error ? err.message : err}`);
+      toast("error", `${t("playground.chatFailed")}: ${err instanceof Error ? err.message : err}`);
       setMessages(updatedMessages);
     } finally {
       setSending(false);
@@ -92,7 +93,7 @@ export function Playground() {
                   : "text-gray-500 border-gray-200 hover:border-gray-300"
               }`}
             >
-              {l.name}
+              {t("playground.levelShort", { n: l.level })}
             </button>
           ))}
           <button
@@ -106,9 +107,9 @@ export function Playground() {
       </div>
 
       <div className="card px-4 py-2 mb-4 flex items-center gap-2">
-        <span className={`text-xs font-mono font-medium ${currentLevel.text}`}>{currentLevel.name}</span>
+        <span className={`text-xs font-mono font-medium ${currentLevel.text}`}>{builtinLevelLabel(t, level).name}</span>
         <span className="text-xs text-gray-400">-</span>
-        <span className="text-xs text-gray-600">{currentLevel.desc}</span>
+        <span className="text-xs text-gray-600">{builtinLevelLabel(t, level).desc}</span>
             <span className="text-xs text-gray-400 ml-auto">{t("playground.techCorpTarget")}</span>
       </div>
 

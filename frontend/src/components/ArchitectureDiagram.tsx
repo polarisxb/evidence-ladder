@@ -21,7 +21,7 @@ export function ArchitectureDiagram() {
           color="cyan"
           items={["React 19", "TypeScript", "TailwindCSS 4", "Vite 8", "Recharts"]}
         />
-        <Arrow label="Nginx reverse proxy" />
+        <Arrow label={t("arch.nginxProxy")} />
 
         {/* Row 3 — Backend (wide, multi-column) */}
         <div className="w-full rounded-xl border-2 border-indigo-200 bg-indigo-50/60 p-4 space-y-3">

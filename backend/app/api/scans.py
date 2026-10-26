@@ -23,7 +23,7 @@ from app.services.llm_client import (
 )
 from app.services.autotest_retest_runs import record_retest_run_for_scan
 from app.services.scan_recovery import finalize_stuck_scan_from_db
-from app.services.scan_runner import run_scan
+from app.services.scan_runner import is_scan_runner_active, run_scan
 from app.services.url_guard import validate_target_url
 from app.core.ws_auth import require_ws_token
 
@@ -31,6 +31,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _ws_clients: dict[str, list[WebSocket]] = {}
+
+
+def _scan_response(task: ScanTask) -> ScanResponse:
+    response = ScanResponse.model_validate(task)
+    if task.status in ("pending", "running"):
+        response.runner_active = is_scan_runner_active(task.id)
+    return response
 
 
 async def _validate_provider_model(
@@ -242,7 +249,7 @@ async def list_scans(
     total = count_result.scalar() or 0
 
     return {
-        "data": [ScanResponse.model_validate(t) for t in tasks],
+        "data": [_scan_response(t) for t in tasks],
         "total": total,
         "page": page,
         "page_size": page_size,
@@ -367,7 +374,7 @@ async def get_scan(task_id: str, db: AsyncSession = Depends(get_db)):
     task = result.scalar_one_or_none()
     if not task:
         raise AppException(404, "Scan task not found")
-    return {"data": ScanResponse.model_validate(task), "message": "ok"}
+    return {"data": _scan_response(task), "message": "ok"}
 
 
 @router.websocket("/ws/{task_id}")

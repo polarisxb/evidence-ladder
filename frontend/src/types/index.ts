@@ -19,6 +19,8 @@ export interface ScanTask {
   health_failure_reason?: string | null;
   recent_health_signature?: string | null;
   invalid_response_ratio?: number | null;
+  /** Pending/running only: false means no backend runner is executing this scan. */
+  runner_active?: boolean | null;
 }
 
 export type TargetHealth = "healthy" | "degraded" | "unhealthy";
@@ -826,6 +828,8 @@ export interface SecurityReport {
   medium_findings: AttackResult[];
   low_findings: AttackResult[];
   recommendations: string[];
+  /** Stable codes for `recommendations`, same order; the UI translates by code. */
+  recommendation_codes?: string[];
 }
 
 export interface ScanEvent {

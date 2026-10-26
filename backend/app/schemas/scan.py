@@ -178,6 +178,9 @@ class ScanResponse(BaseModel):
     generation_provider_id: str | None = None
     generation_model: str | None = None
     advanced_config: dict | None = None
+    # Only set for pending/running scans: False means no runner in this process
+    # is executing the scan (e.g. the backend restarted), so it will not finish.
+    runner_active: bool | None = None
 
     model_config = {"from_attributes": True}
 

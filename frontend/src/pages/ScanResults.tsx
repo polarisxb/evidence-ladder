@@ -26,6 +26,7 @@ import {
   type NotEvaluableDisplayCategory,
 } from "../utils/responseEvaluation";
 import { riskColors } from "../utils/risk";
+import { categoryLabel, riskLevelLabel, targetTypeLabel } from "../utils/labels";
 import type { AttackCase, AttackCaseDetail, AttackCaseVariant, AttackResult, RiskLevel, ScanTask } from "../types";
 
 type VerdictFilter =
@@ -779,7 +780,7 @@ export function ScanResults() {
             }
           }}
           className="text-gray-400 hover:text-gray-700 transition-colors"
-          aria-label="back"
+          aria-label={t("common.back")}
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
@@ -791,7 +792,7 @@ export function ScanResults() {
           {scan && (
             <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
               <span className={`px-2 py-0.5 rounded-full border ${scan.target_type === "adapter" ? "bg-sky-50 text-sky-700 border-sky-200" : scan.target_type === "custom" ? "bg-amber-50 text-amber-800 border-amber-200" : "bg-gray-100 text-gray-700 border-gray-200"}`}>
-                {scan.target_type === "adapter" ? t("adapters.adapterScan") : scan.target_type === "custom" ? t("scanProgress.legacyCustom") : scan.target_type}
+                {targetTypeLabel(t, scan.target_type)}
               </span>
               <span className="font-mono">{scan.target_url}</span>
             </div>
@@ -850,7 +851,7 @@ export function ScanResults() {
           <option value="">{t("results.allCategories")}</option>
           {categories.map((category) => (
             <option key={category} value={category}>
-              {category.replace(/_/g, " ")}
+              {categoryLabel(t, category)}
             </option>
           ))}
         </select>
@@ -1010,7 +1011,7 @@ export function ScanResults() {
                         {businessVerificationLabel(result.business_verification_status, t)}
                       </span>
                     )}
-                    <span className={`text-xs px-2 py-0.5 rounded ${colors.bg} ${colors.text}`}>{risk.toUpperCase()}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded ${colors.bg} ${colors.text}`}>{riskLevelLabel(t, risk)}</span>
                     {(() => {
                       const _vStatus = resolvedVerdictStatus(result);
                       if (_vStatus === "not_evaluable") {

@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import { createAutoTestDraft } from "../api/autotest";
 import type { AutoTestDraft } from "../types";
+import { LocaleProvider } from "../i18n";
 import { AutoTest } from "./AutoTest";
 
 const { toast } = vi.hoisted(() => ({ toast: vi.fn() }));
@@ -28,12 +29,15 @@ beforeEach(() => {
 });
 
 it("leaves the retest budget to the planner by default and shows the retest in the draft", async () => {
-  render(<MemoryRouter><AutoTest /></MemoryRouter>);
-  fireEvent.click(screen.getByRole("button", { name: /autotest\.generateDraft/ }));
+  render(<LocaleProvider><MemoryRouter><AutoTest /></MemoryRouter></LocaleProvider>);
+  fireEvent.click(screen.getByRole("button", { name: /生成草稿/ }));
 
   await waitFor(() => expect(createAutoTestDraft).toHaveBeenCalled());
   expect(vi.mocked(createAutoTestDraft).mock.calls[0][0].max_retest_rounds).toBeNull();
-  expect(await screen.findByText("retest ×1")).toBeInTheDocument();
+  expect(await screen.findByText("冲突补测 ×1")).toBeInTheDocument();
+  expect(screen.getByText("模板扫描")).toBeInTheDocument();
+  // Once as the selected target-type option, once as the draft pill.
+  expect(screen.getAllByText("OpenAI 兼容")).toHaveLength(2);
 });
 
 it("can switch the in-scan retest off", async () => {

@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { listScans } from "../api/scans";
 import { compareScans, type CompareResult } from "../api/stats";
-import { useLocale } from "../i18n";
+import { LocaleProvider, useLocale } from "../i18n";
 import { Compare } from "./Compare";
 
 vi.mock("../api/scans", () => ({ listScans: vi.fn() }));
@@ -22,7 +22,7 @@ describe("Compare vulnerability lists", () => {
       score_diff: null, fixed_vulnerabilities: [], new_vulnerabilities: [], persistent_vulnerabilities: [],
     } as unknown as CompareResult);
     render(<Compare />);
-    await screen.findAllByRole("option", { name: /A \(Posture:/ });
+    await screen.findAllByRole("option", { name: "compare.scanOption" });
     const selects = screen.getAllByRole("combobox");
     fireEvent.change(selects[0], { target: { value: "a" } });
     fireEvent.change(selects[1], { target: { value: "b" } });
@@ -35,7 +35,7 @@ describe("Compare vulnerability lists", () => {
       data: [{ id: "a", name: "A" }, { id: "b", name: "B" }],
     } as Awaited<ReturnType<typeof listScans>>);
     render(<Compare />);
-    await screen.findAllByRole("option", { name: /A \(Posture:/ });
+    await screen.findAllByRole("option", { name: "compare.scanOption" });
     const selects = screen.getAllByRole("combobox");
     fireEvent.change(selects[0], { target: { value: "a" } });
     fireEvent.change(selects[1], { target: { value: "b" } });
@@ -64,4 +64,18 @@ describe("Compare vulnerability lists", () => {
     }
     expect(hookCounts).toEqual([6, 6, 6]);
   });
+});
+
+it("labels scan options with a Chinese score and names unnamed scans", async () => {
+  vi.mocked(listScans).mockResolvedValue({
+    data: [
+      { id: "a", name: "A", overall_score: 87.5, created_at: "2026-10-01T08:00:00Z" },
+      { id: "b", name: "", overall_score: null, created_at: "2026-10-02T08:00:00Z" },
+    ],
+  } as Awaited<ReturnType<typeof listScans>>);
+  render(<LocaleProvider><Compare /></LocaleProvider>);
+
+  expect((await screen.findAllByRole("option", { name: "A（评分：87.5）" })).length).toBe(2);
+  expect(screen.getAllByRole("option", { name: /^未命名扫描 · .*（评分：无法评分）$/ })).toHaveLength(2);
+  expect(screen.queryByRole("option", { name: /Posture/ })).not.toBeInTheDocument();
 });

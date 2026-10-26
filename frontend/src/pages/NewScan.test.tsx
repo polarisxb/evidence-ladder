@@ -2,9 +2,11 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import { getAdapters, installSampleAdapter } from "../api/adapters";
+import { request } from "../api/client";
 import { createScan } from "../api/scans";
 import { listMockTargets } from "../api/targets";
 import type { Adapter, ScanConfig } from "../types";
+import { LocaleProvider } from "../i18n";
 import { NewScan } from "./NewScan";
 
 const { toast } = vi.hoisted(() => ({ toast: vi.fn() }));
@@ -102,4 +104,18 @@ it("the FinanceBot preset uses the backend's mock-target address", async () => {
   const config = submittedConfig();
   expect(config.target_type).toBe("custom");
   expect(config.target_url).toBe("http://financebot:8001/chat");
+});
+
+it("describes built-in target levels and attack categories in Chinese", async () => {
+  vi.mocked(request).mockResolvedValueOnce({
+    data: [{ category: "system_prompt_extraction", category_name: "System Prompt Extraction" }],
+  });
+  render(<LocaleProvider><MemoryRouter><NewScan /></MemoryRouter></LocaleProvider>);
+
+  expect(await screen.findByText("等级 1 · 无防护")).toBeInTheDocument();
+  expect(screen.getByText("综合安全防护措施")).toBeInTheDocument();
+  expect(await screen.findByText("系统提示词提取")).toBeInTheDocument();
+  for (const english of ["Level 1 - No Protection", "No security measures", "System Prompt Extraction"]) {
+    expect(screen.queryByText(english)).not.toBeInTheDocument();
+  }
 });

@@ -6,6 +6,7 @@ import { createAutoTestDraft } from "../api/autotest";
 import { createScan } from "../api/scans";
 import { useToast } from "../components/Toast";
 import { useLocale } from "../i18n";
+import { categoryLabel, phaseLabel, strategyLabel, targetTypeLabel, type Translate } from "../utils/labels";
 import type { Adapter, AutoTestBudget, AutoTestDraft, AutoTestPlan, AutoTestTargetType, ScanConfig } from "../types";
 
 const TARGET_TYPES: AutoTestTargetType[] = [
@@ -44,16 +45,16 @@ function PillList({ items }: { items: string[] }) {
   );
 }
 
-function enabledAdvancedItems(scanDraft: ScanConfig | null): string[] {
+function enabledAdvancedItems(scanDraft: ScanConfig | null, t: Translate): string[] {
   const advanced = scanDraft?.advanced;
   if (!advanced) return [];
 
   return [
-    advanced.enable_mutations ? "mutation" : null,
-    advanced.enable_crescendo ? "crescendo" : null,
-    advanced.enable_pair ? "pair" : null,
-    advanced.enable_tap ? "tap" : null,
-    advanced.retest_arm === "B" ? `retest ×${advanced.max_retest_rounds ?? 2}` : null,
+    advanced.enable_mutations ? strategyLabel(t, "mutation") : null,
+    advanced.enable_crescendo ? strategyLabel(t, "crescendo") : null,
+    advanced.enable_pair ? strategyLabel(t, "pair") : null,
+    advanced.enable_tap ? strategyLabel(t, "tap") : null,
+    advanced.retest_arm === "B" ? t("autotest.retestPill", { n: advanced.max_retest_rounds ?? 2 }) : null,
   ].filter((item): item is string => Boolean(item));
 }
 
@@ -90,7 +91,7 @@ export function AutoTest() {
     () => adapters.find((adapter) => adapter.id === adapterId) ?? null,
     [adapterId, adapters],
   );
-  const advancedItems = useMemo(() => enabledAdvancedItems(scanDraft), [scanDraft]);
+  const advancedItems = useMemo(() => enabledAdvancedItems(scanDraft, t), [scanDraft, t]);
 
   useEffect(() => {
     getAdapters()
@@ -208,7 +209,7 @@ export function AutoTest() {
               className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
             >
               {TARGET_TYPES.map((type) => (
-                <option key={type} value={type}>{type}</option>
+                <option key={type} value={type}>{targetTypeLabel(t, type)}</option>
               ))}
             </select>
           </label>
@@ -295,7 +296,7 @@ export function AutoTest() {
                     onChange={() => toggleCategory(category)}
                     className="h-4 w-4 rounded border-gray-300 text-gray-900"
                   />
-                  <span>{category}</span>
+                  <span>{categoryLabel(t, category)}</span>
                 </label>
               ))}
             </div>
@@ -393,19 +394,19 @@ export function AutoTest() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     {t("autotest.phases")}
                   </p>
-                  <PillList items={plan.phases} />
+                  <PillList items={plan.phases.map((phase) => phaseLabel(t, phase))} />
                 </div>
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     {t("autotest.strategies")}
                   </p>
-                  <PillList items={plan.strategies} />
+                  <PillList items={plan.strategies.map((strategy) => strategyLabel(t, strategy))} />
                 </div>
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     {t("autotest.riskCategories")}
                   </p>
-                  <PillList items={plan.risk_categories} />
+                  <PillList items={plan.risk_categories.map((category) => categoryLabel(t, category))} />
                 </div>
               </div>
             ) : (
@@ -427,7 +428,7 @@ export function AutoTest() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     {t("autotest.targetType")}
                   </p>
-                  <PillList items={[scanDraft.target_type]} />
+                  <PillList items={[targetTypeLabel(t, scanDraft.target_type)]} />
                 </div>
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">

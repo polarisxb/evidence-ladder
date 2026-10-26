@@ -459,7 +459,7 @@ export function Adapters() {
                   {selectedAdapter ? `${t("adapters.editAdapter")}: ${selectedAdapter.name}` : t("adapters.newAdapter")}
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Probe config now lives on the adapter. Keep using `secret_ref` for credentials.
+                  {t("adapters.editorHint")}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -497,7 +497,7 @@ export function Adapters() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Name</label>
+                <label className="block text-sm text-gray-600 mb-1">{t("adapters.adapterName")}</label>
                 <input
                   type="text"
                   value={form.name}
@@ -506,20 +506,20 @@ export function Adapters() {
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Transport</label>
+                <label className="block text-sm text-gray-600 mb-1">{t("adapters.transport")}</label>
                 <select
                   value={form.transport}
                   onChange={(event) => handleTransportChange(event.target.value as AdapterFormState["transport"])}
                   className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900/10"
                 >
-                  <option value="http_json">http_json</option>
-                  <option value="openai_chat">openai_chat</option>
+                  <option value="http_json">{t("adapters.transportHttpJson")}</option>
+                  <option value="openai_chat">{t("adapters.transportOpenaiChat")}</option>
                 </select>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Description</label>
+              <label className="block text-sm text-gray-600 mb-1">{t("adapters.description")}</label>
               <input
                 type="text"
                 value={form.description}
@@ -530,7 +530,7 @@ export function Adapters() {
 
             <div className="grid grid-cols-[minmax(0,1fr)_180px] gap-4">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Base URL</label>
+                <label className="block text-sm text-gray-600 mb-1">{t("adapters.baseUrl")}</label>
                 <input
                   type="text"
                   value={form.base_url}
@@ -546,7 +546,7 @@ export function Adapters() {
                   onChange={(event) => setForm((prev) => ({ ...prev, enabled: event.target.checked }))}
                   className="accent-gray-900"
                 />
-                Enabled
+                {t("adapters.enabled")}
               </label>
             </div>
 
@@ -555,13 +555,13 @@ export function Adapters() {
                 label={t("adapters.authConfig")}
                 value={form.authText}
                 onChange={(value) => setForm((prev) => ({ ...prev, authText: value }))}
-                hint='Use `secret_ref`, not plaintext secrets. Example: { "type": "bearer", "secret_ref": "env:CRM_TOKEN" }'
+                hint={t("adapters.authHint")}
               />
               <TextareaField
                 label={t("adapters.sessionConfig")}
                 value={form.sessionText}
                 onChange={(value) => setForm((prev) => ({ ...prev, sessionText: value }))}
-                hint="Per-variant isolation stays the default in Phase 2."
+                hint={t("adapters.sessionHint")}
               />
             </div>
 
@@ -583,7 +583,7 @@ export function Adapters() {
               value={form.probeText}
               onChange={(value) => setForm((prev) => ({ ...prev, probeText: value }))}
               rows={12}
-              hint='Probe variables support `{{runtime.*}}`, `{{session.id}}`, and `{{probe.steps.<step>.captures.<name>}}`.'
+              hint={t("adapters.probeHint")}
             />
           </div>
 

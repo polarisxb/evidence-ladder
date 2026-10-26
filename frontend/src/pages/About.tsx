@@ -4,11 +4,18 @@ import { ArchitectureDiagram } from "../components/ArchitectureDiagram";
 import { APP_VERSION_LABEL } from "../appInfo";
 
 const FRAMEWORKS = [
-  { name: "OWASP LLM Top 10", version: "2025", items: 10 },
-  { name: "MITRE ATLAS", version: "2025", items: "66 techniques" },
-  { name: "CVSS", version: "v4.0", items: "0-10 scale" },
-  { name: "HarmBench", version: "2024", items: "510 behaviors" },
+  { name: "OWASP LLM Top 10", version: "2025", itemsKey: "about.owaspItems" },
+  { name: "MITRE ATLAS", version: "2025", itemsKey: "about.atlasItems" },
+  { name: "CVSS", version: "v4.0", itemsKey: "about.cvssItems" },
+  { name: "HarmBench", version: "2024", itemsKey: "about.harmbenchItems" },
 ];
+
+/** Render the `**text**` spans of a locale string as bold. */
+function renderEmphasis(text: string) {
+  return text.split(/\*\*(.+?)\*\*/g).map((part, i) =>
+    i % 2 === 1 ? <strong key={i} className="font-semibold text-gray-900">{part}</strong> : part,
+  );
+}
 
 const PAPERS = [
   { title: "Crescendo Multi-Turn Jailbreak",     venue: "USENIX Security 2025", authors: "Russinovich et al.",    url: "https://arxiv.org/abs/2404.01833" },
@@ -45,7 +52,7 @@ export function About() {
           </span>
         </p>
         <p className="text-gray-600 max-w-2xl mx-auto">
-          {t("about.subtitle")}
+          {renderEmphasis(t("about.subtitle"))}
         </p>
       </div>
 
@@ -69,7 +76,7 @@ export function About() {
             <div key={fw.name} className="bg-gray-50 border border-gray-100 rounded-lg p-4 text-center">
               <p className="text-sm font-medium text-gray-900">{fw.name}</p>
               <p className="text-xs text-indigo-600 font-mono mt-1">{fw.version}</p>
-              <p className="text-xs text-gray-500 mt-1">{fw.items}</p>
+              <p className="text-xs text-gray-500 mt-1">{t(fw.itemsKey)}</p>
             </div>
           ))}
         </div>

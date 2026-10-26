@@ -7,6 +7,7 @@ import { useToast } from "../components/Toast";
 import { useLocale } from "../i18n";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { riskColors } from "../utils/risk";
+import { isInterruptedScan, localizeHealthReason, probeStateLabel, riskLevelLabel, targetTypeLabel } from "../utils/labels";
 import type { AttackResult, RiskLevel, ScanTask } from "../types";
 
 export function ScanProgress() {
@@ -108,6 +109,8 @@ export function ScanProgress() {
   const scanSucceeded = wsCompleted || apiCompleted;
   const scanEndedEarly = !scanSucceeded && (wsFailed || apiFailed);
   const scanDone = scanSucceeded || scanEndedEarly;
+  // No runner is executing this pending/running scan (e.g. the backend restarted).
+  const scanInterrupted = scan != null && !scanDone && isInterruptedScan(scan);
   const doneEvent = events.find((e) => e.type === "scan_completed");
   const finalScore = doneEvent ? doneEvent.overall_score : scan?.overall_score;
   const latestHealthEvent = [...events].reverse().find((e) => e.target_health != null);
@@ -252,7 +255,7 @@ export function ScanProgress() {
       {scan && (
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <span className={`px-2.5 py-1 rounded-full border ${scan.target_type === "adapter" ? "bg-sky-50 text-sky-700 border-sky-200" : scan.target_type === "custom" ? "bg-amber-50 text-amber-800 border-amber-200" : "bg-gray-100 text-gray-700 border-gray-200"}`}>
-            {scan.target_type === "adapter" ? t("scanProgress.adapterScan") : scan.target_type === "custom" ? t("scanProgress.legacyCustom") : scan.target_type}
+            {targetTypeLabel(t, scan.target_type)}
           </span>
           <span className="font-mono text-xs">{scan.target_url}</span>
         </div>
@@ -263,7 +266,7 @@ export function ScanProgress() {
           <div className="flex items-center gap-2">
             {scanSucceeded ? (
               <CheckCircle className="w-5 h-5 text-green-600" />
-            ) : scanEndedEarly ? (
+            ) : scanEndedEarly || scanInterrupted ? (
               <AlertTriangle className="w-5 h-5 text-amber-600" />
             ) : (
               <Loader2 className="w-5 h-5 text-indigo-500 animate-spin" />
@@ -273,6 +276,8 @@ export function ScanProgress() {
                 ? t("scanProgress.scanComplete")
                 : scanEndedEarly
                 ? t("scanProgress.scanEndedEarly")
+                : scanInterrupted
+                ? t("scanProgress.interrupted")
                 : t("scanProgress.scanning")}
             </span>
           </div>
@@ -287,6 +292,12 @@ export function ScanProgress() {
             style={{ width: `${pct}%` }}
           />
         </div>
+
+        {scanInterrupted && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {t("scanProgress.interruptedHint")}
+          </div>
+        )}
 
         {!scanDone && runningAttacks.length > 0 && (
           <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 px-4 py-3 space-y-2">
@@ -384,7 +395,7 @@ export function ScanProgress() {
             {healthReason && (
               <div>
                 <p className="text-xs text-gray-500">{t("scanProgress.healthReason")}</p>
-                <p className="text-sm text-gray-700">{healthReason}</p>
+                <p className="text-sm text-gray-700">{localizeHealthReason(t, healthReason)}</p>
               </div>
             )}
           </div>
@@ -400,7 +411,7 @@ export function ScanProgress() {
               {probeRows.map((row) => (
                 <span key={`${row.caseId}-${row.state}`} className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs ${probeTone(row.state)}`}>
                   <span className="font-mono">{row.caseId.slice(0, 8)}</span>
-                  <span>{row.state}</span>
+                  <span>{probeStateLabel(t, row.state)}</span>
                 </span>
               ))}
             </div>
@@ -471,7 +482,7 @@ export function ScanProgress() {
                   )}
                   <span className="text-gray-700 flex-1 truncate">{evt.attack_name}</span>
                   <span className={`text-xs px-2 py-0.5 rounded ${colors.bg} ${colors.text}`}>
-                    {risk.toUpperCase()}
+                    {riskLevelLabel(t, risk)}
                   </span>
                 </div>
               );

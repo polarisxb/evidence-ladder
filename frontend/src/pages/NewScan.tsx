@@ -11,6 +11,7 @@ import { useToast } from "../components/Toast";
 import { useLocale } from "../i18n";
 import type { Adapter, AdvancedConfig, ModelProvider, ScanConfig } from "../types";
 import { resolveDemoPreset, type DemoPresetSource } from "../utils/demoPresets";
+import { builtinLevelLabel, categoryLabel } from "../utils/labels";
 
 interface AttackCategoryOption {
   id: string;
@@ -244,12 +245,8 @@ const DEMO_PRESETS: DemoPreset[] = [
   },
 ];
 
-const BUILTIN_LEVELS = [
-  { level: 1, name: "Level 1 - No Protection", desc: "No security measures" },
-  { level: 2, name: "Level 2 - Basic Filtering", desc: "Basic instruction to not reveal prompt" },
-  { level: 3, name: "Level 3 - Moderate Defense", desc: "Role anchoring and refusal patterns" },
-  { level: 4, name: "Level 4 - Strong Defense", desc: "Comprehensive security measures" },
-];
+// Names and descriptions come from labels.builtinLevel* in the locale files.
+const BUILTIN_LEVELS = [{ level: 1 }, { level: 2 }, { level: 3 }, { level: 4 }];
 
 function EvalEngineSection({
   settings,
@@ -729,7 +726,7 @@ export function NewScan() {
     const headers: Record<string, string> = {};
     for (const [key, rawValue] of Object.entries(parsed)) {
       if (typeof rawValue !== "string") {
-        throw new Error(`Header "${key}" must have a string value.`);
+        throw new Error(t("newScan.headerValueMustBeString", { key }));
       }
       headers[key] = rawValue;
     }
@@ -939,8 +936,8 @@ export function NewScan() {
                       className="accent-indigo-500"
                     />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{lvl.name}</p>
-                      <p className="text-xs text-gray-500">{lvl.desc}</p>
+                      <p className="text-sm font-medium text-gray-900">{builtinLevelLabel(t, lvl.level).name}</p>
+                      <p className="text-xs text-gray-500">{builtinLevelLabel(t, lvl.level).desc}</p>
                     </div>
                   </label>
                 ))}
@@ -1106,7 +1103,7 @@ export function NewScan() {
                     })
                   }
                   rows={6}
-                  placeholder="Use this for prompt-rule-layer testing. Example: business instructions + canary token."
+                  placeholder={t("newScan.systemPromptPlaceholder")}
                   className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900/10 text-sm"
                 />
                 <p className="text-xs text-gray-500 mt-1">{t("newScan.systemPromptHelp")}</p>
@@ -1386,7 +1383,7 @@ export function NewScan() {
                   }}
                   className="accent-indigo-500"
                 />
-                {cat.label}
+                {cat.id === "all" ? cat.label : categoryLabel(t, cat.id, cat.label)}
               </label>
             ))}
           </div>
