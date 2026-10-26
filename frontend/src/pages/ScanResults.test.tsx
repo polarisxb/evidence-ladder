@@ -142,11 +142,16 @@ describe("attack results page", () => {
   });
 
   it("applies the report's verdict deep link and opens a deep-linked case even if filtered out", async () => {
+    const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView");
     renderPage("/results/scan-1?verdict=confirmed&case=case-1");
 
     expect(await screen.findByText("Direct override")).toBeInTheDocument();
     await waitFor(() => expect(getCaseDetail).toHaveBeenCalledWith("case-1"));
     expect(screen.getByRole("button", { name: "全部 3" })).toHaveAttribute("aria-pressed", "true");
+    // The scroll runs on a timer; waiting for it also keeps it out of the next test.
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+    expect(scrollIntoView.mock.contexts[0]).toBe(row("Direct override"));
+    scrollIntoView.mockRestore();
   });
 
   it("filters by verdict and search, and clears filters from the empty state", async () => {
