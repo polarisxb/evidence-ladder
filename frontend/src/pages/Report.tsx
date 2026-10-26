@@ -15,42 +15,21 @@ import { CompliancePanel } from "../components/CompliancePanel";
 import { resolveResponseEvaluation } from "../utils/responseEvaluation";
 import { riskColors, riskLabel } from "../utils/risk";
 import { categoryLabel, healthLabel, localizeHealthReason, retestActionLabel, riskLevelLabel, scanStatusLabel } from "../utils/labels";
+import {
+  businessVerificationClasses,
+  businessVerificationLabel,
+  controlClasses,
+  controlLabel,
+  probeCountLabel,
+  probeFailureReason,
+  probeFailureType,
+  scoreTone,
+  variantClasses,
+  variantLabel,
+  verdictClasses,
+  verdictLabel,
+} from "../utils/resultLabels";
 import type { AttackCaseDetail, AutoTestRetestOutcome, AutoTestSummary, SecurityReport, RiskLevel } from "../types";
-
-function verdictLabel(status?: string | null, t?: (k: string) => string) {
-  const _t = t ?? ((k: string) => k);
-  switch (status) {
-    case "rule_verified": return _t("common.ruleVerified");
-    case "manual_verified": return _t("common.manualVerified");
-    case "ai_suspected": return _t("common.aiSuspected");
-    case "manual_review_needed": return _t("common.manualReviewNeeded");
-    case "false_positive": return _t("common.falsePositive");
-    case "passed": return _t("common.passed");
-    case "not_evaluable": return _t("common.notEvaluable");
-    default: return status || "—";
-  }
-}
-
-function verdictClasses(status?: string | null) {
-  switch (status) {
-    case "rule_verified":
-      return "bg-emerald-50 text-emerald-700 border border-emerald-200";
-    case "manual_verified":
-      return "bg-teal-50 text-teal-700 border border-teal-200";
-    case "ai_suspected":
-      return "bg-amber-50 text-amber-800 border border-amber-200";
-    case "manual_review_needed":
-      return "bg-slate-100 text-slate-700 border border-slate-200";
-    case "false_positive":
-      return "bg-rose-50 text-rose-700 border border-rose-200";
-    case "passed":
-      return "bg-gray-100 text-gray-600 border border-gray-200";
-    case "not_evaluable":
-      return "bg-orange-50 text-orange-900 border border-orange-200";
-    default:
-      return "bg-gray-100 text-gray-600 border border-gray-200";
-  }
-}
 
 function outcomeLabel(outcome?: string | null, t?: (k: string) => string) {
   const _t = t ?? ((k: string) => k);
@@ -100,71 +79,6 @@ function behaviorPills(flags?: Record<string, unknown> | null, t?: (k: string) =
   if (flags.original_task_completed === true) pills.push({ label: _t("common.originalTaskCompleted"), tone: "bg-emerald-50 text-emerald-700 border border-emerald-200" });
   if (flags.original_task_completed === false) pills.push({ label: _t("common.originalTaskNotCompleted"), tone: "bg-slate-100 text-slate-700 border border-slate-200" });
   return pills;
-}
-
-function controlAssessmentLabel(assessment?: string | null, t?: (k: string) => string) {
-  const _t = t ?? ((k: string) => k);
-  switch (assessment) {
-    case "rule_verified_finding": return _t("common.ruleVerifiedFinding");
-    case "attack_delta_supported": return _t("common.attackDeltaSupported");
-    case "discussion_supported": return _t("common.discussionSupported");
-    case "controls_inconclusive": return _t("common.controlsInconclusive");
-    case "controls_missing": return _t("common.controlsMissing");
-    case "passed": return _t("common.passed");
-    case "not_evaluable": return _t("common.notEvaluable");
-    default: return _t("common.controlSummary");
-  }
-}
-
-function controlAssessmentClasses(assessment?: string | null) {
-  switch (assessment) {
-    case "rule_verified_finding":
-      return "bg-emerald-50 text-emerald-700 border border-emerald-200";
-    case "attack_delta_supported":
-      return "bg-emerald-50 text-emerald-700 border border-emerald-200";
-    case "discussion_supported":
-      return "bg-sky-50 text-sky-700 border border-sky-200";
-    case "controls_inconclusive":
-      return "bg-amber-50 text-amber-800 border border-amber-200";
-    case "controls_missing":
-      return "bg-gray-100 text-gray-600 border border-gray-200";
-    default:
-      return "bg-gray-100 text-gray-600 border border-gray-200";
-  }
-}
-
-function variantLabel(variantType?: string | null, t?: (k: string) => string) {
-  const _t = t ?? ((k: string) => k);
-  switch (variantType) {
-    case "attack": return _t("common.attack");
-    case "clean": return _t("common.clean");
-    case "quoted_attack": return _t("common.quotedAttack");
-    case "benign_distractor": return _t("common.benignDistractor");
-    default: return variantType || "Variant";
-  }
-}
-
-function variantClasses(variantType?: string | null) {
-  switch (variantType) {
-    case "attack":
-      return "bg-red-50 text-red-700 border border-red-200";
-    case "clean":
-      return "bg-emerald-50 text-emerald-700 border border-emerald-200";
-    case "quoted_attack":
-      return "bg-amber-50 text-amber-800 border border-amber-200";
-    case "benign_distractor":
-      return "bg-sky-50 text-sky-700 border border-sky-200";
-    default:
-      return "bg-gray-100 text-gray-600 border border-gray-200";
-  }
-}
-
-function scoreTone(score: number | null | undefined) {
-  if (score == null) return "text-gray-500";
-  if (score >= 0.8) return "text-red-600";
-  if (score >= 0.5) return "text-orange-600";
-  if (score >= 0.2) return "text-amber-700";
-  return "text-green-600";
 }
 
 function formatRate(value: number | null | undefined) {
@@ -401,62 +315,6 @@ function AutoTestSummaryPanel({
       )}
     </section>
   );
-}
-
-function businessVerificationLabel(status?: string | null, t?: (k: string) => string) {
-  const _t = t ?? ((k: string) => k);
-  switch (status) {
-    case "text_claim_only": return _t("common.textClaimOnly");
-    case "probe_verified": return _t("common.probeVerified");
-    case "probe_failed": return _t("common.probeFailed");
-    case "probe_inconclusive": return _t("common.probeInconclusive");
-    default: return _t("common.notApplicable");
-  }
-}
-
-function businessVerificationClasses(status?: string | null) {
-  switch (status) {
-    case "text_claim_only":
-      return "bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200";
-    case "probe_verified":
-      return "bg-emerald-50 text-emerald-700 border border-emerald-200";
-    case "probe_failed":
-      return "bg-rose-50 text-rose-700 border border-rose-200";
-    case "probe_inconclusive":
-      return "bg-amber-50 text-amber-800 border border-amber-200";
-    default:
-      return "bg-gray-100 text-gray-600 border border-gray-200";
-  }
-}
-
-function probeFailureType(probeSummary?: Record<string, unknown> | null) {
-  return typeof probeSummary?.["failure_type"] === "string" ? probeSummary["failure_type"] : null;
-}
-
-function probeFailureReason(probeSummary?: Record<string, unknown> | null) {
-  return typeof probeSummary?.["failure_reason"] === "string" ? probeSummary["failure_reason"] : null;
-}
-
-function probeCountLabel(probeSummary?: Record<string, unknown> | null) {
-  const verified =
-    typeof probeSummary?.["verified_assertion_count"] === "number"
-      ? probeSummary["verified_assertion_count"]
-      : null;
-  const total =
-    typeof probeSummary?.["total_assertion_count"] === "number"
-      ? probeSummary["total_assertion_count"]
-      : null;
-  const steps =
-    typeof probeSummary?.["step_count"] === "number" ? probeSummary["step_count"] : null;
-
-  // 全为 0 或均为 null（非 probe 场景）时不显示
-  if ((total ?? 0) === 0 && (steps ?? 0) === 0) return "";
-
-  const parts = [
-    verified != null && total != null ? `${verified}/${total} assertions` : null,
-    steps != null ? `${steps} step${steps === 1 ? "" : "s"}` : null,
-  ].filter(Boolean);
-  return parts.join(" | ");
 }
 
 export function Report() {
@@ -1084,8 +942,8 @@ export function Report() {
                           <span className={`inline-flex px-2 py-0.5 rounded text-[11px] ${businessVerificationClasses(f.business_verification_status)}`}>
                             {businessVerificationLabel(f.business_verification_status, t)}
                           </span>
-                          {probeCountLabel(f.probe_summary) && (
-                            <span className="text-[11px] text-slate-500">{probeCountLabel(f.probe_summary)}</span>
+                          {probeCountLabel(f.probe_summary, t) && (
+                            <span className="text-[11px] text-slate-500">{probeCountLabel(f.probe_summary, t)}</span>
                           )}
                           {probeFailureType(f.probe_summary) && (
                             <span className="inline-flex px-2 py-0.5 rounded text-[11px] bg-white text-slate-700 border border-slate-200 font-mono">
@@ -1161,8 +1019,8 @@ export function Report() {
                         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                           <p className="text-sm text-slate-800">
                             {f.control_assessment && (
-                              <span className={`inline-flex mr-2 px-2 py-0.5 rounded text-[11px] ${controlAssessmentClasses(f.control_assessment)}`}>
-                              {controlAssessmentLabel(f.control_assessment, t)}
+                              <span className={`inline-flex mr-2 px-2 py-0.5 rounded text-[11px] ${controlClasses(f.control_assessment)}`}>
+                              {controlLabel(f.control_assessment, t)}
                               </span>
                             )}
                             {f.control_summary || t("report.noControlSummary")}
@@ -1190,8 +1048,8 @@ export function Report() {
                           <ResponseEvaluationPanel evaluation={resolveResponseEvaluation(caseDetails[f.case_id])} t={t} />
                           <div className="flex items-center gap-2 flex-wrap">
                             {f.case_final_outcome && (
-                              <span className={`inline-flex px-2 py-0.5 rounded text-[11px] ${controlAssessmentClasses(f.case_final_outcome)}`}>
-                              {controlAssessmentLabel(f.case_final_outcome, t)}
+                              <span className={`inline-flex px-2 py-0.5 rounded text-[11px] ${controlClasses(f.case_final_outcome)}`}>
+                              {controlLabel(f.case_final_outcome, t)}
                               </span>
                             )}
                             {f.quartet_present != null && (
@@ -1200,7 +1058,7 @@ export function Report() {
                               </span>
                             )}
                             <span className={`inline-flex px-2 py-0.5 rounded text-[11px] ${businessVerificationClasses(caseDetails[f.case_id].business_verification_status)}`}>
-                              {businessVerificationLabel(caseDetails[f.case_id].business_verification_status)}
+                              {businessVerificationLabel(caseDetails[f.case_id].business_verification_status, t)}
                             </span>
                           </div>
                           {(probeFailureReason(caseDetails[f.case_id].probe_summary) ||

@@ -27,10 +27,10 @@ vi.mock("../api/modelProviders", () => ({
   updateModelProvider: vi.fn(),
 }));
 
-it("labels the endpoint and the key count in Chinese", async () => {
+it("labels the API endpoint and the key count", async () => {
   render(<LocaleProvider><Settings /></LocaleProvider>);
 
   expect(await screen.findByText("2 个密钥")).toBeInTheDocument();
-  expect(screen.getByText(/^接口地址:/)).toBeInTheDocument();
+  expect(screen.getByText(/^API 地址:/)).toBeInTheDocument();
   expect(screen.queryByText(/\bkeys?\b/)).not.toBeInTheDocument();
 });

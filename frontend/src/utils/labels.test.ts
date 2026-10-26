@@ -37,16 +37,18 @@ const tZh = translator(zh);
 const tEn = translator(en);
 
 describe("shared labels", () => {
-  it("translates every attack category id the templates ship with", () => {
+  it("names every attack category the templates ship with, with a Chinese description", () => {
     const ids = [
       "prompt_injection", "system_prompt_extraction", "jailbreak", "information_disclosure",
       "indirect_injection", "excessive_agency", "denial_of_service",
     ];
     for (const id of ids) {
-      expect(categoryLabel(tZh, id)).toMatch(/[一-鿿]/);
+      // Taxonomy names stay in English in both locales; only the description is localized.
+      expect(categoryLabel(tZh, id)).toBe(categoryLabel(tEn, id));
+      expect(categoryLabel(tZh, id)).not.toContain("_");
       expect(categoryDescription(tZh, id)).toMatch(/[一-鿿]/);
     }
-    expect(categoryLabel(tZh, "indirect_injection")).toBe("间接提示注入");
+    expect(categoryLabel(tZh, "indirect_injection")).toBe("Indirect Prompt Injection");
     expect(categoryLabel(tEn, "indirect_injection")).toBe("Indirect Prompt Injection");
   });
 
@@ -66,8 +68,8 @@ describe("shared labels", () => {
     expect(riskLevelLabel(tZh, "none")).toBe("无风险");
     expect(retestActionLabel(tZh, "run_canary_retest")).toBe("Canary 重测");
     expect(phaseLabel(tZh, "quartet_controls")).toBe("四元对照");
-    expect(strategyLabel(tZh, "mutation")).toBe("编码变换");
-    expect(owaspItemLabel(tZh, "LLM07")).toBe("系统提示词泄露");
+    expect(strategyLabel(tZh, "mutation")).toBe("Mutations");
+    expect(owaspItemLabel(tZh, "LLM07")).toBe("System Prompt Leakage");
     expect(builtinLevelLabel(tZh, 1)).toEqual({ name: "等级 1 · 无防护", desc: "未做任何安全防护" });
   });
 

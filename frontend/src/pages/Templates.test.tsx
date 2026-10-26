@@ -7,7 +7,7 @@ import { Templates } from "./Templates";
 vi.mock("../components/Toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
 vi.mock("../api/client", () => ({ request: vi.fn() }));
 
-it("names attack categories and their purpose in Chinese, keeping unknown ones as sent", async () => {
+it("names attack categories by taxonomy name with a Chinese description, keeping unknown ones as sent", async () => {
   vi.mocked(request).mockResolvedValue({
     data: [
       {
@@ -22,9 +22,9 @@ it("names attack categories and their purpose in Chinese, keeping unknown ones a
   });
   render(<LocaleProvider><Templates /></LocaleProvider>);
 
-  expect(await screen.findByText("间接提示注入")).toBeInTheDocument();
+  expect(await screen.findByText("Indirect Prompt Injection")).toBeInTheDocument();
   expect(screen.getByText(/测试目标能否被外部内容/)).toBeInTheDocument();
-  expect(screen.queryByText("Indirect Prompt Injection")).not.toBeInTheDocument();
+  expect(screen.queryByText(/Test whether the target AI can be manipulated via malicious/)).not.toBeInTheDocument();
   expect(screen.getByText("Custom Pack")).toBeInTheDocument();
   expect(screen.getByText("Team-specific templates.")).toBeInTheDocument();
 });

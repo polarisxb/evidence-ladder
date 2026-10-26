@@ -31,7 +31,7 @@ beforeEach(() => {
 });
 
 describe("dashboard charts in the Chinese UI", () => {
-  it("labels every attack category in Chinese, including ones the old map missed", async () => {
+  it("labels every attack category by its taxonomy name, including ones the old map missed", async () => {
     vi.mocked(getCategorySuccessRate).mockResolvedValue([
       { category: "information_disclosure", total: 4, successful: 1, evaluable: 4, not_evaluable: 0, rate: 25 },
       { category: "indirect_injection", total: 4, successful: 0, evaluable: 4, not_evaluable: 0, rate: 0 },
@@ -40,9 +40,9 @@ describe("dashboard charts in the Chinese UI", () => {
     zh(<CategoryBarChart />);
 
     // Recharts also renders a hidden copy of tick text for measuring.
-    expect((await screen.findAllByText("信息泄露")).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("间接提示注入").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("过度代理").length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("Information Disclosure")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Indirect Prompt Injection").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Excessive Agency").length).toBeGreaterThan(0);
     expect(screen.queryByText("indirect_injection")).not.toBeInTheDocument();
     expect(screen.getAllByText("成功率 %").length).toBeGreaterThan(0);
   });

@@ -35,8 +35,8 @@ it.each([null, 100])("renders unavailable posture even when legacy score is %s",
   expect(screen.queryByText("SAFE")).not.toBeInTheDocument();
   expect(screen.queryByText("未发现漏洞。")).not.toBeInTheDocument();
   expect(screen.getByText(/评估覆盖率.*0.*0\/9/)).toBeInTheDocument();
-  // Category rows use the shared Chinese label, not the server's English name.
-  expect(screen.getByText("提示注入")).toBeInTheDocument();
+  // Category rows use the shared category label, not the server's own name.
+  expect(screen.getByText("Prompt Injection")).toBeInTheDocument();
   expect(screen.queryByText("Fixture category")).not.toBeInTheDocument();
   expect(screen.getByText(/无可评样本/)).toBeInTheDocument();
 });

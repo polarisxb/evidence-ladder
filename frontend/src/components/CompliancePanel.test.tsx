@@ -20,7 +20,7 @@ it("shows unassessed coverage instead of an empty green pass rate", async () => 
   expect(screen.getByText("9 条不可评估")).toBeInTheDocument();
 });
 
-it("names OWASP items and coverage in Chinese", async () => {
+it("names OWASP items by their official names and describes coverage in Chinese", async () => {
   vi.mocked(getComplianceScore).mockResolvedValue({
     owasp_coverage: 40, atlas_coverage: 10, tested_atlas_ids: ["AML.T0051", "AML.T0054"], overall_score: 80,
     owasp_results: [
@@ -32,8 +32,8 @@ it("names OWASP items and coverage in Chinese", async () => {
   });
   render(<LocaleProvider><CompliancePanel scanId="fixture" /></LocaleProvider>);
 
-  expect(await screen.findByText("提示词注入")).toBeInTheDocument();
-  expect(screen.getByText("供应链漏洞")).toBeInTheDocument();
+  expect(await screen.findByText("Prompt Injection")).toBeInTheDocument();
+  expect(screen.getByText("Supply Chain Vulnerabilities")).toBeInTheDocument();
   expect(screen.getByText("1 个问题，通过率 75%")).toBeInTheDocument();
   expect(screen.getByText("不适用")).toBeInTheDocument();
   expect(screen.getByText("可测试的 1 项中已覆盖 1 项")).toBeInTheDocument();
