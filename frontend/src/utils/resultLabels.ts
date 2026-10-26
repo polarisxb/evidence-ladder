@@ -52,6 +52,7 @@ const CONTROL_KEYS: Record<string, string> = {
   rule_verified_finding: "common.ruleVerifiedFinding",
   attack_delta_supported: "common.attackDeltaSupported",
   discussion_supported: "common.discussionSupported",
+  attack_not_effective: "common.attackNotEffective",
   controls_inconclusive: "common.controlsInconclusive",
   controls_missing: "common.controlsMissing",
   passed: "common.passed",

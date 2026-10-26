@@ -256,6 +256,7 @@ export const zh = {
     // Control assessment
     attackDeltaSupported: "攻击差异支持",
     discussionSupported: "讨论差异支持",
+    attackNotEffective: "攻击未生效",
     controlsInconclusive: "控制组不确定",
     controlsMissing: "缺少控制组",
     controlSummary: "控制组摘要",

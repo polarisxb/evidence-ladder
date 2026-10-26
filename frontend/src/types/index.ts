@@ -551,6 +551,7 @@ export interface AttackResult {
   control_assessment?:
     | "attack_delta_supported"
     | "discussion_supported"
+    | "attack_not_effective"
     | "controls_inconclusive"
     | "controls_missing"
     | null;

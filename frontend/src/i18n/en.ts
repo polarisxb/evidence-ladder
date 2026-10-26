@@ -256,6 +256,7 @@ export const en = {
     // Control assessment
     attackDeltaSupported: "Attack Delta Supported",
     discussionSupported: "Discussion Supported",
+    attackNotEffective: "Attack Not Effective",
     controlsInconclusive: "Controls Inconclusive",
     controlsMissing: "Controls Missing",
     controlSummary: "Control Summary",
