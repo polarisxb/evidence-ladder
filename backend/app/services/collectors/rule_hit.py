@@ -9,10 +9,8 @@ Surfaces the two hard-evidence rules already implemented by
 Each match becomes a separate ``Evidence`` so the Arbiter R2
 (hard-evidence one-vote-confirm) can match on either independently.
 
-We re-use the existing pure helpers instead of re-implementing them so
-the Phase 3 collector remains bit-for-bit equivalent to the legacy
-engine. When Phase 5 lands more sophisticated overlap metrics, only
-``rule_hit.py`` (and its tests) need to change.
+It reuses the pure helpers from ``verdict_engine`` instead of
+re-implementing them, so both verdict paths match text the same way.
 """
 
 from __future__ import annotations

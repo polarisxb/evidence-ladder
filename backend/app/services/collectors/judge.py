@@ -47,7 +47,7 @@ class JudgeCollector(Collector):
             return []
 
         confidence = float(getattr(ctx.analysis, "confidence", 0.0) or 0.0)
-        # Clamp into [0, 1]; some legacy rows have garbage values.
+        # Clamp into [0, 1]; stored confidences can fall outside it.
         confidence = max(0.0, min(1.0, confidence))
 
         if outcome in _ATTACK_OUTCOMES:

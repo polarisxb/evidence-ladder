@@ -2,7 +2,7 @@
 
 A ``Collector`` is a small, single-responsibility unit that emits
 ``Evidence`` from a frozen view of one case. It is the building block of
-the Phase 4 Arbiter.
+the verdict arbiter.
 
 Two design rules enforced here:
 
@@ -38,7 +38,7 @@ class CollectorContext:
 
     Field naming mirrors what the legacy ``classify_verdict`` already
     receives, plus the two new fields (``business_verification_status``
-    and ``response_evaluation``) that Phase 4 Arbiter R3 needs.
+    and ``response_evaluation``) that arbiter rule R3 needs.
     """
 
     attack_payload: str

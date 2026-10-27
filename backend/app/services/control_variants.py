@@ -257,8 +257,7 @@ def summarize_control_comparison(
 
     if analysis.blackbox_outcome == "NO_INJECTION_SUCCESS":
         # Nothing landed, so there is no attack-only behavior for the controls
-        # to separate. Falling through to "inconclusive" made every defended
-        # case look like a weak comparison.
+        # to separate.
         return {
             "control_assessment": "attack_not_effective",
             "control_summary": "The attack did not take effect, so there is no attack-specific behavior for the control variants to separate.",
