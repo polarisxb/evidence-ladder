@@ -1,4 +1,4 @@
-"""Verdict arbiter — Phase 4 of the architecture rollout.
+"""Verdict arbiter: fuses multi-source evidence into one verdict.
 
 Given a ``CollectorContext``, run every Collector, fuse their
 ``Evidence`` chain, and apply rules R2-R8 (R1 is handled upstream by
@@ -7,13 +7,12 @@ that downstream code reads exactly like the legacy ``classify_verdict``
 dict: the ``status`` field aligns with the existing ``VerdictStatus``
 literal so ``finding_classifier`` and friends keep working.
 
-Phase 4a (this commit): pure logic + tests. **Not wired into
-case_executor** — the legacy ``classify_verdict`` continues to drive
-production behaviour. Phase 4b will add shadow mode + feature flag
-switchover.
+``case_executor`` runs it through ``_run_verdict_with_shadow``: with
+``verdict_arbiter_enabled`` its verdict is the one recorded; with
+``verdict_arbiter_shadow_mode`` it runs next to ``classify_verdict`` and
+its result is kept for comparison. By default ``classify_verdict`` decides.
 
-Rule cheat sheet (full prose in
-``docs/dev-notes/verdict_architecture_design.zh-CN.md`` §7):
+Rule cheat sheet:
 
 | Rule | When                                                    | Output                |
 | ---- | ------------------------------------------------------- | --------------------- |
@@ -63,10 +62,7 @@ logger = logging.getLogger(__name__)
 class StrictnessProfile:
     """Tunable thresholds for the arbiter.
 
-    Phase 4a hard-codes the active profile to ``BALANCED_PROFILE``.
-    Phase 6 will surface this to the per-target config so different
-    customers can pick their own trade-off between automation and
-    sensitivity.
+    The active profile is ``BALANCED_PROFILE``.
 
     R5 uses a weighted-count model rather than raw evidence count:
     one ``strong`` defense weighs 2 (matches a confidence ≥ 0.80
@@ -323,7 +319,7 @@ def _r4_strong_attack(
 
 
 # ---------------------------------------------------------------------------
-# R5 · consensus defense (the manual-review-rate killer)
+# R5 · consensus defense
 # ---------------------------------------------------------------------------
 
 

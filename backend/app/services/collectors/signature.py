@@ -1,6 +1,6 @@
 """Refusal-signature collector.
 
-Wraps the Phase 1 ``match_refusal_signature`` library so the Arbiter
+Wraps the ``match_refusal_signature`` library so the Arbiter
 can read it as just another piece of ``defense_success`` evidence,
 instead of having a special case in its rules.
 
@@ -27,8 +27,8 @@ class SignatureCollector(Collector):
     source = "refusal_signature"
 
     def collect(self, ctx: CollectorContext) -> list[Evidence]:
-        # Allow target_config to inject extra signatures (per Phase 1
-        # design: ``extra_signatures`` is a per-target customisation).
+        # Allow target_config to inject extra signatures
+        # (``extra_signatures`` is a per-target customisation).
         extras = None
         if ctx.target_config:
             value = ctx.target_config.get("refusal_signatures")

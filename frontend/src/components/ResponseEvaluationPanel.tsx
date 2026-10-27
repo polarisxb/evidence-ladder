@@ -17,7 +17,7 @@ function resolveProvenanceStatus(evaluation: ResponseEvaluation): ProvenanceStat
   if (evaluation.model_invoked === false) return "blocked";
   if (evaluation.model_invoked === true && evaluation.post_processed === true) return "post_processed";
   if (evaluation.model_invoked === true) return "model";
-  // Fallback: derive from legacy response_origin
+  // Fallback: derive from response_origin
   const origin = evaluation.response_origin;
   if (origin === "model") return "model";
   if (origin === "app_fallback") return "blocked";
@@ -26,12 +26,12 @@ function resolveProvenanceStatus(evaluation: ResponseEvaluation): ProvenanceStat
 }
 
 const STATUS_CONFIG: Record<ProvenanceStatus, {
-  icon: string; Icon: LucideIcon; iconClass: string; borderColor: string; bgColor: string; q1Key: string; q2Key: string;
+  Icon: LucideIcon; iconClass: string; borderColor: string; bgColor: string; q1Key: string; q2Key: string;
 }> = {
-  model:          { icon: "🧠", Icon: CheckCircle2, iconClass: "text-emerald-600", borderColor: "border-emerald-200", bgColor: "bg-emerald-50/60", q1Key: "results.provenanceModelInvokedTrue",  q2Key: "results.provenancePostProcessedFalse" },
-  post_processed: { icon: "✏️", Icon: PenLine,      iconClass: "text-amber-600",   borderColor: "border-amber-200",   bgColor: "bg-amber-50/60",   q1Key: "results.provenanceModelInvokedTrue",  q2Key: "results.provenancePostProcessedTrue" },
-  blocked:        { icon: "🛡️", Icon: ShieldAlert,  iconClass: "text-blue-600",    borderColor: "border-blue-200",    bgColor: "bg-blue-50/60",    q1Key: "results.provenanceModelInvokedFalse", q2Key: "" },
-  uncertain:      { icon: "❓", Icon: HelpCircle,   iconClass: "text-slate-500",   borderColor: "border-slate-200",   bgColor: "bg-slate-50/60",   q1Key: "results.provenanceUnknown",           q2Key: "" },
+  model:          { Icon: CheckCircle2, iconClass: "text-emerald-600", borderColor: "border-emerald-200", bgColor: "bg-emerald-50/60", q1Key: "results.provenanceModelInvokedTrue",  q2Key: "results.provenancePostProcessedFalse" },
+  post_processed: { Icon: PenLine,      iconClass: "text-amber-600",   borderColor: "border-amber-200",   bgColor: "bg-amber-50/60",   q1Key: "results.provenanceModelInvokedTrue",  q2Key: "results.provenancePostProcessedTrue" },
+  blocked:        { Icon: ShieldAlert,  iconClass: "text-blue-600",    borderColor: "border-blue-200",    bgColor: "bg-blue-50/60",    q1Key: "results.provenanceModelInvokedFalse", q2Key: "" },
+  uncertain:      { Icon: HelpCircle,   iconClass: "text-slate-500",   borderColor: "border-slate-200",   bgColor: "bg-slate-50/60",   q1Key: "results.provenanceUnknown",           q2Key: "" },
 };
 
 const CHIP = "inline-flex px-2 py-0.5 rounded text-[11px] bg-white text-slate-700 border border-slate-200";
@@ -199,14 +199,17 @@ export function ResponseEvaluationPanel({ evaluation, t, variant = "card" }: Res
       {/* Primary two-question display */}
       <div className="space-y-1">
         <div className="flex items-start gap-2">
-          <span className="text-base leading-5">{cfg.icon}</span>
+          <cfg.Icon className={`mt-0.5 h-4 w-4 shrink-0 ${cfg.iconClass}`} aria-hidden />
           <span className="text-sm font-medium text-slate-900">{_t(cfg.q1Key)}</span>
         </div>
         {cfg.q2Key && (
-          <div className="flex items-start gap-2 ml-6">
-            <span className="text-xs text-slate-600">
-              {status === "post_processed" ? "✏️" : "✅"} {_t(cfg.q2Key)}
-            </span>
+          <div className="flex items-center gap-1.5 ml-6 text-xs text-slate-600">
+            {status === "post_processed" ? (
+              <PenLine className="h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
+            ) : (
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
+            )}
+            <span>{_t(cfg.q2Key)}</span>
           </div>
         )}
         {reason && (

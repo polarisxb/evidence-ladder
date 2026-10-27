@@ -1,27 +1,22 @@
-"""Evidence data model (Phase 2 of the verdict architecture rollout).
+"""Evidence data model for multi-source verdicts.
 
-Phase 2 is a **contract-only** phase: we introduce ``Evidence`` and
-``Verdict`` dataclasses plus a ``legacy_classify_verdict_as_evidence``
-adapter that packages the existing ``classify_verdict`` output into
-that contract. **Runtime behaviour is unchanged** — nothing in the
-production pipeline calls this module yet. Phase 3 will start populating
-``evidence_chain`` from independent ``Collector`` classes; Phase 4 will
-replace the inner call to ``classify_verdict``.
+Each source that can say something about a case — rule matches, the AI
+judge, behavior flags, the control comparison, refusal signatures,
+business probes and the response screener — reports ``Evidence`` with a
+direction and a strength. The verdict arbiter fuses that chain into one
+``Verdict``. ``legacy_classify_verdict_as_evidence`` packages the output
+of ``verdict_engine.classify_verdict`` in the same shape, so the two can
+be compared case by case.
 
-Design references:
-- ``docs/dev-notes/verdict_architecture_design.zh-CN.md`` §6 data models
-- ``docs/dev-notes/verdict_architecture_rollout.zh-CN.md`` §2
+Two constraints this module keeps:
 
-Two hard constraints this module must honour:
-
-1. The output ``Verdict.status`` must equal the legacy
-   ``classify_verdict``'s ``verdict_status`` for the same input, so
-   downstream code (``finding_classifier``, ``compute_posture_metrics``,
-   serializers) keeps working unchanged.
+1. ``Verdict.status`` uses the same values as ``classify_verdict``'s
+   ``verdict_status``, so downstream code (``finding_classifier``,
+   ``compute_posture_metrics``, serializers) reads either one unchanged.
 2. ``Evidence`` objects are ``frozen`` so they can never be mutated in
    place; a Collector that wants to refine an evidence item must emit a
-   new one. This is what lets the future ``Arbiter`` reason about the
-   set of evidence without worrying about hidden state.
+   new one. This lets the arbiter reason about the set of evidence
+   without worrying about hidden state.
 """
 
 from __future__ import annotations
@@ -48,15 +43,15 @@ EvidenceSource = Literal[
     "behavior_flag",
     # Control variant delta (discussion_supported / attack_delta_supported).
     "control_comparison",
-    # Known refusal templates (Phase 1 ``refusal_signatures`` library).
+    # Known refusal templates (``refusal_signatures`` library).
     "refusal_signature",
     # Business verification probes (adapter targets only).
     "probe_verification",
     # Response screener outcome (not_evaluable short-circuit).
     "response_screener",
-    # Semantic pattern layer (planned for later phases).
+    # Semantic pattern layer (reserved; no collector emits it yet).
     "semantic_pattern",
-    # Transitional wrapper used by Phase 2 adapter until Collectors land.
+    # Summary evidence from ``legacy_classify_verdict_as_evidence``.
     "legacy_verdict_engine",
 ]
 
@@ -88,11 +83,10 @@ VerdictStatus = Literal[
 ]
 
 
-# Sub-category for ``needs_review`` results, used by Phase 4 Arbiter to
-# tell the UI *why* the case landed on the human queue. Phase 2 adapter
-# always emits ``None`` because legacy ``classify_verdict`` does not
-# distinguish these paths — but the field exists now so Collectors and
-# Arbiter can fill it without schema churn later.
+# Sub-category for ``needs_review`` results, set by the arbiter to tell the
+# UI *why* the case landed on the human queue. The ``classify_verdict``
+# adapter always emits ``None`` because that engine does not distinguish
+# these paths.
 NeedsReviewCategory = Literal[
     "conflict",        # opposing strong evidence on both sides
     "weak_signals",    # nothing strong enough in either direction
@@ -145,7 +139,7 @@ class Verdict:
     ``status`` and ``reason`` are what the downstream pipeline already
     understands (they mirror the legacy ``classify_verdict`` keys). The
     extra fields — ``evidence_chain``, ``needs_review_category``,
-    ``arbiter_rule_hit`` — are new surface area that Phase 4+ will fill.
+    ``arbiter_rule_hit`` — are filled by the arbiter.
     """
 
     status: VerdictStatus
@@ -172,8 +166,8 @@ class Verdict:
 
 
 # Mapping from legacy ``verdict_status`` to ``(direction, strength)`` for
-# the single wrapped evidence. Chosen conservatively so a future Arbiter
-# that re-reads these evidences still gets the same verdict back.
+# the single wrapped evidence. Chosen conservatively so the arbiter,
+# re-reading these evidences, reaches the same verdict.
 _LEGACY_STATUS_TO_EVIDENCE_PROFILE: dict[VerdictStatus, tuple[EvidenceDirection, EvidenceStrength]] = {
     # Hard rule hits — canary/prompt overlap. Arbiter R2 will match on
     # ``(attack_success, hard)``.
@@ -199,10 +193,9 @@ _LEGACY_STATUS_TO_EVIDENCE_PROFILE: dict[VerdictStatus, tuple[EvidenceDirection,
 def _rule_hits_to_evidence(rule_hits: list[dict[str, Any]]) -> list[Evidence]:
     """Upgrade the legacy ``rule_hits`` list to typed Evidence objects.
 
-    Canary matches and prompt-overlap matches already live in this list
-    in the legacy output, so for Phase 2 we peel them out into proper
-    ``Evidence`` records alongside the wrapped verdict. Phase 3 will
-    replace this with a dedicated ``RuleHitCollector``.
+    Canary matches and prompt-overlap matches already live in this list,
+    so they become ``Evidence`` records of their own next to the wrapped
+    verdict, the same records ``RuleHitCollector`` emits.
     """
 
     result: list[Evidence] = []
@@ -272,9 +265,8 @@ def legacy_classify_verdict_as_evidence(
     chain: list[Evidence] = _rule_hits_to_evidence(rule_hits)
 
     # Add one summary evidence that represents "what the legacy engine
-    # thought overall". This is the ``legacy_verdict_engine`` tag so
-    # future Arbiter code can distinguish Phase 2 wrappers from real
-    # Collector output.
+    # thought overall", tagged ``legacy_verdict_engine`` so it stays
+    # apart from Collector output.
     direction, strength = _LEGACY_STATUS_TO_EVIDENCE_PROFILE.get(
         status, ("inconclusive", "weak")
     )

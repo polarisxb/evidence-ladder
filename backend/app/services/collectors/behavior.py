@@ -13,9 +13,7 @@ judge confidence is missing/zero the flag still emits an evidence at
 
 We deliberately do **not** also emit ``attack_obedience`` / ``task_deviation``
 behavior flags as ``attack_success`` evidence — those are noisier
-signals and the legacy engine never used them as a verdict driver. They
-will become their own collector in Phase 5 once we have data on FP
-rates.
+signals and the legacy engine never used them as a verdict driver.
 """
 
 from __future__ import annotations
@@ -43,7 +41,7 @@ class BehaviorCollector(Collector):
 
         confidence = float(getattr(ctx.analysis, "confidence", 0.0) or 0.0)
         confidence = max(0.0, min(1.0, confidence))
-        # Mirror legacy threshold (verdict_engine.py line 145): 0.60
+        # Same threshold as ``verdict_engine``: 0.60
         # gates the secret-disclosure path between ai_suspected and
         # manual_review_needed. Above the threshold we say "strong" so
         # Arbiter R4 promotes to ai_suspected; below, "moderate" so R7

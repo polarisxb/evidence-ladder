@@ -68,7 +68,7 @@ app.include_router(api_router)
 
 
 def _validate_auth_config() -> None:
-    """Stage 1.1a — fail-fast guard for default-deny auth misconfiguration.
+    """Fail fast on a default-deny auth misconfiguration.
 
     When ``settings.auth_required`` is True the platform must have a
     non-empty ``settings.app_secret``; otherwise every authenticated

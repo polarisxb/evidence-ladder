@@ -42,10 +42,12 @@ describe("ResponseEvaluationPanel", () => {
     expect(screen.getByText("502")).toBeInTheDocument();
   });
 
-  it("keeps the card form for pages that show it on its own", () => {
+  it("keeps the card form for pages that show it on its own, with icons instead of emoji", () => {
     const { container } = renderZh({ evaluation: MODEL_REPLY });
 
     expect(container.querySelector(".rounded-lg.border")).not.toBeNull();
+    expect(container.textContent).not.toMatch(/\p{Extended_Pictographic}/u);
+    expect(container.querySelectorAll("svg")).toHaveLength(2);
     expect(screen.getByText("高置信度")).toBeInTheDocument();
     expect(screen.queryByText("High")).not.toBeInTheDocument();
   });

@@ -93,9 +93,9 @@ def classify_verdict(
         # Provenance gate: a canary token that only appears quoted/echoed in
         # the response text — never reaching a tool call or business state, and
         # not a genuine leak-category disclosure — is weak provenance. On its
-        # own it must NOT auto-confirm the finding as ``rule_verified`` (that is
-        # the legacy false-positive this gate removes). The token is still
-        # surfaced in ``rule_hits`` so the report keeps the canary journey.
+        # own it must NOT auto-confirm the finding as ``rule_verified``. The
+        # token is still surfaced in ``rule_hits`` so the report keeps the
+        # canary journey.
         prov = trace_canary({
             "rule_hits": [canary_hit],
             "attack_category": attack_category,

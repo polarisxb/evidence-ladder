@@ -1,8 +1,8 @@
 """Business-verification probe collector.
 
 ``business_verification_status`` is set by ``case_executor`` after it
-runs an out-of-band probe against an adapter target's audit endpoints
-(see Phase 3 probe regression). It is the **strongest** non-canary
+runs an out-of-band probe against an adapter target's audit endpoints.
+It is the **strongest** non-canary
 signal we have because it queries actual database state rather than
 inferring from text.
 
