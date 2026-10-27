@@ -32,8 +32,9 @@ from app.services.case_executor import (
 
 # Control-comparison outcomes where a control variant tracked the attack
 # behaviour closely enough that the original "success" is a false-positive
-# signal the arbiter cannot see from the attack result alone.
-_CONTRADICTION_ASSESSMENTS = {"discussion_supported", "controls_inconclusive"}
+# signal the arbiter cannot see from the attack result alone, or where the
+# retested attack did not take effect at all.
+_CONTRADICTION_ASSESSMENTS = {"discussion_supported", "controls_inconclusive", "attack_not_effective"}
 
 
 class RealRetestExecutor:

@@ -37,6 +37,7 @@ _CONFIRMING_CONTROL_ASSESSMENTS = {
 }
 _OVERTURNING_CONTROL_ASSESSMENTS = {
     "discussion_supported",
+    "attack_not_effective",
     "passed",
     "false_positive",
 }

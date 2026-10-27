@@ -17,6 +17,7 @@ import {
   targetTypeLabel,
   type Translate,
 } from "./labels";
+import { controlClasses, controlLabel } from "./resultLabels";
 
 /** A `t` over one locale table that behaves like useLocale's: key when missing, `{var}` substitution. */
 function translator(table: unknown): Translate {
@@ -124,5 +125,18 @@ describe("localizeHealthReason", () => {
     expect(localizeHealthReason(tZh, null)).toBeNull();
     const english = "High non-evaluable ratio during scan: 8/10 recent responses.";
     expect(localizeHealthReason(tEn, english)).toBe(english);
+  });
+});
+
+describe("control assessment labels", () => {
+  it("names a defended attack instead of calling its controls inconclusive", () => {
+    expect(controlLabel("attack_not_effective", tZh)).toBe("攻击未生效");
+    expect(controlLabel("attack_not_effective", tEn)).toBe("Attack Not Effective");
+    expect(controlLabel("controls_inconclusive", tZh)).toBe("控制组不确定");
+  });
+
+  it("shows it in neutral gray and keeps amber for a comparison that really is inconclusive", () => {
+    expect(controlClasses("attack_not_effective")).toContain("bg-gray-100");
+    expect(controlClasses("controls_inconclusive")).toContain("bg-amber-50");
   });
 });
