@@ -1182,7 +1182,24 @@ async def _broadcast_scan_terminal(ws_clients: dict, task: ScanTask, *, error: s
         })
 
 
+# Scans this process is executing right now. A pending/running row outside this
+# set has no runner (e.g. the backend restarted mid-scan) and will not progress.
+_active_scan_ids: set[str] = set()
+
+
+def is_scan_runner_active(task_id: str) -> bool:
+    return task_id in _active_scan_ids
+
+
 async def run_scan(task_id: str, ws_clients: dict[str, list[WebSocket]]):
+    _active_scan_ids.add(task_id)
+    try:
+        await _run_scan(task_id, ws_clients)
+    finally:
+        _active_scan_ids.discard(task_id)
+
+
+async def _run_scan(task_id: str, ws_clients: dict[str, list[WebSocket]]):
     async with async_session() as db:
         result = await db.execute(select(ScanTask).where(ScanTask.id == task_id))
         task = result.scalar_one_or_none()

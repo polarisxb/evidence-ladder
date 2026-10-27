@@ -1,4 +1,4 @@
-"""Seed (or update) the ``mailbot-agent`` adapter from its JSON fixture.
+"""Seed (or reset) the ``mailbot-agent`` adapter from its JSON fixture.
 
 The adapter wires the Evidence-Ladder platform to the MailBot function-calling
 agent so an indirect-prompt-injection scan can light up E4 (tool logs observed
@@ -10,69 +10,36 @@ inbox to ``attacker-evil.com``, yet the user-facing reply looks normal —
 Usage::
 
     cd backend && python -m app.scripts.seed_mailbot_adapter
-    # outside Docker Compose the service name does not resolve; point at localhost:
-    cd backend && python -m app.scripts.seed_mailbot_adapter --base-url http://localhost:8003
+    # the base URL defaults to MOCK_MAILBOT_URL (http://localhost:8003; Docker
+    # Compose sets http://mailbot:8003). Point it elsewhere with:
+    cd backend && python -m app.scripts.seed_mailbot_adapter --base-url http://10.0.0.5:8003
 
-The operation is idempotent: an existing adapter with the same ``name`` is
-updated in place; otherwise a new row is created.
+The Adapters page imports the same definition ("示例适配器") but never touches an
+existing adapter; this script resets an existing ``mailbot-agent`` to the
+fixture, or creates it.
 """
 
 from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 from pathlib import Path
 
-from sqlalchemy import select
-
 from app.database import async_session, init_db
-from app.models import Adapter
-from app.schemas.adapter import AdapterCreate
+from app.services.sample_adapters import SAMPLE_ADAPTERS, load_adapter_definition, upsert_adapter
 
-DEFAULT_FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "mailbot_agent_adapter.json"
-
-
-def _adapter_payload(body: AdapterCreate) -> dict:
-    data = body.model_dump(exclude_none=True)
-    for key in ("auth_config", "session_config", "invoke_config", "response_extract", "probe_config"):
-        value = getattr(body, key, None)
-        if value is not None and hasattr(value, "model_dump"):
-            data[key] = value.model_dump(exclude_none=True)
-    return data
-
-
-def load_adapter_definition(fixture_path: Path, base_url: str | None = None) -> AdapterCreate:
-    raw = json.loads(fixture_path.read_text(encoding="utf-8"))
-    if base_url:
-        raw["base_url"] = base_url.rstrip("/")
-    return AdapterCreate.model_validate(raw)
+SPEC = SAMPLE_ADAPTERS["mailbot"]
+DEFAULT_FIXTURE = SPEC.fixture_path
 
 
 async def seed_adapter(fixture_path: Path, base_url: str | None = None) -> str:
-    definition = load_adapter_definition(fixture_path, base_url=base_url)
-    payload = _adapter_payload(definition)
+    definition = load_adapter_definition(fixture_path, base_url=base_url or SPEC.configured_base_url())
 
     await init_db()
     async with async_session() as session:
-        existing = (
-            await session.execute(select(Adapter).where(Adapter.name == definition.name))
-        ).scalar_one_or_none()
-
-        if existing is None:
-            adapter = Adapter(**payload)
-            session.add(adapter)
-            action = "created"
-        else:
-            for key, value in payload.items():
-                setattr(existing, key, value)
-            adapter = existing
-            action = "updated"
-
-        await session.commit()
-        await session.refresh(adapter)
-        print(f"mailbot-agent adapter {action}: id={adapter.id}")
-        return adapter.id
+        adapter, created = await upsert_adapter(session, definition, overwrite=True)
+    print(f"mailbot-agent adapter {'created' if created else 'updated'}: id={adapter.id}")
+    return adapter.id
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -82,7 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--base-url",
         type=str,
         default=None,
-        help="Override the fixture base_url (e.g. http://localhost:8003 when not running under Compose).",
+        help="Override the MailBot base URL (default: MOCK_MAILBOT_URL).",
     )
     return parser
 

@@ -288,7 +288,7 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 
 ```bash
 curl http://localhost:8000/health
-# 期望: {"status":"ok"}（以实际响应为准）
+# 期望: {"status":"ok","app":"Evidence-Ladder","version":"1.0.0"}
 ```
 
 ### 6.2 文档与界面
@@ -301,6 +301,19 @@ curl http://localhost:8000/health
 1. **设置** → 添加供应商并 **测试** 连通。  
 2. **新建扫描** → 内置靶场低等级 → 启动任务。  
 3. 待完成后查看 **结果** 与 **报告**。  
+4. （可选，Agent 靶场）**适配器** → 「示例适配器」导入 MailBot / ShopBot，或在 **新建扫描** 点击对应靶机预设（会自动导入），即可采集工具调用（E4）与业务探针（E5）证据。  
+
+### 6.4 靶场地址
+
+示例适配器与新建扫描的靶机预设通过以下配置访问 `mock_targets/` 靶场：
+
+| 变量 | 默认值（本地） | Docker Compose |
+|------|----------------|----------------|
+| `MOCK_FINANCEBOT_URL` | `http://localhost:8001` | `http://financebot:8001` |
+| `MOCK_SHOPBOT_URL` | `http://localhost:8002` | `http://shopbot:8002` |
+| `MOCK_MAILBOT_URL` | `http://localhost:8003` | `http://mailbot:8003` |
+
+Compose 已在 `docker-compose.yml` 中设置服务名地址；靶场部署在其他主机时，在根目录 `.env` 中覆盖即可。命令行 `python -m app.scripts.seed_mailbot_adapter`（或 `seed_shopbot_adapter`）会把同名适配器重置为内置定义。
 
 ---
 

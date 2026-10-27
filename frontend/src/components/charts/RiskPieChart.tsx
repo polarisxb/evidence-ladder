@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { getRiskDistribution, type RiskDistribution } from "../../api/stats";
 import { chartLegendTextColor, chartTooltipContentStyle } from "../../utils/chartTheme";
+import { useLocale } from "../../i18n";
+import { riskLevelLabel } from "../../utils/labels";
 
 const COLORS: Record<string, string> = {
   critical: "#ef4444",
@@ -11,6 +13,7 @@ const COLORS: Record<string, string> = {
 };
 
 export function RiskPieChart() {
+  const { t } = useLocale();
   const [data, setData] = useState<RiskDistribution | null>(null);
 
   useEffect(() => {
@@ -20,7 +23,7 @@ export function RiskPieChart() {
   if (!data) {
     return (
       <div className="h-64 flex items-center justify-center text-gray-500 text-sm">
-        No vulnerability data
+        {t("charts.noVulnerabilityData")}
       </div>
     );
   }
@@ -29,17 +32,14 @@ export function RiskPieChart() {
   if (total === 0) {
     return (
       <div className="h-64 flex items-center justify-center text-gray-500 text-sm">
-        No vulnerabilities found
+        {t("charts.noVulnerabilities")}
       </div>
     );
   }
 
-  const chartData = [
-    { name: "Critical", value: data.critical },
-    { name: "High", value: data.high },
-    { name: "Medium", value: data.medium },
-    { name: "Low", value: data.low },
-  ].filter((d) => d.value > 0);
+  const chartData = (["critical", "high", "medium", "low"] as const)
+    .map((level) => ({ level, name: riskLevelLabel(t, level), value: data[level] }))
+    .filter((d) => d.value > 0);
 
   return (
     <ResponsiveContainer width="100%" height={260}>
@@ -55,7 +55,7 @@ export function RiskPieChart() {
           stroke="none"
         >
           {chartData.map((entry) => (
-            <Cell key={entry.name} fill={COLORS[entry.name.toLowerCase()]} />
+            <Cell key={entry.level} fill={COLORS[entry.level]} />
           ))}
         </Pie>
         <Tooltip contentStyle={chartTooltipContentStyle} />

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from app.config import settings
 from app.models.scan_task import ScanTask
 from app.schemas.report import CategoryScore, SecurityReport
 from app.services.risk_scorer import (
@@ -12,6 +13,7 @@ from app.services.risk_scorer import (
 from app.services.response_screening import extract_response_evaluation, is_not_evaluable_response
 from app.services.concealment_detector import detect_concealment
 from app.services.canary_tracer import canary_provenance_payload
+from app.version import APP_FULL_NAME, APP_VERSION_LABEL
 
 logger = logging.getLogger(__name__)
 
@@ -315,12 +317,13 @@ def generate_report(task: ScanTask) -> SecurityReport:
                 "response_evaluation": extract_response_evaluation(raw),
             })
 
-    recommendations = _generate_recommendations(findings_by_level, category_scores)
+    recommendation_codes = _recommendation_codes(findings_by_level, category_scores)
     if posture["evaluation_status"] != "complete":
-        recommendations = [
-            "Evaluation is incomplete. Restore judge/target availability and retest unevaluable samples before drawing a safety conclusion.",
-            *[rec for rec in recommendations if not rec.startswith("No critical issues found.")],
+        recommendation_codes = [
+            "evaluation_incomplete",
+            *[code for code in recommendation_codes if code != "no_critical_issues"],
         ]
+    recommendations = [RECOMMENDATION_TEXT[code] for code in recommendation_codes]
 
     return SecurityReport(
         scan_id=task.id,
@@ -381,6 +384,7 @@ def generate_report(task: ScanTask) -> SecurityReport:
         medium_findings=findings_by_level["medium"],
         low_findings=findings_by_level["low"],
         recommendations=recommendations,
+        recommendation_codes=recommendation_codes,
     )
 
 
@@ -424,34 +428,34 @@ def _build_category_scores(results) -> list[CategoryScore]:
     return scores
 
 
-def _generate_recommendations(findings: dict, category_scores: list[CategoryScore]) -> list[str]:
-    recs: list[str] = []
-    has_critical = len(findings["critical"]) > 0
+# Each recommendation has a stable code so the UI can show it in the reader's
+# language; the English text stays the API/HTML-export wording.
+RECOMMENDATION_TEXT: dict[str, str] = {
+    "evaluation_incomplete": "Evaluation is incomplete. Restore judge/target availability and retest unevaluable samples before drawing a safety conclusion.",
+    "urgent_critical": "URGENT: Critical vulnerabilities detected. Immediate remediation required before deployment.",
+    "prompt_injection": "Implement input sanitization and instruction-data separation to defend against prompt injection.",
+    "system_prompt_extraction": "Harden system prompts and add canary tokens to detect extraction attempts.",
+    "jailbreak": "Deploy multi-layer content filtering and monitor for jailbreak patterns.",
+    "information_disclosure": "Add output scanning to prevent leakage of PII, credentials, and internal configuration.",
+    "indirect_injection": "Apply Spotlighting or equivalent input-source tagging to prevent injected instructions in retrieved documents, emails, and tool results from being treated as trusted directives.",
+    "excessive_agency": "Enforce a minimal-permission tool policy and require explicit user confirmation before any irreversible or high-impact action is taken by the AI agent.",
+    "denial_of_service": "Impose output token limits and request complexity budgets to prevent resource exhaustion from recursive or unbounded generation requests.",
+    "no_critical_issues": "No critical issues found. Continue regular security testing to maintain security posture.",
+}
 
-    if has_critical:
-        recs.append("URGENT: Critical vulnerabilities detected. Immediate remediation required before deployment.")
 
+def _recommendation_codes(findings: dict, category_scores: list[CategoryScore]) -> list[str]:
+    codes: list[str] = []
+    if findings["critical"]:
+        codes.append("urgent_critical")
     for cs in category_scores:
-        if cs.risk_level in ("critical", "high"):
-            if cs.category == "prompt_injection":
-                recs.append("Implement input sanitization and instruction-data separation to defend against prompt injection.")
-            elif cs.category == "system_prompt_extraction":
-                recs.append("Harden system prompts and add canary tokens to detect extraction attempts.")
-            elif cs.category == "jailbreak":
-                recs.append("Deploy multi-layer content filtering and monitor for jailbreak patterns.")
-            elif cs.category == "information_disclosure":
-                recs.append("Add output scanning to prevent leakage of PII, credentials, and internal configuration.")
-            elif cs.category == "indirect_injection":
-                recs.append("Apply Spotlighting or equivalent input-source tagging to prevent injected instructions in retrieved documents, emails, and tool results from being treated as trusted directives.")
-            elif cs.category == "excessive_agency":
-                recs.append("Enforce a minimal-permission tool policy and require explicit user confirmation before any irreversible or high-impact action is taken by the AI agent.")
-            elif cs.category == "denial_of_service":
-                recs.append("Impose output token limits and request complexity budgets to prevent resource exhaustion from recursive or unbounded generation requests.")
+        if cs.risk_level in ("critical", "high") and cs.category in RECOMMENDATION_TEXT:
+            codes.append(cs.category)
+    return codes or ["no_critical_issues"]
 
-    if not recs:
-        recs.append("No critical issues found. Continue regular security testing to maintain security posture.")
 
-    return recs
+def _generate_recommendations(findings: dict, category_scores: list[CategoryScore]) -> list[str]:
+    return [RECOMMENDATION_TEXT[code] for code in _recommendation_codes(findings, category_scores)]
 
 
 def render_html_report(report: SecurityReport) -> str:
@@ -476,5 +480,8 @@ def render_html_report(report: SecurityReport) -> str:
             all_findings.append({**f, "level": level, "color": Markup(risk_color_map[level])})
     data["all_findings"] = all_findings
     data["risk_color_map"] = {k: Markup(v) for k, v in risk_color_map.items()}
+    data["app_full_name"] = APP_FULL_NAME
+    data["app_short_name"] = settings.app_name
+    data["app_version_label"] = APP_VERSION_LABEL
 
     return template.render(**data)

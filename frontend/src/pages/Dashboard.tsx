@@ -5,6 +5,8 @@ import { listScans, deleteScan } from "../api/scans";
 import { getOverviewStats, type OverviewStats } from "../api/stats";
 import { useToast } from "../components/Toast";
 import { useLocale } from "../i18n";
+import { APP_VERSION_LABEL } from "../appInfo";
+import { isInterruptedScan, localizeHealthReason, scanStatusLabel, targetTypeLabel } from "../utils/labels";
 import { ListSkeleton } from "../components/Skeleton";
 import { ScoreTrendChart } from "../components/charts/ScoreTrendChart";
 import { RiskPieChart } from "../components/charts/RiskPieChart";
@@ -19,6 +21,14 @@ function isReportableScan(scan: ScanTask): boolean {
     scan.completed_attacks > 0
   );
 }
+
+const TARGET_BADGE_CLASSES: Record<string, string> = {
+  adapter: "bg-sky-50 text-sky-700 border-sky-200",
+  custom: "bg-amber-50 text-amber-800 border-amber-200",
+  openai_compatible: "bg-violet-50 text-violet-700 border-violet-200",
+  claude: "bg-orange-50 text-orange-700 border-orange-200",
+  builtin_vulnerable: "bg-gray-100 text-gray-700 border-gray-200",
+};
 
 export function Dashboard() {
   const [scans, setScans] = useState<ScanTask[]>([]);
@@ -115,7 +125,7 @@ export function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t("dashboard.title")}</h1>
-          <p className="text-gray-500 mt-1 text-sm">{t("dashboard.subtitle")}</p>
+          <p className="text-gray-500 mt-1 text-sm">{t("app.fullName")} {APP_VERSION_LABEL}</p>
         </div>
         <Link
           to="/scan/new"
@@ -241,20 +251,17 @@ export function Dashboard() {
               const risk = scoreToRisk(scan.overall_score);
               const colors = riskColors[risk];
               const isPartial = scan.status === "completed" && scan.completed_attacks < scan.total_attacks;
-              const isRunning = scan.status === "running";
+              const isInterrupted = isInterruptedScan(scan);
+              const isRunning = scan.status === "running" && !isInterrupted;
               const pct = isRunning && scan.total_attacks > 0
                 ? Math.round((scan.completed_attacks / scan.total_attacks) * 100)
                 : 0;
               const health = healthBadge(scan);
 
-              const targetBadge = (() => {
-                switch (scan.target_type) {
-                  case "adapter": return { label: "Adapter", cls: "bg-sky-50 text-sky-700 border-sky-200" };
-                  case "custom": return { label: "Custom", cls: "bg-amber-50 text-amber-800 border-amber-200" };
-                  case "openai_compatible": return { label: "OpenAI", cls: "bg-violet-50 text-violet-700 border-violet-200" };
-                  default: return { label: t("dashboard.builtin"), cls: "bg-gray-100 text-gray-700 border-gray-200" };
-                }
-              })();
+              const targetBadge = {
+                label: targetTypeLabel(t, scan.target_type),
+                cls: TARGET_BADGE_CLASSES[scan.target_type] ?? TARGET_BADGE_CLASSES.builtin_vulnerable,
+              };
 
               return (
                 <Link
@@ -283,7 +290,7 @@ export function Dashboard() {
                           </span>
                         )}
                         {scan.health_failure_reason && (
-                          <span className="truncate max-w-[420px]">{scan.health_failure_reason}</span>
+                          <span className="truncate max-w-[420px]">{localizeHealthReason(t, scan.health_failure_reason)}</span>
                         )}
                       </div>
                     )}
@@ -300,7 +307,7 @@ export function Dashboard() {
                     )}
                     {isPartial && (
                       <p className="text-xs text-amber-700 mt-1">
-                        {scan.completed_attacks}/{scan.total_attacks} tests
+                        {t("dashboard.partialTests", { done: scan.completed_attacks, total: scan.total_attacks })}
                       </p>
                     )}
                   </div>
@@ -313,17 +320,17 @@ export function Dashboard() {
                     )}
                     {scan.overall_score != null && (
                       <span className={`px-2 py-1 rounded text-xs font-mono ${colors.bg} ${colors.text}`}>
-                        {riskLabel(risk)} ({scan.overall_score})
+                        {riskLabel(risk, t)} ({scan.overall_score})
                       </span>
                     )}
                     {scan.overall_score == null && ["completed", "failed", "cancelled"].includes(scan.status) && (
                       <span className="text-xs text-slate-500">{t("report.unableToScore")}</span>
                     )}
-                    <span className={`text-xs ${isPartial ? "text-amber-700" : isRunning ? "text-indigo-600" : "text-gray-500"}`}>
-                      {isPartial ? "partial" : isRunning ? t("dashboard.running") : scan.status}
+                    <span className={`text-xs ${isPartial || isInterrupted ? "text-amber-700" : isRunning ? "text-indigo-600" : "text-gray-500"}`}>
+                      {scanStatusLabel(t, isPartial ? "partial" : isInterrupted ? "interrupted" : scan.status)}
                     </span>
                     <span className="text-xs text-gray-400">{formatDate(scan.created_at)}</span>
-                    {!isRunning && (
+                    {scan.status !== "running" && (
                       <button
                         onClick={(e) => handleDelete(e, scan.id)}
                         className="p-1 text-gray-400 hover:text-red-600 transition-colors"

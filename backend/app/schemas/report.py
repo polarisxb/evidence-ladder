@@ -70,6 +70,8 @@ class SecurityReport(BaseModel):
     medium_findings: list[dict]
     low_findings: list[dict]
     recommendations: list[str]
+    # Stable codes for ``recommendations``, in the same order (see report_generator).
+    recommendation_codes: list[str] = Field(default_factory=list)
 
 
 class CvssMetrics(BaseModel):

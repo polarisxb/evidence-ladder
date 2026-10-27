@@ -79,6 +79,10 @@ def _advanced_config(plan: AutoTestPlan, *, quartet_enabled: bool) -> AdvancedCo
         tap_max_depth=8 if enable_advanced_attacks else 5,
         pair_max_rounds=12 if enable_advanced_attacks else 5,
         mutation_strategies=list(MUTATION_STRATEGIES) if enable_mutations else [],
+        # The plan's retest budget drives the in-scan retest loop (arm B);
+        # a zero budget leaves the loop off.
+        retest_arm="B" if plan.max_retest_rounds > 0 else None,
+        max_retest_rounds=plan.max_retest_rounds or None,
     )
 
 

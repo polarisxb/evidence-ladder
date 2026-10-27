@@ -6,6 +6,7 @@ import { createAutoTestDraft } from "../api/autotest";
 import { createScan } from "../api/scans";
 import { useToast } from "../components/Toast";
 import { useLocale } from "../i18n";
+import { categoryLabel, phaseLabel, strategyLabel, targetTypeLabel, type Translate } from "../utils/labels";
 import type { Adapter, AutoTestBudget, AutoTestDraft, AutoTestPlan, AutoTestTargetType, ScanConfig } from "../types";
 
 const TARGET_TYPES: AutoTestTargetType[] = [
@@ -44,15 +45,16 @@ function PillList({ items }: { items: string[] }) {
   );
 }
 
-function enabledAdvancedItems(scanDraft: ScanConfig | null): string[] {
+function enabledAdvancedItems(scanDraft: ScanConfig | null, t: Translate): string[] {
   const advanced = scanDraft?.advanced;
   if (!advanced) return [];
 
   return [
-    advanced.enable_mutations ? "mutation" : null,
-    advanced.enable_crescendo ? "crescendo" : null,
-    advanced.enable_pair ? "pair" : null,
-    advanced.enable_tap ? "tap" : null,
+    advanced.enable_mutations ? strategyLabel(t, "mutation") : null,
+    advanced.enable_crescendo ? strategyLabel(t, "crescendo") : null,
+    advanced.enable_pair ? strategyLabel(t, "pair") : null,
+    advanced.enable_tap ? strategyLabel(t, "tap") : null,
+    advanced.retest_arm === "B" ? t("autotest.retestPill", { n: advanced.max_retest_rounds ?? 2 }) : null,
   ].filter((item): item is string => Boolean(item));
 }
 
@@ -66,6 +68,8 @@ export function AutoTest() {
   const [adapterId, setAdapterId] = useState("");
   const [adapters, setAdapters] = useState<Adapter[]>([]);
   const [budget, setBudget] = useState<AutoTestBudget>("medium");
+  // "" = let the planner pick from the budget; "0" turns the in-scan retest off.
+  const [maxRetestRounds, setMaxRetestRounds] = useState("");
   const [categories, setCategories] = useState<string[]>([
     "prompt_injection",
     "system_prompt_extraction",
@@ -87,7 +91,7 @@ export function AutoTest() {
     () => adapters.find((adapter) => adapter.id === adapterId) ?? null,
     [adapterId, adapters],
   );
-  const advancedItems = useMemo(() => enabledAdvancedItems(scanDraft), [scanDraft]);
+  const advancedItems = useMemo(() => enabledAdvancedItems(scanDraft, t), [scanDraft, t]);
 
   useEffect(() => {
     getAdapters()
@@ -127,6 +131,7 @@ export function AutoTest() {
       adapter: selectedAdapter ? { probe_config: selectedAdapter.probe_config ?? null } : null,
       attack_categories: selectedCategories,
       budget,
+      max_retest_rounds: maxRetestRounds === "" ? null : Number(maxRetestRounds),
       enable_quartet: enableQuartet,
       enable_canary: enableCanary,
       enable_probe: enableProbe,
@@ -204,7 +209,7 @@ export function AutoTest() {
               className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
             >
               {TARGET_TYPES.map((type) => (
-                <option key={type} value={type}>{type}</option>
+                <option key={type} value={type}>{targetTypeLabel(t, type)}</option>
               ))}
             </select>
           </label>
@@ -258,6 +263,23 @@ export function AutoTest() {
             </select>
           </label>
 
+          <label className="block space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              {t("autotest.retestRounds")}
+            </span>
+            <select
+              value={maxRetestRounds}
+              onChange={(event) => setMaxRetestRounds(event.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+            >
+              <option value="">{t("autotest.retestRoundsDefault")}</option>
+              <option value="0">{t("autotest.retestRoundsOff")}</option>
+              {[1, 2, 3, 4, 5].map((rounds) => (
+                <option key={rounds} value={String(rounds)}>{rounds}</option>
+              ))}
+            </select>
+          </label>
+
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
               {t("autotest.riskCategories")}
@@ -274,7 +296,7 @@ export function AutoTest() {
                     onChange={() => toggleCategory(category)}
                     className="h-4 w-4 rounded border-gray-300 text-gray-900"
                   />
-                  <span>{category}</span>
+                  <span>{categoryLabel(t, category)}</span>
                 </label>
               ))}
             </div>
@@ -372,19 +394,19 @@ export function AutoTest() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     {t("autotest.phases")}
                   </p>
-                  <PillList items={plan.phases} />
+                  <PillList items={plan.phases.map((phase) => phaseLabel(t, phase))} />
                 </div>
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     {t("autotest.strategies")}
                   </p>
-                  <PillList items={plan.strategies} />
+                  <PillList items={plan.strategies.map((strategy) => strategyLabel(t, strategy))} />
                 </div>
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     {t("autotest.riskCategories")}
                   </p>
-                  <PillList items={plan.risk_categories} />
+                  <PillList items={plan.risk_categories.map((category) => categoryLabel(t, category))} />
                 </div>
               </div>
             ) : (
@@ -406,7 +428,7 @@ export function AutoTest() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     {t("autotest.targetType")}
                   </p>
-                  <PillList items={[scanDraft.target_type]} />
+                  <PillList items={[targetTypeLabel(t, scanDraft.target_type)]} />
                 </div>
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">

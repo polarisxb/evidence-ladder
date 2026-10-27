@@ -1,4 +1,5 @@
 import type { RiskLevel } from "../types";
+import { riskLevelLabel, type Translate } from "./labels";
 
 export const riskColors: Record<RiskLevel, { bg: string; text: string; border: string }> = {
   critical: { bg: "bg-red-500/10", text: "text-red-500", border: "border-red-500" },
@@ -17,14 +18,7 @@ export function scoreToRisk(score: number | null | undefined): RiskLevel {
   return "critical";
 }
 
-export function riskLabel(level: RiskLevel): string {
-  const labels: Record<RiskLevel, string> = {
-    critical: "CRITICAL",
-    high: "HIGH",
-    medium: "MEDIUM",
-    low: "LOW",
-    none: "SAFE",
-    unknown: "UNKNOWN",
-  };
-  return labels[level];
+/** Localized risk level, e.g. 严重 / Critical. */
+export function riskLabel(level: RiskLevel, t: Translate): string {
+  return riskLevelLabel(t, level);
 }

@@ -3,6 +3,7 @@ import { Layers, ChevronDown, ChevronUp } from "lucide-react";
 import { request } from "../api/client";
 import { useToast } from "../components/Toast";
 import { useLocale } from "../i18n";
+import { categoryDescription, categoryLabel } from "../utils/labels";
 
 interface Category {
   category: string;
@@ -23,7 +24,7 @@ export function Templates() {
   useEffect(() => {
     request<{ data: Category[] }>("/templates")
       .then((res) => setCategories(res.data))
-      .catch((err) => toast("error", `Failed to load templates: ${err.message}`));
+      .catch((err) => toast("error", `${t("templates.failedToLoad")}: ${err.message}`));
   }, []);
 
   async function toggleCategory(cat: string) {
@@ -53,8 +54,8 @@ export function Templates() {
               className="w-full flex items-center gap-4 p-4 text-left hover:bg-gray-50 transition-colors"
             >
               <div className="flex-1">
-                <p className="font-medium text-gray-900">{cat.category_name}</p>
-                <p className="text-xs text-gray-500">{cat.description}</p>
+                <p className="font-medium text-gray-900">{categoryLabel(t, cat.category, cat.category_name)}</p>
+                <p className="text-xs text-gray-500">{categoryDescription(t, cat.category, cat.description)}</p>
               </div>
               <span className="text-xs text-indigo-600 font-mono">{cat.owasp_id}</span>
               <span className="text-xs text-gray-500">{cat.template_count} {t("templates.templates")}</span>

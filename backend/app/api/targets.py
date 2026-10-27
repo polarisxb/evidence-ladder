@@ -4,6 +4,8 @@ from typing import Literal
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from app.config import settings
+from app.services.sample_adapters import SAMPLE_ADAPTERS
 from app.services.url_guard import validate_target_url
 from app.services.vulnerable_ai import VULNERABLE_LEVELS, chat_with_vulnerable_ai
 
@@ -39,6 +41,30 @@ async def list_builtin_targets():
             "name": info["name"],
             "description": info["description"],
             "protection": info["protection"],
+        })
+    return {"data": targets, "message": "ok"}
+
+
+@router.get("/mock", response_model=dict)
+async def list_mock_targets():
+    """Bundled mock targets (mock_targets/) at the address this backend reaches them.
+
+    Agent targets also name the sample adapter that unlocks their tool-log and
+    business-probe evidence; FinanceBot answers in plain text only.
+    """
+    sample_for = {spec.base_url_setting: key for key, spec in SAMPLE_ADAPTERS.items()}
+    targets = []
+    for key, setting in (
+        ("financebot", "mock_financebot_url"),
+        ("shopbot", "mock_shopbot_url"),
+        ("mailbot", "mock_mailbot_url"),
+    ):
+        base_url = getattr(settings, setting)
+        targets.append({
+            "key": key,
+            "base_url": base_url,
+            "chat_url": f"{base_url}/chat",
+            "sample_adapter": sample_for.get(setting),
         })
     return {"data": targets, "message": "ok"}
 

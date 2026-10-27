@@ -64,6 +64,8 @@ class TestAutoTestPlanEndpoint:
         assert data["scan_config"]["target_type"] == "builtin_vulnerable"
         assert data["scan_config"]["target_url"] == "builtin"
         assert data["scan_config"]["advanced"]["quartet_mode"] == "full"
+        assert data["scan_config"]["advanced"]["retest_arm"] == "B"
+        assert data["scan_config"]["advanced"]["max_retest_rounds"] == data["plan"]["max_retest_rounds"] == 1
 
     async def test_adapter_scan_draft_requires_adapter_id(self, client: AsyncClient) -> None:
         resp = await client.post("/api/v1/autotest/draft", json={

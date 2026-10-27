@@ -312,6 +312,23 @@ class AdapterResponse(AdapterBase):
     model_config = {"from_attributes": True}
 
 
+class SampleAdapterResponse(BaseModel):
+    """A built-in sample adapter and whether it has been imported yet."""
+
+    key: str
+    name: str
+    description: str | None = None
+    base_url: str
+    has_probe: bool
+    installed_adapter_id: str | None = None
+    installed_enabled: bool | None = None
+
+
+class SampleAdapterInstallResponse(BaseModel):
+    adapter: AdapterResponse
+    created: bool
+
+
 class AdapterTestStep(BaseModel):
     name: str
     ok: bool

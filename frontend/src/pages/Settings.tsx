@@ -25,6 +25,7 @@ interface SettingsData {
 }
 
 function ActiveConfigCard({ settings }: { settings: SettingsData }) {
+  const { t } = useLocale();
   const [providers, setProviders] = useState<ModelProvider[]>([]);
 
   useEffect(() => {
@@ -59,7 +60,7 @@ function ActiveConfigCard({ settings }: { settings: SettingsData }) {
       <div className="flex items-center gap-2">
         <Info className="w-5 h-5 text-blue-500" />
         <h2 className="text-lg font-semibold text-gray-900">当前生效配置</h2>
-        <span className="text-xs text-gray-400 ml-auto">API: {envBase}</span>
+        <span className="text-xs text-gray-400 ml-auto">{t("settings.apiEndpoint")}: {envBase}</span>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -357,7 +358,7 @@ function ModelProvidersCard() {
                   {p.api_key_count > 0 && (
                     <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-semibold shrink-0">
                       <Key className="w-2.5 h-2.5" />
-                      {p.api_key_count} {p.api_key_count === 1 ? "key" : "keys"}
+                      {t("settings.keyCount", { n: p.api_key_count })}
                     </span>
                   )}
                 </div>
@@ -455,7 +456,7 @@ function ModelProvidersCard() {
                   <label className="block text-xs text-gray-600 font-medium">{t("modelProviders.apiKey")}</label>
                   <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] font-semibold">
                     <Key className="w-2.5 h-2.5" />
-                    {form.apiKeys.filter((e) => e.key.trim() || e.maskedKey).length} keys
+                    {t("settings.keyCount", { n: form.apiKeys.filter((e) => e.key.trim() || e.maskedKey).length })}
                   </span>
                 </div>
                 <button
@@ -599,7 +600,7 @@ export function Settings() {
   useEffect(() => {
     request<{ data: SettingsData }>("/settings")
       .then((res) => setSettings(res.data))
-      .catch((err) => toast("error", `Failed to load settings: ${err.message}`));
+      .catch((err) => toast("error", `${t("settings.failedToLoad")}: ${err.message}`));
   }, []);
 
   if (!settings) return <div className="text-center text-gray-500 py-12">{t("common.loading")}</div>;

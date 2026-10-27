@@ -4,6 +4,7 @@ import { listScans } from "../api/scans";
 import { compareScans, type CompareResult } from "../api/stats";
 import { useToast } from "../components/Toast";
 import { useLocale } from "../i18n";
+import { formatDate } from "../utils/format";
 import type { ScanTask } from "../types";
 
 export function Compare() {
@@ -21,6 +22,12 @@ export function Compare() {
       .catch(() => {});
   }, []);
 
+  function scanOptionLabel(scan: ScanTask): string {
+    const name = scan.name.trim() || t("compare.unnamedScan", { date: formatDate(scan.created_at) });
+    const score = scan.overall_score == null ? t("report.unableToScore") : String(scan.overall_score);
+    return t("compare.scanOption", { name, score });
+  }
+
   async function handleCompare() {
     if (!scanA || !scanB || scanA === scanB) {
       toast("warning", t("compare.selectTwoDifferent"));
@@ -31,7 +38,7 @@ export function Compare() {
       const data = await compareScans(scanA, scanB);
       setResult(data);
     } catch (err) {
-      toast("error", `Compare failed: ${err instanceof Error ? err.message : err}`);
+      toast("error", `${t("compare.failed")}: ${err instanceof Error ? err.message : err}`);
     } finally {
       setLoading(false);
     }
@@ -56,7 +63,7 @@ export function Compare() {
               <option value="">{t("compare.selectScan")}</option>
               {scans.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name} (Posture: {s.overall_score})
+                  {scanOptionLabel(s)}
                 </option>
               ))}
             </select>
@@ -74,7 +81,7 @@ export function Compare() {
               <option value="">{t("compare.selectScan")}</option>
               {scans.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name} (Posture: {s.overall_score})
+                  {scanOptionLabel(s)}
                 </option>
               ))}
             </select>

@@ -3,7 +3,7 @@
 
 # Evidence-Ladder
 
-### 面向大模型应用的多源证据分层安全评测框架
+### 大模型应用多源证据分层安全评测平台
 ### Multi-Source Evidence-Stratified Evaluation for LLM Application Security
 
 *多源证据分层（E0–E5）与冲突驱动补测：把 judge 降为一层证据，而不是唯一裁判。*  

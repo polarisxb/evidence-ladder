@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { Home, Plus, Layers, MessageSquare, GitCompare, Settings, Info, PlugZap, FlaskConical, Globe, BrainCircuit } from "lucide-react";
 import { useLocale } from "../../i18n";
+import { APP_VERSION_LABEL } from "../../appInfo";
 
 export function Sidebar() {
   const { t, locale, setLocale } = useLocale();
@@ -44,7 +45,8 @@ export function Sidebar() {
             Ladder
           </span>
         </div>
-        <span className="text-[9px] text-gray-400 font-medium tracking-[0.25em] uppercase">E0–E5 Evidence Ladder</span>
+        <span className="text-[10px] text-gray-500 font-medium leading-snug text-balance">{t("app.fullName")}</span>
+        <span className="text-[9px] text-gray-400 font-medium tracking-[0.2em]">{APP_VERSION_LABEL} · E0–E5</span>
       </div>
 
       <nav className="flex-1 space-y-0.5">

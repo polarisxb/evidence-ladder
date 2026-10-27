@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { Shield, CheckCircle, XCircle, Minus } from "lucide-react";
 import { getComplianceScore, type ComplianceData } from "../api/stats";
+import { useLocale } from "../i18n";
+import { owaspItemLabel } from "../utils/labels";
 
 interface Props {
   scanId: string;
 }
 
 export function CompliancePanel({ scanId }: Props) {
+  const { t } = useLocale();
   const [data, setData] = useState<ComplianceData | null>(null);
 
   useEffect(() => {
@@ -21,13 +24,16 @@ export function CompliancePanel({ scanId }: Props) {
         <CoverageCard
           label="OWASP LLM Top 10"
           value={data.owasp_coverage}
-          subtitle={`${data.owasp_results.filter((r) => r.tested).length} of ${data.owasp_results.filter((r) => r.testable).length} testable items covered`}
+          subtitle={t("compliance.owaspCovered", {
+            tested: data.owasp_results.filter((r) => r.tested).length,
+            testable: data.owasp_results.filter((r) => r.testable).length,
+          })}
           color="indigo"
         />
         <CoverageCard
           label="MITRE ATLAS"
           value={data.atlas_coverage}
-          subtitle={`${data.tested_atlas_ids.length} techniques covered`}
+          subtitle={t("compliance.atlasCovered", { n: data.tested_atlas_ids.length })}
           color="cyan"
         />
       </div>
@@ -36,35 +42,35 @@ export function CompliancePanel({ scanId }: Props) {
         {data.owasp_results.map((item) => (
           <div key={item.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
             <span className="text-xs font-mono text-gray-500 w-14">{item.id}</span>
-            <span className="text-sm text-gray-700 flex-1">{item.name}</span>
+            <span className="text-sm text-gray-700 flex-1">{owaspItemLabel(t, item.id, item.name)}</span>
             {!item.testable ? (
               <span className="flex items-center gap-1 text-xs text-gray-500">
                 <Minus className="w-3 h-3" />
-                N/A
+                {t("compliance.notApplicable")}
               </span>
             ) : !item.tested ? (
               <span className="flex items-center gap-1 text-xs text-gray-500">
                 <Minus className="w-3 h-3" />
-                Not tested
+                {t("compliance.notTested")}
               </span>
             ) : item.score == null ? (
               <span className="flex items-center gap-1 text-xs text-slate-500">
                 <Minus className="w-3 h-3" />
-                Unable to assess
+                {t("compliance.unableToAssess")}
               </span>
             ) : item.failed === 0 ? (
               <span className="flex items-center gap-1 text-xs text-green-400">
                 <CheckCircle className="w-3 h-3" />
-                {item.score}% pass rate
+                {t("compliance.passRate", { score: item.score })}
               </span>
             ) : (
               <span className="flex items-center gap-1 text-xs text-red-400">
                 <XCircle className="w-3 h-3" />
-                {item.failed} finding, {item.score}% pass rate
+                {t("compliance.findingsPassRate", { failed: item.failed, score: item.score })}
               </span>
             )}
             {(item.not_evaluable ?? 0) > 0 && (
-              <span className="text-xs text-amber-700">{item.not_evaluable} not evaluable</span>
+              <span className="text-xs text-amber-700">{t("compliance.notEvaluable", { n: item.not_evaluable ?? 0 })}</span>
             )}
           </div>
         ))}

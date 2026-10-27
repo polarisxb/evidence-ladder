@@ -19,6 +19,8 @@ export interface ScanTask {
   health_failure_reason?: string | null;
   recent_health_signature?: string | null;
   invalid_response_ratio?: number | null;
+  /** Pending/running only: false means no backend runner is executing this scan. */
+  runner_active?: boolean | null;
 }
 
 export type TargetHealth = "healthy" | "degraded" | "unhealthy";
@@ -67,7 +69,14 @@ export interface AdvancedConfig {
   health_window_size?: number;
   health_invalid_threshold?: number;
   health_signature_streak?: number;
+  health_unhealthy_streak?: number;
+  health_recovery_streak?: number;
+  /** In-scan conflict-driven retest: A records conflict lineage only, B runs the retest loop. */
+  retest_arm?: RetestArm | null;
+  max_retest_rounds?: number | null;
 }
+
+export type RetestArm = "A" | "B";
 
 export interface ScanConfig {
   name: string;
@@ -347,6 +356,32 @@ export interface Adapter {
   enabled: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export type SampleAdapterKey = "mailbot" | "shopbot";
+
+/** A built-in sample adapter for a bundled agent mock target. */
+export interface SampleAdapter {
+  key: SampleAdapterKey;
+  name: string;
+  description?: string | null;
+  base_url: string;
+  has_probe: boolean;
+  installed_adapter_id: string | null;
+  installed_enabled: boolean | null;
+}
+
+export interface SampleAdapterInstallResult {
+  adapter: Adapter;
+  created: boolean;
+}
+
+/** A bundled mock target at the address the backend reaches it. */
+export interface MockTarget {
+  key: "financebot" | "shopbot" | "mailbot";
+  base_url: string;
+  chat_url: string;
+  sample_adapter: SampleAdapterKey | null;
 }
 
 export interface AdapterConfig {
@@ -793,6 +828,8 @@ export interface SecurityReport {
   medium_findings: AttackResult[];
   low_findings: AttackResult[];
   recommendations: string[];
+  /** Stable codes for `recommendations`, same order; the UI translates by code. */
+  recommendation_codes?: string[];
 }
 
 export interface ScanEvent {

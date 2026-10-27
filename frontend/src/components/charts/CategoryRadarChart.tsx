@@ -1,5 +1,7 @@
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from "recharts";
 import type { CategoryScore } from "../../types";
+import { useLocale } from "../../i18n";
+import { categoryLabel } from "../../utils/labels";
 import {
   CHART_AXIS_LABEL_FILL,
   CHART_GRID_STROKE,
@@ -12,17 +14,18 @@ interface Props {
 }
 
 export function CategoryRadarChart({ scores }: Props) {
+  const { t } = useLocale();
   const evaluableScores = scores.filter((score) => score.pass_rate != null);
   if (evaluableScores.length < 2) {
     return (
       <div className="h-72 flex items-center justify-center text-gray-500 text-sm">
-        Need at least 2 evaluable categories for radar chart
+        {t("charts.radarNeedsTwo")}
       </div>
     );
   }
 
   const data = evaluableScores.map((cs) => ({
-    category: cs.category_name,
+    category: categoryLabel(t, cs.category, cs.category_name),
     score: cs.pass_rate,
     fullMark: 100,
   }));
@@ -35,7 +38,7 @@ export function CategoryRadarChart({ scores }: Props) {
         <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: CHART_AXIS_LABEL_FILL, fontSize: 10 }} />
         <Tooltip contentStyle={chartTooltipContentStyle} />
         <Radar
-          name="Category Pass Rate"
+          name={t("charts.categoryPassRate")}
           dataKey="score"
           stroke="#818cf8"
           fill="#818cf8"

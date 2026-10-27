@@ -97,6 +97,29 @@ class AdvancedConfig(BaseModel):
     pair_max_rounds: int = Field(20, ge=3, le=20)
     self_explanation_rounds: int = Field(5, ge=2, le=10)
     mutation_strategies: list[str] = Field(default_factory=list)
+    # Target-health tracker overrides read by scan_runner._new_scan_health_tracker.
+    # Unset falls back to the runner defaults (window 10, invalid 8, signature 5,
+    # unhealthy 20, recovery 3).
+    health_window_size: int | None = Field(None, ge=2, le=100)
+    health_invalid_threshold: int | None = Field(None, ge=1, le=100)
+    health_signature_streak: int | None = Field(None, ge=1, le=100)
+    health_unhealthy_streak: int | None = Field(None, ge=1, le=200)
+    health_recovery_streak: int | None = Field(None, ge=1, le=100)
+    # In-scan conflict-driven retest, read by retest_orchestrator.resolve_retest_arm.
+    # A = record each case's conflict lineage without retesting (judge-only
+    # baseline); B = run the conflict-type -> retest-action loop. Unset = off.
+    retest_arm: Literal["A", "B"] | None = None
+    max_retest_rounds: int | None = Field(None, ge=1, le=5)
+
+    @model_validator(mode="after")
+    def _check_health_window(self):
+        if (
+            self.health_window_size is not None
+            and self.health_invalid_threshold is not None
+            and self.health_invalid_threshold > self.health_window_size
+        ):
+            raise ValueError("health_invalid_threshold cannot exceed health_window_size")
+        return self
 
 
 class ScanCreate(BaseModel):
@@ -155,6 +178,9 @@ class ScanResponse(BaseModel):
     generation_provider_id: str | None = None
     generation_model: str | None = None
     advanced_config: dict | None = None
+    # Only set for pending/running scans: False means no runner in this process
+    # is executing the scan (e.g. the backend restarted), so it will not finish.
+    runner_active: bool | None = None
 
     model_config = {"from_attributes": True}
 

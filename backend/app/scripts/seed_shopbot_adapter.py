@@ -1,4 +1,4 @@
-"""Seed (or update) the ``shopbot-agent`` adapter from its JSON fixture.
+"""Seed (or reset) the ``shopbot-agent`` adapter from its JSON fixture.
 
 The adapter wires the Evidence-Ladder platform to the ShopBot function-calling
 agent so a privilege-escalation scan can light up E4 (tool logs observed via
@@ -8,76 +8,52 @@ agent so a privilege-escalation scan can light up E4 (tool logs observed via
 Usage::
 
     cd backend && python -m app.scripts.seed_shopbot_adapter
+    # the base URL defaults to MOCK_SHOPBOT_URL (http://localhost:8002; Docker
+    # Compose sets http://shopbot:8002). Point it elsewhere with --base-url.
 
-The operation is idempotent: an existing adapter with the same ``name`` is
-updated in place; otherwise a new row is created.
+The Adapters page imports the same definition ("示例适配器") but never touches an
+existing adapter; this script resets an existing ``shopbot-agent`` to the
+fixture, or creates it.
 """
 
 from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 from pathlib import Path
 
-from sqlalchemy import select
-
 from app.database import async_session, init_db
-from app.models import Adapter
-from app.schemas.adapter import AdapterCreate
+from app.services.sample_adapters import SAMPLE_ADAPTERS, load_adapter_definition, upsert_adapter
 
-DEFAULT_FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "shopbot_agent_adapter.json"
-
-
-def _adapter_payload(body: AdapterCreate) -> dict:
-    data = body.model_dump(exclude_none=True)
-    for key in ("auth_config", "session_config", "invoke_config", "response_extract", "probe_config"):
-        value = getattr(body, key, None)
-        if value is not None and hasattr(value, "model_dump"):
-            data[key] = value.model_dump(exclude_none=True)
-    return data
+SPEC = SAMPLE_ADAPTERS["shopbot"]
+DEFAULT_FIXTURE = SPEC.fixture_path
 
 
-def load_adapter_definition(fixture_path: Path) -> AdapterCreate:
-    raw = json.loads(fixture_path.read_text(encoding="utf-8"))
-    return AdapterCreate.model_validate(raw)
-
-
-async def seed_adapter(fixture_path: Path) -> str:
-    definition = load_adapter_definition(fixture_path)
-    payload = _adapter_payload(definition)
+async def seed_adapter(fixture_path: Path, base_url: str | None = None) -> str:
+    definition = load_adapter_definition(fixture_path, base_url=base_url or SPEC.configured_base_url())
 
     await init_db()
     async with async_session() as session:
-        existing = (
-            await session.execute(select(Adapter).where(Adapter.name == definition.name))
-        ).scalar_one_or_none()
-
-        if existing is None:
-            adapter = Adapter(**payload)
-            session.add(adapter)
-            action = "created"
-        else:
-            for key, value in payload.items():
-                setattr(existing, key, value)
-            adapter = existing
-            action = "updated"
-
-        await session.commit()
-        await session.refresh(adapter)
-        print(f"shopbot-agent adapter {action}: id={adapter.id}")
-        return adapter.id
+        adapter, created = await upsert_adapter(session, definition, overwrite=True)
+    print(f"shopbot-agent adapter {'created' if created else 'updated'}: id={adapter.id}")
+    return adapter.id
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Seed the shopbot-agent adapter.")
     parser.add_argument("--fixture", type=Path, default=DEFAULT_FIXTURE)
+    parser.add_argument(
+        "--base-url",
+        type=str,
+        default=None,
+        help="Override the ShopBot base URL (default: MOCK_SHOPBOT_URL).",
+    )
     return parser
 
 
 def main() -> None:
     args = build_parser().parse_args()
-    asyncio.run(seed_adapter(args.fixture))
+    asyncio.run(seed_adapter(args.fixture, base_url=args.base_url))
 
 
 if __name__ == "__main__":

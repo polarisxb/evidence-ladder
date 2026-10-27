@@ -51,3 +51,20 @@ it("shows cancellation immediately even while the API still returns running", as
   expect(screen.getByText("scanProgress.scanEndedEarly")).toBeInTheDocument();
   expect(screen.getByText("2/4 scanProgress.cases")).toBeInTheDocument();
 });
+
+it("tells the user a pending scan with no runner has been interrupted", async () => {
+  vi.mocked(getScan).mockResolvedValue({
+    id: "fixture", status: "pending", total_attacks: 0, completed_attacks: 0, runner_active: false,
+    created_at: "2026-01-01T00:00:00Z", target_type: "builtin_vulnerable", target_url: "https://orphan.example.com",
+  } as ScanTask);
+  vi.mocked(useWebSocket).mockReturnValue({ connected: false, events: [] });
+  render(<MemoryRouter initialEntries={["/scan/fixture"]}>
+    <Routes><Route path="/scan/:taskId" element={<ScanProgress />} /></Routes>
+  </MemoryRouter>);
+
+  await screen.findByText("https://orphan.example.com");
+  expect(screen.getByText("scanProgress.interrupted")).toBeInTheDocument();
+  expect(screen.getByText("scanProgress.interruptedHint")).toBeInTheDocument();
+  expect(screen.queryByText("scanProgress.scanning")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "scanProgress.cancelScan" })).toBeInTheDocument();
+});

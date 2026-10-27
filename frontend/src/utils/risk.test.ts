@@ -28,11 +28,18 @@ describe("scoreToRisk", () => {
 });
 
 describe("riskLabel", () => {
-  it("returns the upper-cased label for each level", () => {
-    expect(riskLabel("critical")).toBe("CRITICAL");
-    expect(riskLabel("high")).toBe("HIGH");
-    expect(riskLabel("medium")).toBe("MEDIUM");
-    expect(riskLabel("low")).toBe("LOW");
-    expect(riskLabel("none")).toBe("SAFE");
+  const zhRisk: Record<string, string> = {
+    "labels.risk.critical": "严重", "labels.risk.high": "高危", "labels.risk.medium": "中危",
+    "labels.risk.low": "低危", "labels.risk.none": "无风险", "labels.risk.unknown": "未知",
+  };
+  const t = (key: string) => zhRisk[key] ?? key;
+
+  it("returns the localized label for each level", () => {
+    expect(riskLabel("critical", t)).toBe("严重");
+    expect(riskLabel("high", t)).toBe("高危");
+    expect(riskLabel("medium", t)).toBe("中危");
+    expect(riskLabel("low", t)).toBe("低危");
+    expect(riskLabel("none", t)).toBe("无风险");
+    expect(riskLabel("unknown", t)).toBe("未知");
   });
 });
