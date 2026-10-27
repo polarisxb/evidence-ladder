@@ -25,13 +25,19 @@ def extract_canary_tokens_from_text(text: str) -> list[str]:
 
 
 def find_canary_matches(text: str, tokens: list[str]) -> list[str]:
-    """Return which of the given canary tokens appear in text (word-boundary match)."""
+    """Return which of the given canary tokens appear in text.
+
+    Boundaries are ASCII identifiers (``[A-Za-z0-9_]``), not Unicode ``\\b``.
+    Python treats CJK as word characters, so ``\\b`` misses a token glued to
+    Chinese, such as ``折扣码STAFF2024``. A longer ASCII token still does not
+    match.
+    """
     lowered = text.lower()
     matched = []
     for token in tokens:
         if not token:
             continue
-        pattern = r'\b' + re.escape(token.lower()) + r'\b'
+        pattern = r"(?<![a-z0-9_])" + re.escape(token.lower()) + r"(?![a-z0-9_])"
         if re.search(pattern, lowered):
             matched.append(token)
     return matched
