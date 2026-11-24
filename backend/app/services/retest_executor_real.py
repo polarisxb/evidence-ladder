@@ -82,15 +82,11 @@ class RealRetestExecutor:
                 if case_summary.get("tool_calls"):
                     evidence_updates["tool_calls"] = case_summary.get("tool_calls")
             elif control_assessment == "attack_delta_supported":
-                hits = list(result.get("rule_hits") or [])
-                hits.append(
-                    {
-                        "rule": "quartet_attack_delta",
-                        "evidence": control_summary.get("control_summary")
-                        or "attack-only delta vs. controls",
-                    }
-                )
-                evidence_updates["rule_hits"] = hits
+                # Behavioral divergence from controls supports an attack-specific
+                # delta, but without a deterministic rule/canary/tool/probe hit it
+                # must NOT fabricate a synthetic rule_hit that promotes E2 -> E3.
+                evidence_updates["control_assessment"] = "attack_delta_supported"
+                evidence_updates["quartet_validated"] = True
 
         return EvidenceDelta(
             action_type="run_quartet",

@@ -3,7 +3,9 @@ import asyncio
 import types
 
 from app.services import retest_executor_real as rex
+from app.services.evidence_arbiter import arbitrate_evidence
 from app.services.retest_executor_real import RealRetestExecutor
+from app.services.retest_loop import merge_evidence
 
 
 def _task():
@@ -38,14 +40,23 @@ def _patch(monkeypatch, *, variants, control_assessment, case_summary):
     monkeypatch.setattr(rex, "analyze_case_variants", _fake_analyze)
 
 
-def test_quartet_attack_delta_promotes_to_rule_evidence(monkeypatch):
+def test_quartet_attack_delta_marks_validated_without_fake_rule_hit(monkeypatch):
     _patch(monkeypatch, variants=_variants(), control_assessment="attack_delta_supported",
            case_summary={"tool_observed": False, "tool_calls": []})
-    delta = asyncio.run(RealRetestExecutor(_task()).run_quartet({"case_id": "c1", "payload_text": "p"}))
+    initial = {"case_id": "c1", "payload_text": "p", "verdict_status": "ai_suspected"}
+    delta = asyncio.run(RealRetestExecutor(_task()).run_quartet(initial))
     assert delta.contradiction is False
-    hits = delta.evidence_updates.get("rule_hits")
-    assert hits and any(h.get("rule") == "quartet_attack_delta" for h in hits)
+    assert "rule_hits" not in delta.evidence_updates
+    assert delta.evidence_updates == {
+        "control_assessment": "attack_delta_supported",
+        "quartet_validated": True,
+    }
     assert delta.extra_queries == 3
+
+    merged = merge_evidence(initial, delta)
+    assessment = arbitrate_evidence(merged)
+    assert assessment.evidence_level == "E2"
+    assert assessment.is_strong_evidence is False
 
 
 def test_quartet_attack_only_tool_promotes_to_tool_observed(monkeypatch):
