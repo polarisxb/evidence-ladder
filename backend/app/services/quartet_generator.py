@@ -33,7 +33,10 @@ def generate_quartet(
     if not attack_payload or not attack_payload.strip():
         raise ValueError("attack_payload must be non-empty")
 
-    template_like: dict = {"category": category}
+    template_like: dict = {
+        "category": category,
+        "payload_language": payload_language,
+    }
     control_prompts = build_control_variant_prompts(template_like, attack_payload)
     by_variant = {entry["variant"]: entry["prompt"] for entry in control_prompts}
 

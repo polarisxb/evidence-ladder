@@ -148,3 +148,31 @@ def test_text_claim_with_failed_probe_is_not_upgraded() -> None:
     assert assessment.evidence_level == "E1"
     assert assessment.evidence_label == "text_claim_only"
     assert "text_claim_probe_failed" in assessment.conflict_types
+
+
+def test_synthetic_quartet_delta_rule_hit_does_not_promote_e2_to_e3() -> None:
+    for synthetic_rule in ("quartet_attack_delta", "quartet_delta"):
+        assessment = arbitrate_evidence({
+            "verdict_status": "ai_suspected",
+            "rule_hits": [{"rule": synthetic_rule, "evidence": "behavioral delta"}],
+            "quartet_validated": True,
+            "control_assessment": "attack_delta_supported",
+        })
+        assert assessment.evidence_level == "E2"
+        assert assessment.evidence_label == "judge_suspected"
+        assert assessment.is_strong_evidence is False
+        assert "rule" not in assessment.evidence_sources
+
+
+def test_multichannel_evidence_preserves_all_corroborated_sources() -> None:
+    assessment = arbitrate_evidence({
+        "verdict_status": "ai_suspected",
+        "business_verification_status": "probe_verified",
+        "tool_observed": True,
+        "rule_hits": [{"rule": "system_prompt_overlap", "evidence": "hidden policy"}],
+    })
+
+    assert assessment.evidence_level == "E5"
+    assert assessment.evidence_label == "probe_verified"
+    assert assessment.is_strong_evidence is True
+    assert {"probe", "tool_log", "rule", "judge"}.issubset(set(assessment.evidence_sources))

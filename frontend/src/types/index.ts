@@ -138,6 +138,7 @@ export interface AutoTestMetrics {
   evaluable_results: number;
   evaluable_attack_results: number;
   evaluable_clean_results: number;
+  evaluable_distractor_results?: number;
   not_evaluable_count: number;
   not_evaluable_rate: number | null;
   raw_asr: number | null;
