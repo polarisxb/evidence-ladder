@@ -270,7 +270,7 @@ async def batch_delete_scans(
             )
         )
         task = result.scalar_one_or_none()
-        if task and task.status != "running":
+        if task and task.status != "running" and not is_scan_runner_active(task.id):
             await db.delete(task)
             deleted += 1
     await db.commit()
@@ -328,6 +328,14 @@ async def delete_scan(task_id: str, db: AsyncSession = Depends(get_db)):
         raise AppException(404, "Scan task not found")
     if task.status == "running":
         raise AppException(400, "Cannot delete a running scan. Cancel it first.")
+    if is_scan_runner_active(task_id):
+        # Cancel marks the row at once but attacks already in flight keep
+        # running; deleting now would race with their writes.
+        raise AppException(
+            409,
+            "Scan is still stopping: attacks already in flight are finishing. "
+            "Try again in a few seconds.",
+        )
     await db.delete(task)
     await db.commit()
     return {"data": {"task_id": task_id}, "message": "Scan deleted"}
