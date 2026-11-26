@@ -580,6 +580,14 @@ def _is_vuln_case(case_attempt: dict) -> bool:
     return is_confirmed_finding(case_attempt)
 
 
+class ScanNoLongerActive(Exception):
+    """A case finished after its scan was cancelled, finalized or deleted."""
+
+    def __init__(self, task_id: str) -> None:
+        super().__init__(f"scan {task_id} is no longer active; its late result was discarded")
+        self.task_id = task_id
+
+
 async def _persist_and_count(
     task_id: str,
     task,
@@ -594,22 +602,37 @@ async def _persist_and_count(
     the increment so callers can broadcast accurate progress without holding a
     shared DB session.
 
+    Raises ``ScanNoLongerActive`` and writes nothing when the scan row is gone
+    or no longer pending/running. Cancelling only signals the runner, so
+    attacks already in flight finish afterwards; without this guard they
+    persisted rows for a cancelled scan, and for a deleted one, orphan rows
+    that SQLite (no foreign-key enforcement) kept counting in the dashboard.
+    The guarded counter update runs first so that it opens the write
+    transaction: no other connection can delete the scan between this check
+    and the commit.
+
     Uses _db_write_lock to serialize SQLite writes and avoid 'database is locked'.
     """
     async with _get_db_write_lock():
         async with async_session() as local_db:
             try:
-                await _persist_case_with_legacy_result(
-                    local_db, task, tpl, case_attempt, auto_commit=False, **persist_kwargs,
-                )
                 vuln_delta = 1 if _is_vuln_case(case_attempt) else 0
-                await local_db.execute(
+                counted = await local_db.execute(
                     update(ScanTask)
-                    .where(ScanTask.id == task_id)
+                    .where(ScanTask.id == task_id, ScanTask.status.in_(ACTIVE_SCAN_STATUSES))
                     .values(
                         completed_attacks=ScanTask.completed_attacks + 1,
                         vulnerabilities_found=ScanTask.vulnerabilities_found + vuln_delta,
                     )
+                    .execution_options(synchronize_session=False)
+                )
+                if counted.rowcount != 1:
+                    # Stop the rest of the scan too: its status may have been
+                    # changed without signalling the runner (finalize-stuck).
+                    signal_scan_stop(task_id)
+                    raise ScanNoLongerActive(task_id)
+                await _persist_case_with_legacy_result(
+                    local_db, task, tpl, case_attempt, auto_commit=False, **persist_kwargs,
                 )
                 await local_db.commit()
             except Exception:
